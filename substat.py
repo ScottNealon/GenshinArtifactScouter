@@ -7,7 +7,6 @@ class Substat:
         self.stat = stat
         self.value = value
 
-
     @property
     def stat(self):
         return self._stat
@@ -17,7 +16,6 @@ class Substat:
         if stat not in self._substat_names:
             raise ValueError('Invalid substat type.')
         self._stat = stat
-
 
     @property
     def value(self):

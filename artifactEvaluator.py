@@ -12,7 +12,7 @@ if __name__ == '__main__':
     flower_substat_1 = sub.Substat('DEF', 37)
     flower_substat_2 = sub.Substat('Crit DMG%', 7.8)
     flower_substat_3 = sub.Substat('Crit Rate%', 10.9)
-    flower_substat_4 = sub.Substat('ATK', 33) 
+    flower_substat_4 = sub.Substat('ATK', 33)
 
     plume_substat_1 = sub.Substat('Crit DMG%', 19.4)
     plume_substat_2 = sub.Substat('Crit Rate%', 10.1)
@@ -23,12 +23,12 @@ if __name__ == '__main__':
     sands_substat_2 = sub.Substat('Crit DMG%', 28.0)
     sands_substat_3 = sub.Substat('Elemental Mastery', 68)
     sands_substat_4 = sub.Substat('HP%', 4.7)
-    
+
     goblet_substat_1 = sub.Substat('ATK', 64)
     goblet_substat_2 = sub.Substat('Elemental Mastery', 42)
     goblet_substat_3 = sub.Substat('Crit DMG%', 6.2)
     goblet_substat_4 = sub.Substat('DEF%', 7.3)
-    
+
     circlet_substat_1 = sub.Substat('HP', 269)
     circlet_substat_2 = sub.Substat('Crit DMG%', 28.8)
     circlet_substat_3 = sub.Substat('HP%', 5.3)

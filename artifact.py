@@ -5,8 +5,8 @@ import substat
 
 class Artifact:
 
-    _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%', 'Elemental DMG%', 'DMG%',
-                   'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
+    _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
+                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
     _max_level_by_stars = [-1, 4, 4, 12, 16, 20]
     _main_stat_scaling = {
         1: {
@@ -80,10 +80,8 @@ class Artifact:
             'Healing Bonus%':    [5.4, 	6.9, 	8.4, 	10.0, 	11.5, 	13.0, 	14.5, 	16.1, 	17.6, 	19.1, 	20.6, 	22.2, 	23.7, 	25.2, 	26.7, 	28.3, 	29.8, 	31.3, 	32.8, 	34.4, 	35.9],
         },
     }
-    _valid_sets = ['initiate', 'adventurer', 'lucky', 'doctor', 'resolution', 'miracle', 'berserker', 'instructor',
-     'exile', 'defenders', 'brave', 'martial', 'gambler', 'scholar', 'illumination', 'destiny', 'wisdom', 'springtime',
-      'gladiators', 'wanderers', 'thundersoother', 'thundering', 'maiden', 'viridescent', 'witch', 'lavawalker',
-      'noblesse', 'chivalry', 'petra', 'bolide', 'blizard', 'depth', 'millelith', 'pale', 'fate', 'reminiscnece']
+    _valid_sets = ['initiate', 'adventurer', 'lucky', 'doctor', 'resolution', 'miracle', 'berserker', 'instructor', 'exile', 'defenders', 'brave', 'martial', 'gambler', 'scholar', 'illumination', 'destiny', 'wisdom', 'springtime',
+                   'gladiators', 'wanderers', 'thundersoother', 'thundering', 'maiden', 'viridescent', 'witch', 'lavawalker', 'noblesse', 'chivalry', 'petra', 'bolide', 'blizard', 'depth', 'millelith', 'pale', 'fate', 'reminiscnece']
 
     # To be overwritten by inherited types
     _main_stats = []
@@ -110,7 +108,6 @@ class Artifact:
             raise ValueError('Invalid set.')
         else:
             self._set = set
-    
 
     @property
     def stars(self):
@@ -123,7 +120,6 @@ class Artifact:
         else:
             self._stars = stars
 
-
     @property
     def main_stat(self):
         return self._main_stat
@@ -134,7 +130,6 @@ class Artifact:
             raise ValueError('Invalid main stat.')
         else:
             self._main_stat = main_stat
-
 
     @property
     def level(self):
@@ -150,7 +145,6 @@ class Artifact:
         else:
             self._level = level
 
-
     @property
     def substats(self):
         return self._substats
@@ -161,7 +155,6 @@ class Artifact:
             raise ValueError('Invalid number of substats.')
         else:
             self._substats = substats
-
 
     @property
     def stats(self):

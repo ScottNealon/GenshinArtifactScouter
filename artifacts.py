@@ -5,8 +5,8 @@ import artifact as art
 
 class Artifacts:
 
-    _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%', 'Elemental DMG%', 'DMG%',
-                   'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
+    _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
+                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
     _set_stats = {
         'initiate':       [{}, {}],
         'adventurer':     [{'HP': 1000}, {}],
@@ -44,7 +44,7 @@ class Artifacts:
         'pale':           [{'Physical DMG%': 25.0}, {'ATK%': 18.0, 'Physical DMG%': 15.0}],
         'fate':           [{'Energy Recharge%': 20.0}, {}],
         'reminiscnece':   [{'ATK%': 18.0}, {'DMG%': 50.0}]
-        }  
+    }
 
     def __init__(self, flower: art.Flower, plume: art.Plume, sands: art.Sands, goblet: art.Goblet, circlet: art.Circlet):
 
@@ -57,7 +57,6 @@ class Artifacts:
 
         self._update_stats = True
 
-
     @property
     def flower(self):
         return self._flower
@@ -66,7 +65,6 @@ class Artifacts:
     def flower(self, flower: art.Flower):
         self._flower = flower
         self._update_stats = True
-
 
     @property
     def plume(self):
@@ -77,7 +75,6 @@ class Artifacts:
         self._plume = plume
         self._update_stats = True
 
-
     @property
     def sands(self):
         return self._sands
@@ -86,7 +83,6 @@ class Artifacts:
     def sands(self, sands: art.Sands):
         self._sands = sands
         self._update_stats = True
-
 
     @property
     def goblet(self):
@@ -97,7 +93,6 @@ class Artifacts:
         self._goblet = goblet
         self._update_stats = True
 
-
     @property
     def circlet(self):
         return self._circlet
@@ -107,12 +102,11 @@ class Artifacts:
         self._circlet = circlet
         self._update_stats = True
 
-
     @property
     def artifact_list(self):
         return [self.flower, self.plume, self.sands, self.goblet, self.circlet]
 
-    def get_artifact(self, slot_type: type=None, slot_str: str=None):
+    def get_artifact(self, slot_type: type = None, slot_str: str = None):
         if slot_type is art.Flower or slot_str == 'flower':
             return self.flower
         elif slot_type is art.Plume or slot_str == 'plume':
@@ -147,7 +141,7 @@ class Artifacts:
             for artifact in self.artifact_list:
                 if artifact is not None:
                     self._stats += artifact.stats
-                    sets[artifact.set] = sets.get(artifact.set, 0) + 1 # Count the number of artifacts for each set
+                    sets[artifact.set] = sets.get(artifact.set, 0) + 1
             # Set stats
             for set, count in sets.items():
                 if count >= 2:

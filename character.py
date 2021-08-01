@@ -6,12 +6,15 @@ import artifact as art
 import artifacts as arts
 import weapon as weap
 
+
 class Character:
 
-    _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%', 'Elemental DMG%', 'DMG%',
-                   'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
+    _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
+                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
 
-    def __init__(self, name: str, level: int, baseHP: int, baseATK: int, baseDEF: int, ascension_stat: str, ascension_stat_value: float, passive: dict[str], dmg_type: str, weapon: weap.Weapon, artifacts: arts.Artifacts = None, scaling_stat: str = None, crits: str = None, amplifying_reaction: str = None, reaction_percentage: float = None):
+    def __init__(self, name: str, level: int, baseHP: int, baseATK: int, baseDEF: int, ascension_stat: str, ascension_stat_value: float, passive: dict[str],
+                 dmg_type: str, weapon: weap.Weapon, artifacts: arts.Artifacts = None, scaling_stat: str = None, crits: str = None, amplifying_reaction: str = None,
+                 reaction_percentage: float = None):
 
         # Undefaulted inputs
         self.name = name
@@ -67,7 +70,6 @@ class Character:
     def name(self, name: str):
         self._name = name
 
-
     @property
     def weapon(self):
         return self._weapon
@@ -76,7 +78,6 @@ class Character:
     def weapon(self, weapon: weap.Weapon):
         self._weapon = weapon
         self._update_stats = True
-
 
     @property
     def level(self):
@@ -88,7 +89,6 @@ class Character:
             raise ValueError('Invalid character level')
         else:
             self._level = level
-
 
     @property
     def ascension_stat(self):
@@ -102,7 +102,6 @@ class Character:
             self._ascension_stat = ascension_stat
             self._update_stats = True
 
-
     @property
     def ascension_stat_value(self):
         return self._ascension_stat_value
@@ -114,7 +113,6 @@ class Character:
         else:
             self._ascension_stat_value = ascension_stat_value
             self._update_stats = True
-
 
     @property
     def passive(self):
@@ -130,7 +128,6 @@ class Character:
         self._passive = passive
         self._update_stats = True
 
-
     @property
     def crits(self):
         return self._crits
@@ -142,7 +139,6 @@ class Character:
         else:
             self._crits = crits
             self._update_power = True
-
 
     @property
     def scaling_stat(self):
@@ -156,7 +152,6 @@ class Character:
             self._scaling_stat = scaling_stat
             self._update_power = True
 
-
     @property
     def dmg_type(self):
         return self._dmg_type
@@ -168,7 +163,6 @@ class Character:
         else:
             self._dmg_type = dmg_type
             self._update_power = True
-
 
     @property
     def amplifying_reaction(self):
@@ -190,7 +184,6 @@ class Character:
                 self._amplification_factor = 1.5
             self._update_power = True
 
-
     @property
     def reaction_percentage(self):
         return self._reaction_percentage
@@ -203,7 +196,6 @@ class Character:
             self._reaction_percentage = reaction_percentage
             self._update_power = True
 
-
     @property
     def artifacts(self):
         return self._artifacts
@@ -213,7 +205,6 @@ class Character:
         self._artifacts = artifacts
         self._update_stats = True
 
-
     @property
     def artifact(self, slot):
         return self._artifacts[slot]
@@ -222,7 +213,6 @@ class Character:
     def artifact(self,  artifacts: art.Artifact):
         self._artifacts.set_artifact(artifacts)
         self._update_stats = True
-
 
     @property
     def stats(self):
@@ -240,7 +230,8 @@ class Character:
     def power(self):
         if self._update_power:
             # ATK, DEF, or HP scaling
-            scaling_stat_value = self.stats['Base ' + self.scaling_stat] * (1 + self.stats[self.scaling_stat + '%']/100) + self.stats[self.scaling_stat]
+            scaling_stat_value = self.stats['Base ' + self.scaling_stat] * (
+                1 + self.stats[self.scaling_stat + '%']/100) + self.stats[self.scaling_stat]
 
             # Crit scaling
             if self.crits == 'never':
@@ -248,21 +239,27 @@ class Character:
             elif self.crits == 'always':
                 crit_stat_value = 1 + self.stats['Crit DMG%']/100
             elif self.crits == 'average':
-                crit_stat_value = 1 + min(1, self.stats['Crit Rate%']/100) * self.stats['Crit DMG%']/100
+                crit_stat_value = 1 + \
+                    min(1, self.stats['Crit Rate%']/100) * \
+                    self.stats['Crit DMG%']/100
 
             # Damage or healing scaling
             if self.dmg_type == 'Physical':
-                dmg_stat_value = 1 + self.stats['Physical DMG%']/100 + self.stats['DMG%']/100
+                dmg_stat_value = 1 + \
+                    self.stats['Physical DMG%']/100 + self.stats['DMG%']/100
             elif self.dmg_type == 'Elemental':
-                dmg_stat_value = 1 + self.stats['Elemental DMG%']/100 + self.stats['DMG%']/100
+                dmg_stat_value = 1 + \
+                    self.stats['Elemental DMG%']/100 + self.stats['DMG%']/100
             elif self.dmg_type == 'Healing':
                 dmg_stat_value = 1 + self.stats['Healing Bonus%']/100
 
             # Elemental Master scaling
-            em_stat_value = 1 + self.reaction_percentage * (self._amplification_factor * (1+ 2.78 * self.stats['Elemental Mastery'] / (self.stats['Elemental Mastery'] + 1400)) - 1)
-            
+            em_stat_value = 1 + self.reaction_percentage * (self._amplification_factor * (
+                1 + 2.78 * self.stats['Elemental Mastery'] / (self.stats['Elemental Mastery'] + 1400)) - 1)
+
             # Power
             self._power = scaling_stat_value * crit_stat_value * dmg_stat_value * em_stat_value
+            self._update_power = False
 
         return self._power
 
