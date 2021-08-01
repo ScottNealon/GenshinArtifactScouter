@@ -1,6 +1,7 @@
-import pandas as pd
+import copy
+import math
 
-import substat
+import pandas as pd
 
 
 class Artifact:
@@ -80,6 +81,78 @@ class Artifact:
             'Healing Bonus%':    [5.4, 	6.9, 	8.4, 	10.0, 	11.5, 	13.0, 	14.5, 	16.1, 	17.6, 	19.1, 	20.6, 	22.2, 	23.7, 	25.2, 	26.7, 	28.3, 	29.8, 	31.3, 	32.8, 	34.4, 	35.9],
         },
     }
+    _substat_roll_values = {
+        'HP': {
+            1: [23.90, 29.88],
+            2: [50.19, 60.95, 71.70],
+            3: [100.38, 114.72, 129.06, 143.40],
+            4: [167.30, 191.20, 215.10, 239.00],
+            5: [209.13, 239.00, 269.88, 299.75]
+        },
+        'ATK': {
+            1: [1.56, 1.95],
+            2: [3.27, 3.97, 4.67],
+            3: [6.54, 7.47, 8.40, 9.34],
+            4: [10.89, 12.45, 14.00, 15.56],
+            5: [13.62, 15.56, 17.51, 19.45]
+        },
+        'DEF': {
+            1: [1.85, 2.31],
+            2: [3.89, 4.72, 5.56],
+            3: [7.78, 8.89, 10.00, 11.11],
+            4: [12.96, 14.82, 16.67, 18.52],
+            5: [16.20, 18.52, 20.83, 23.15]
+        },
+        'HP%': {
+            1: [1.17, 1.46],
+            2: [1.63, 1.98, 2.33],
+            3: [2.45, 2.80, 3.15, 3.50],
+            4: [3.26, 3.73, 4.20, 4.66],
+            5: [4.08, 4.66, 5.25, 5.83]
+        },
+        'ATK%': {
+            1: [1.17, 1.46],
+            2: [1.63, 1.98, 2.33],
+            3: [2.45, 2.80, 3.15, 3.50],
+            4: [3.26, 3.73, 4.20, 4.66],
+            5: [4.08, 4.66, 5.25, 5.83]
+        },
+        'DEF%': {
+            1: [1.46, 1.82],
+            2: [2.04, 2.48, 2.91],
+            3: [3.06, 3.50, 3.93, 4.37],
+            4: [4.08, 4.66, 5.25, 5.83],
+            5: [5.10, 5.83, 6.56, 7.29]
+        },
+        'Elemental Mastery': {
+            1: [4.66, 5.83],
+            2: [6.53, 7.93, 9.33],
+            3: [9.79, 11.19, 12.59, 13.99],
+            4: [13.06, 14.92, 16.79, 18.56],
+            5: [16.32, 18.65, 20.98, 23.31]
+        },
+        'Energy Recharge%': {
+            1: [1.30, 1.62],
+            2: [1.81, 2.20, 2.59, ],
+            3: [2.72, 3.11, 3.50, 3.89],
+            4: [3.63, 4.14, 4.66, 5.18],
+            5: [4.53, 5.18, 5.83, 6.48]
+        },
+        'Crit Rate%': {
+            1: [0.78, 0.97],
+            2: [1.09, 1.32, 1.55],
+            3: [1.63, 1.86, 2.10, 2.33],
+            4: [2.18, 2.49, 2.80, 3.11],
+            5: [2.72, 3.11, 3.50, 3.89]
+        },
+        'Crit DMG%':  {
+            1: [1.55, 1.94],
+            2: [2.18, 2.64, 3.11],
+            3: [3.26, 3.73, 4.20, 4.66],
+            4: [4.35, 4.97, 5.60, 6.22],
+            5: [5.44, 6.22, 6.99, 7.77]
+        }
+    }
     _valid_sets = ['initiate', 'adventurer', 'lucky', 'doctor', 'resolution', 'miracle', 'berserker', 'instructor', 'exile', 'defenders', 'brave', 'martial', 'gambler', 'scholar', 'illumination', 'destiny', 'wisdom', 'springtime',
                    'gladiators', 'wanderers', 'thundersoother', 'thundering', 'maiden', 'viridescent', 'witch', 'lavawalker', 'noblesse', 'chivalry', 'petra', 'bolide', 'blizard', 'depth', 'millelith', 'pale', 'fate', 'reminiscnece']
 
@@ -87,7 +160,7 @@ class Artifact:
     _main_stats = []
     _slot = ''
 
-    def __init__(self, set: str, main_stat: str, stars: int, level: int, substats: list[substat.Substat]):
+    def __init__(self, set: str, main_stat: str, stars: int, level: int, substats: dict[str]):
 
         # Validated inputs
         self.set = set
@@ -95,8 +168,6 @@ class Artifact:
         self.main_stat = main_stat
         self.level = level
         self.substats = substats
-
-        self._update_stats = True
 
     @property
     def set(self):
@@ -106,8 +177,7 @@ class Artifact:
     def set(self, set: str):
         if set not in self._valid_sets:
             raise ValueError('Invalid set.')
-        else:
-            self._set = set
+        self._set = set
 
     @property
     def stars(self):
@@ -117,8 +187,11 @@ class Artifact:
     def stars(self, stars: int):
         if stars < 1 or stars > 5:
             raise ValueError('Invalid artifact number of stars.')
-        else:
-            self._stars = stars
+        if hasattr(self, 'stars'):
+            if self.stars is not None:
+                raise ValueError(
+                    'TODO: I do not curerntly have implemented a method for updating substats/level nicely if you update stars.')
+        self._stars = stars
 
     @property
     def main_stat(self):
@@ -128,8 +201,7 @@ class Artifact:
     def main_stat(self, main_stat):
         if main_stat not in self._main_stats:
             raise ValueError('Invalid main stat.')
-        else:
-            self._main_stat = main_stat
+        self._main_stat = main_stat
 
     @property
     def level(self):
@@ -137,37 +209,74 @@ class Artifact:
 
     @level.setter
     def level(self, level: int):
-        if level < 1:
-            raise ValueError('Invalid artifact level: Must be greater than 0.')
+        if level < 0:
+            raise ValueError('Invalid artifact level: Must be positive.')
         elif level > self._max_level_by_stars[self.stars]:
             raise ValueError(
                 f'Invalid artifact level: {self.stars}-star artifacts must be less than or equal to level {level}.')
-        else:
-            self._level = level
+        elif hasattr(self, 'substats'):
+            if self.stars + math.floor(level / 4) - 1 < len(self.substats):
+                raise ValueError(
+                    f'Cannot lower level below {self.stars + math.floor(level / 4) - 1} while there are {len(self.substats)} substats.')
+        self._level = level
 
     @property
     def substats(self):
         return self._substats
 
     @substats.setter
-    def substats(self, substats: list[substat.Substat]):
+    def substats(self, substats: dict[str]):
         if len(substats) > 4:
-            raise ValueError('Invalid number of substats.')
-        else:
-            self._substats = substats
+            raise ValueError(
+                'Invalid number of substats: cannot have more than 4 substats')
+        elif len(substats) > self.stars + math.floor(self.level / 4) - 1:
+            raise ValueError(
+                'Invalid number of substats: cannot have more substats than limited by stars and level')
+        self._substats = copy.deepcopy(substats)
+
+    def add_substat(self, stat: str, value: float):
+        if stat not in self._substat_roll_values:
+            raise ValueError('Invalid stat name.')
+        elif stat in self.substats:
+            raise ValueError(
+                'Cannot add substat that already exists on artifact.')
+        elif len(self.substats) >= 4:
+            raise ValueError('Cannot have more than 4 substats.')
+        self._substats[stat] = value
+
+    def increase_substat(self, stat: str, value: int):
+        if stat not in self._substat_roll_values:
+            raise ValueError('Invalid substat name.')
+        elif stat not in self.substats:
+            raise ValueError('Substat does not exist on artifact.')
+        self._substats[stat] += value
+
+    def roll_substat(self, stat: str, roll: int):
+        if stat not in self._substat_roll_values:
+            raise ValueError('Invalid substat name.')
+        elif stat not in self.substats.keys():
+            raise ValueError('Substat does not exist on artifact.')
+        self._substats[stat] += self._substat_roll_values[stat][self.stars][roll]
+
+    # TODO: Have this return the set of rolls that were used to generate self.value.
+    # @property
+    # def rolls(self):
+    #     return None
 
     @property
     def stats(self):
-        if self._update_stats:
-            self._stats = pd.Series(0.0, index=self._stat_names)
-            # Main stat
-            self._stats[self._main_stat] += self._main_stat_scaling[self._stars][self._main_stat][self._level]
-            # Substats
-            for substat in self._substats:
-                self._stats[substat.stat] += substat.value
-            self._update_stats = False
 
+        self._stats = pd.Series(0.0, index=self._stat_names)
+        # Main stat
+        self._stats[self._main_stat] += self._main_stat_scaling[self._stars][self._main_stat][self._level]
+        # Substats
+        for substat, value in self.substats.items():
+            self._stats[substat] += value
         return self._stats
+
+    @property
+    def slot(self):
+        return self._slot
 
 
 class Flower(Artifact):

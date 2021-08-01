@@ -32,7 +32,6 @@ class Weapon:
             raise ValueError('Invalid character level')
         else:
             self._level = level
-            self._update_stats = True
 
     @property
     def baseATK(self):
@@ -44,7 +43,6 @@ class Weapon:
             raise ValueError('Invalid base attack.')
         else:
             self._baseATK = baseATK
-            self._update_stats = True
 
     @property
     def ascension_stat(self):
@@ -56,7 +54,6 @@ class Weapon:
             raise ValueError('Invalid ascension stat.')
         else:
             self._ascension_stat = ascension_stat
-            self._update_stats = True
 
     @property
     def ascension_stat_value(self):
@@ -68,7 +65,6 @@ class Weapon:
             raise ValueError('Invalid ascension stat value.')
         else:
             self._ascension_stat_value = ascension_stat_value
-            self._update_stats = True
 
     @property
     def passive(self):
@@ -85,12 +81,9 @@ class Weapon:
 
     @property
     def stats(self):
-        if self._update_stats:
-            self._stats = pd.Series(0.0, index=self._stat_names)
-            self._stats['Base ATK'] += self.baseATK
-            self._stats[self.ascension_stat] += self.ascension_stat_value
-            for key, value in self.passive.items():
-                self._stats[key] += value
-            self._update_stats = False
-
+        self._stats = pd.Series(0.0, index=self._stat_names)
+        self._stats['Base ATK'] += self.baseATK
+        self._stats[self.ascension_stat] += self.ascension_stat_value
+        for key, value in self.passive.items():
+            self._stats[key] += value
         return self._stats

@@ -1,3 +1,5 @@
+from typing import Union
+
 import pandas as pd
 
 import artifact as art
@@ -55,8 +57,6 @@ class Artifacts:
         self.goblet = goblet
         self.circlet = circlet
 
-        self._update_stats = True
-
     @property
     def flower(self):
         return self._flower
@@ -64,7 +64,6 @@ class Artifacts:
     @flower.setter
     def flower(self, flower: art.Flower):
         self._flower = flower
-        self._update_stats = True
 
     @property
     def plume(self):
@@ -73,7 +72,6 @@ class Artifacts:
     @plume.setter
     def plume(self, plume: art.Plume):
         self._plume = plume
-        self._update_stats = True
 
     @property
     def sands(self):
@@ -82,7 +80,6 @@ class Artifacts:
     @sands.setter
     def sands(self, sands: art.Sands):
         self._sands = sands
-        self._update_stats = True
 
     @property
     def goblet(self):
@@ -91,7 +88,6 @@ class Artifacts:
     @goblet.setter
     def goblet(self, goblet: art.Goblet):
         self._goblet = goblet
-        self._update_stats = True
 
     @property
     def circlet(self):
@@ -100,22 +96,21 @@ class Artifacts:
     @circlet.setter
     def circlet(self, circlet: art.Circlet):
         self._circlet = circlet
-        self._update_stats = True
 
     @property
     def artifact_list(self):
         return [self.flower, self.plume, self.sands, self.goblet, self.circlet]
 
-    def get_artifact(self, slot_type: type = None, slot_str: str = None):
-        if slot_type is art.Flower or slot_str == 'flower':
+    def get_artifact(self, slot: Union[art.Artifact, str]):
+        if slot is art.Flower or slot == 'flower':
             return self.flower
-        elif slot_type is art.Plume or slot_str == 'plume':
+        elif slot is art.Plume or slot == 'plume':
             return self.plume
-        elif slot_type is art.Sands or slot_str == 'sands':
+        elif slot is art.Sands or slot == 'sands':
             return self.sands
-        elif slot_type is art.Goblet or slot_str == 'goblet':
+        elif slot is art.Goblet or slot == 'goblet':
             return self.goblet
-        elif slot_type is art.Circlet or slot_str == 'circlet':
+        elif slot is art.Circlet or slot == 'circlet':
             return self.circlet
 
     def set_artifact(self, artifact: art.Artifact):
@@ -134,22 +129,20 @@ class Artifacts:
 
     @property
     def stats(self):
-        if self._update_stats:
-            self._stats = pd.Series(0.0, index=self._stat_names)
-            sets = {}
-            # Artifact stats
-            for artifact in self.artifact_list:
-                if artifact is not None:
-                    self._stats += artifact.stats
-                    sets[artifact.set] = sets.get(artifact.set, 0) + 1
-            # Set stats
-            for set, count in sets.items():
-                if count >= 2:
-                    for stat, value in self._set_stats[set][0].items():
-                        self._stats[stat] += value
-                if count >= 4:
-                    for stat, value in self._set_stats[set][1].items():
-                        self._stas[stat] += value
-            self._update_stats = False
+        self._stats = pd.Series(0.0, index=self._stat_names)
+        sets = {}
+        # Artifact stats
+        for artifact in self.artifact_list:
+            if artifact is not None:
+                self._stats += artifact.stats
+                sets[artifact.set] = sets.get(artifact.set, 0) + 1
+        # Set stats
+        for set, count in sets.items():
+            if count >= 2:
+                for stat, value in self._set_stats[set][0].items():
+                    self._stats[stat] += value
+            if count >= 4:
+                for stat, value in self._set_stats[set][1].items():
+                    self._stas[stat] += value
 
         return self._stats
