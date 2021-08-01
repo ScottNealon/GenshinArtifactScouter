@@ -1,7 +1,5 @@
-import numpy as np
 import pandas as pd
 
-import substat as sub
 import artifact as art
 import artifacts as arts
 import weapon as weap
