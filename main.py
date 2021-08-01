@@ -9,6 +9,7 @@ import artifacts as arts
 import weapon as weap
 import character as char
 import artifactEvaluator
+import evaluate as eval
     
 if __name__ == '__main__':
 
@@ -80,14 +81,14 @@ if __name__ == '__main__':
 
     flower =  art.Flower( set='witch',      main_stat='HP',              stars=5, level=20, substats=flower_substats)
     # plume =   art.Plume(  set='gladiators', main_stat='ATK',             stars=5, level=20, substats=[plume_substat_1, plume_substat_2, plume_substat_3, plume_substat_4])
-    plume =   art.Plume(  set='gladiators', main_stat='ATK',             stars=5, level= 4, substats=plume_substats)
+    plume =   art.Plume(  set='gladiators', main_stat='ATK',             stars=5, level= 0, substats=plume_substats)
     sands =   art.Sands(  set='noblesse',   main_stat='ATK%',            stars=5, level=20, substats=sands_substats)
     goblet =  art.Goblet( set='gladiators', main_stat='Elemental DMG%',  stars=5, level=20, substats=goblet_substats)
     circlet = art.Circlet(set='witch',      main_stat='Crit Rate%',      stars=5, level=20, substats=circlet_substats)
 
     artifacts = arts.Artifacts(flower, plume, sands, goblet, circlet)
 
-    weapon = weap.Weapon(
+    dodoco_tales = weap.Weapon(
         name='Dodoco Tales',
         level=90,
         baseATK=454,
@@ -111,13 +112,15 @@ if __name__ == '__main__':
         dmg_type='Elemental',
         amplifying_reaction='Reverse Vaporize',
         reaction_percentage=0.5,
-        weapon=weapon,
-        artifacts=artifacts)
+        #weapon=weapon,
+        #artifacts=artifacts
+        )
 
-    print(klee.stats)
-    print(klee.power)
+    print(klee.base_stats)
+    base_power = eval.evaluate_power(character=klee, weapon=dodoco_tales, artifacts=artifacts)
+    print(base_power)
 
-    roll_combinations = artifactEvaluator.evaluate_artifact(character=klee, artifact=klee.artifacts.get_artifact(art.Plume), target_level=16)
+    roll_combinations = artifactEvaluator.evaluate_artifact(character=klee, weapon=dodoco_tales, artifacts=artifacts, artifact=plume, target_level=16)
 
     power = [ind['power'] for ind in roll_combinations]
 

@@ -5,7 +5,10 @@ from numpy.core.numeric import roll
 import pandas as pd
 
 import artifact as art
+import artifacts as arts
 import character as char
+import evaluate as eval
+import weapon as weap
 
 _valid_main_stats = ['HP', 'ATK', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%', 'Elemental DMG%',
                     'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
@@ -149,7 +152,7 @@ _substat_rarity = {
     }
 }
 
-def evaluate_artifact(character: char.Character, artifact: art.Artifact, target_level: int):
+def evaluate_artifact(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts, artifact: art.Artifact, target_level: int):
 
     # Validate inputs
     if target_level < artifact.level:
@@ -167,21 +170,25 @@ def evaluate_artifact(character: char.Character, artifact: art.Artifact, target_
         previous_generation[0]['substats'][substat] = []
     roll_combinations = make_children(character=character, artifact=artifact, previous_generation=previous_generation, remaining_unlocks=remaining_unlocks, remaining_increases=remaining_increases, target_level=target_level)
 
+    # List of other artifacts that are not of the same type as primary artifact
+    other_artifacts_list = [other_artifact for other_artifact in artifacts.get_artifacts() if type(other_artifact) != type(artifact)]
+
     # Simulate artifacts
-
     for roll_combination in roll_combinations:
+        # Create new artifact
         artifact_slot = type(artifact)
-        pseduo_artifact = artifact_slot(set=artifact.set, main_stat=artifact.main_stat, stars=artifact.stars, level=target_level, substats=copy.copy(artifact.substats))
-        #copy.deepcopy(artifact)
-        #pseduo_artifact.level = target_level
-
+        substats = copy.deepcopy(artifact.substats)
+        pseduo_artifact = artifact_slot(set=artifact.set, main_stat=artifact.main_stat, stars=artifact.stars, level=target_level, substats=substats)
+        # Update substats
         for substat, substat_rolls in roll_combination['substats'].items():
             if substat not in pseduo_artifact.substats.keys():
                 pseduo_artifact.add_substat(substat, 0)
             for roll in substat_rolls:
                 pseduo_artifact.roll_substat(substat, roll)
-        character.set_artifact(pseduo_artifact)
-        power = character.power
+        # Create new artifact collection
+        pseduo_artifacts = arts.Artifacts(pseduo_artifact, *other_artifacts_list)
+        # Calculate power
+        power = eval.evaluate_power(character=character, weapon=weapon, artifacts=pseduo_artifacts)
         roll_combination['power'] = power
 
     return roll_combinations
@@ -191,6 +198,9 @@ def make_children(character: char.Character, artifact: art.Artifact, previous_ge
 
     new_generation = {}
     if remaining_unlocks > 0:
+
+        # TODO: Instead of recursion, just do N choose M
+
         for previous_individual in previous_generation:
 
             # Generate list of possible substats
@@ -261,96 +271,6 @@ def make_children(character: char.Character, artifact: art.Artifact, previous_ge
     
     return next_generation
 
-
-# def make_children(character: char.Character, artifact: art.Artifact, remaining_unlocks: int, remaining_increases: int, target_level: int, probability: float = None) -> list[dict]:
-
-#     if probability is None:
-#         probability = 1
-
-#     children_artifacts = []
-
-#     if remaining_unlocks > 0:
-
-#         # Generate list of possible substats
-#         valid_substats = list(_substat_rarity[artifact.slot][artifact.main_stat].keys())
-#         for substat in artifact.substats:
-#             valid_substats.remove(substat.stat)
-
-#         # Consolodate substats
-#         valid_substats, simplified_substat_rarity, condensed_substat = _consolodate_substats(character=character, artifact=artifact, valid_substats=valid_substats)
-
-#         # Generate all possible children artifacts
-#         for substat in valid_substats:
-#             if substat == condensed_substat:
-#                 possible_substat_rolls = 1
-#             else:
-#                 possible_substat_rolls = min(1 + artifact.stars, 4)
-#             for substat_roll in range(possible_substat_rolls):
-#                 # Create new artifact
-#                 new_artifact = copy.copy(artifact)
-#                 new_artifact.level = 4 * math.ceil(new_artifact.level / 4 + 1e-6)
-#                 new_artifact.new_substat(substat, substat_roll)
-#                 # Determine probability of artifact
-#                 base_probability = 1
-#                 for old_substat in artifact.substats:
-#                     base_probability -= simplified_substat_rarity[old_substat.stat]
-#                 substat_roll_probability = (1/possible_substat_rolls) * simplified_substat_rarity[substat] / base_probability
-#                 new_probability = probability * substat_roll_probability
-#                 # Recursion
-#                 results = make_children(character=character, artifact=new_artifact, remaining_unlocks=remaining_unlocks - 1, remaining_increases=remaining_increases, target_level=target_level, probability=new_probability)
-#                 children_artifacts.extend(results)
-
-#     elif remaining_increases > 0:
-
-#         valid_substats = []
-#         for substat in artifact.substats:
-#             valid_substats.append(substat.stat)
-
-#         # Consolodate substats
-#         valid_substats, simplified_substat_rarity, condensed_substat = _consolodate_substats(character=character, artifact=artifact, valid_substats=valid_substats)
-
-#         substat_increases = {}
-#         for valid_substat in valid_substats:
-#             substat_increases[valid_substat] = []
-
-#         substat_increases = _all_substat_increases(substat_increases=substat_increases, artifact=artifact, remaining_increases=remaining_increases, probability=probability, simplified_substat_rarity=simplified_substat_rarity, condensed_substat=condensed_substat)
-
-#         for (ind, substat) in enumerate(artifact.substats):
-#             if substat == condensed_substat:
-#                 possible_substat_rolls = 1
-#             else:
-#                 possible_substat_rolls = min(1 + artifact.stars, 4)
-#             for substat_roll in range(possible_substat_rolls):
-#                 # Create new artifact
-#                 new_artifact = copy.copy(artifact)
-#                 new_artifact.level = 4 * math.ceil(new_artifact.level / 4 + 1e-6)
-#                 new_artifact.increase_substat(ind=ind, roll=substat_roll)
-#                 # Determine probability of artifact
-#                 substat_roll_probability = (1/possible_substat_rolls) * 0.25
-#                 new_probability = probability * substat_roll_probability
-#                 # Recursion
-#                 results = make_children(character=character, artifact=new_artifact, remaining_unlocks=remaining_unlocks, remaining_increases=remaining_increases - 1, target_level=target_level, probability=new_probability)
-#                 children_artifacts.extend(results)
-
-#     else:
-
-#         new_artifact = copy.copy(artifact)
-#         new_artifact.level = target_level
-
-#         # Calculate power
-#         character.artifact = new_artifact
-#         artifact_power = character.power
-
-#         # Return
-#         children_artifacts = [{
-#             'probability': probability,
-#             #'artifact': new_artifact
-#             'power': artifact_power
-#             }]
-        
-#     return children_artifacts
-
-
 def _consolodate_substats(character: char.Character, artifact: art.Artifact, valid_substats: list[str]):
 
     # Simplify list to consolidate unused stats
@@ -388,23 +308,3 @@ def _consolodate_substats(character: char.Character, artifact: art.Artifact, val
                 valid_substats.remove(simplified_substat)
 
     return valid_substats, simplified_substat_rarity, condensed_substat
-
-# def _all_substat_increases(substat_increases: dict[str], artifact: art.Artifact, remaining_increases: int, probability: int, simplified_substat_rarity: dict[str], condensed_substat: str) -> list[dict]:
-
-#     all_substat_increases = []
-
-#     if remaining_increases > 0:
-
-#         for substat in substat_increases:
-#             if substat == condensed_substat:
-#                 possible_substat_rolls = 1
-#             else:
-#                 possible_substat_rolls = min(1 + artifact.stars, 4)
-#             for substat_roll in range(possible_substat_rolls):
-#                 new_substat_increases = copy.copy(substat_increases)
-#                 new_substat_increases[substat].append(substat_roll)
-#                 new_probability = probability * simplified_substat_rarity[substat]
-#                 result = _all_substat_increases(substat_increases=new_substat_increases, artifact=artifact.stars, probability=new_probability, simplified_substat_rarity=simplified_substat_rarity, condensed_substat=condensed_substat)
-#                 all_substat_increases.extend(result)
-
-#     return all_substat_increases

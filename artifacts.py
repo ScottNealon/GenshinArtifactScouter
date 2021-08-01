@@ -48,14 +48,15 @@ class Artifacts:
         'reminiscnece':   [{'ATK%': 18.0}, {'DMG%': 50.0}]
     }
 
-    def __init__(self, flower: art.Flower, plume: art.Plume, sands: art.Sands, goblet: art.Goblet, circlet: art.Circlet):
+    def __init__(self, flower: art.Flower = None, plume: art.Plume = None, sands: art.Sands = None, goblet: art.Goblet = None, circlet: art.Circlet = None, *args):
 
-        # Validated inputs
-        self.flower = flower
-        self.plume = plume
-        self.sands = sands
-        self.goblet = goblet
-        self.circlet = circlet
+        self.set_artifact(flower, override=False)
+        self.set_artifact(plume, override=False)
+        self.set_artifact(sands, override=False)
+        self.set_artifact(goblet, override=False)
+        self.set_artifact(circlet, override=False)
+        for artifact in args:
+            self.set_artifact(artifact, override=False)
 
     @property
     def flower(self):
@@ -101,7 +102,12 @@ class Artifacts:
     def artifact_list(self):
         return [self.flower, self.plume, self.sands, self.goblet, self.circlet]
 
-    def get_artifact(self, slot: Union[art.Artifact, str]):
+    def get_artifact(self, slot: Union[art.Artifact, str, type]):
+
+        if type(slot) is str:
+            return getattr(self, slot) # self.flower / self.plume / ...
+        
+
         if slot is art.Flower or slot == 'flower':
             return self.flower
         elif slot is art.Plume or slot == 'plume':
@@ -113,17 +119,50 @@ class Artifacts:
         elif slot is art.Circlet or slot == 'circlet':
             return self.circlet
 
-    def set_artifact(self, artifact: art.Artifact):
-        if type(artifact) is art.Flower:
+    def get_artifacts(self):
+        return [self.flower, self.plume, self.sands, self.goblet, self.circlet]
+
+    def set_artifact(self, artifact: art.Artifact, override: bool = False):
+        slot = type(artifact)
+        if not override:
+            if self.has_artifact(slot):
+                raise ValueError('Artifact already exists. Override flag not provided.')
+        if slot is art.Flower:
             self.flower = artifact
-        elif type(artifact) is art.Plume:
+        elif slot is art.Plume:
             self.plume = artifact
-        elif type(artifact) is art.Sands:
+        elif slot is art.Sands:
             self.sands = artifact
-        elif type(artifact) is art.Goblet:
+        elif slot is art.Goblet:
             self.goblet = artifact
-        elif type(artifact) is art.Circlet:
+        elif slot is art.Circlet:
             self.circlet = artifact
+        else:
+            raise ValueError('Invalid slot type')
+
+    def has_artifact(self, slot: type):
+        if not issubclass(slot, art.Artifact):
+            raise ValueError('Invalid slot type.')
+        if slot is art.Flower:
+            if not hasattr(self, '_flower'):
+                return False
+            return self.flower is not None
+        elif slot is art.Plume:
+            if not hasattr(self, '_plume'):
+                return False
+            return self.plume is None
+        elif slot is art.Sands:
+            if not hasattr(self, '_sands'):
+                return False
+            return self.sands is None
+        elif slot is art.Goblet:
+            if not hasattr(self, '_goblet'):
+                return False
+            return self.goblet is None
+        elif slot is art.Circlet:
+            if not hasattr(self, '_circlet'):
+                return False
+            return self.circlet is None
         else:
             raise ValueError('Invalid slot type')
 
