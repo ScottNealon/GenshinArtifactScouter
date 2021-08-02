@@ -1,6 +1,4 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from numpy.core.numeric import roll
 import pandas as pd
 
 import artifact as art
@@ -94,9 +92,5 @@ if __name__ == '__main__':
     base_power = eval.evaluate_power(character=klee, weapon=dodoco_tales, artifacts=artifacts)
     print(base_power)
 
-    roll_combinations = pot.artifact_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, artifact=plume, target_level=20)
-
-    power = [ind['power'] for ind in roll_combinations]
-
-    plt.hist(power, bins=50)
-    plt.show()
+    artifact_potentials = pot.artifact_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, artifact=plume, target_level=20)
+    pot.graph_artifact_potential(artifact_potentials)

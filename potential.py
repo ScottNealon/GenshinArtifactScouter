@@ -1,9 +1,9 @@
 import copy
 import itertools
 import math
-from operator import sub
-from numpy.core.numeric import roll
 
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 import artifact as art
@@ -154,26 +154,26 @@ _substat_rarity = {
     }
 }
 
-def artifact_potential(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts, artifact: art.Artifact, target_level: int):
+def artifact_potential(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts, artifact: art.Artifact, target_level: int) -> list[dict]:
 
     # Validate inputs
     if target_level < artifact.level:
         raise ValueError('Target level cannot be less than artifact level')
 
     # Identify possible roll combinations
-    roll_combinations = make_children(character=character, artifact=artifact, target_level=target_level)
+    artifact_potentials = make_children(character=character, artifact=artifact, target_level=target_level)
 
     # List of other artifacts that are not of the same type as primary artifact
     other_artifacts_list = [other_artifact for other_artifact in artifacts.get_artifacts() if type(other_artifact) != type(artifact)]
 
     # Simulate artifacts
-    for roll_combination in roll_combinations:
+    for artifact_potential in artifact_potentials:
         # Create new artifact
         artifact_slot = type(artifact)
         substats = copy.deepcopy(artifact.substats)
         test_artifact = artifact_slot(set=artifact.set, main_stat=artifact.main_stat, stars=artifact.stars, level=target_level, substats=substats)
         # Update substats
-        for substat, substat_rolls in roll_combination['substats'].items():
+        for substat, substat_rolls in artifact_potential['substats'].items():
             if substat not in test_artifact.substats.keys():
                 test_artifact.add_substat(substat, 0)
             for roll in substat_rolls:
@@ -182,9 +182,9 @@ def artifact_potential(character: char.Character, weapon: weap.Weapon, artifacts
         test_artifacts = arts.Artifacts(test_artifact, *other_artifacts_list)
         # Calculate power
         power = eval.evaluate_power(character=character, weapon=weapon, artifacts=test_artifacts)
-        roll_combination['power'] = power
+        artifact_potential['power'] = power
 
-    return roll_combinations
+    return artifact_potentials
 
 def make_children(character: char.Character, artifact: art.Artifact, target_level: int):
     
@@ -361,3 +361,39 @@ def _consolodate_substats(character: char.Character, artifact: art.Artifact, val
                 valid_substats.remove(simplified_substat)
 
     return valid_substats, simplified_substat_rarity, condensed_substat
+
+def graph_artifact_potential(artifact_potentials: list[dict], nbins: int = 100):
+
+    artifact_potentials_df = pd.DataFrame(artifact_potentials)
+
+    min_power = artifact_potentials_df['power'].min()
+    max_power = artifact_potentials_df['power'].max()
+    bin_size = (max_power - min_power) / nbins
+
+    bins = pd.DataFrame([(
+        min_power + bin*bin_size,
+        min_power + (bin+1)*bin_size,
+        min_power + (bin+0.5)*bin_size,
+        np.nan
+        ) for bin in range(nbins)], columns=['bin bottom', 'bin top', 'bin mid', 'population'])
+
+    for ind, bin in bins.iterrows():
+        bins['population'][ind] = artifact_potentials_df[(artifact_potentials_df['power'] >= bin['bin bottom']) & (artifact_potentials_df['power'] < bin['bin top'])]['probability'].sum()
+
+    # Plot
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
+
+    ax1.bar(x=bins['bin bottom'], height=bins['population'], width=bin_size)
+    ax1.set_xlabel('Power')
+    ax1.set_ylabel('Probability')
+
+    ax2.plot(bins['bin mid'], bins['population'].cumsum(), color='r')
+    ax2.set_ylabel('Power Percentile')
+    ax2.set_ylim(0, 1)
+    ax2.set_yticks(np.arange(0, 1.1, 0.1))
+    ax2.grid(axis='both')
+
+    plt.show()
+    
+    a = 1
