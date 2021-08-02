@@ -3,7 +3,6 @@ import numpy as np
 from numpy.core.numeric import roll
 import pandas as pd
 
-# import substat as sub
 import artifact as art
 import artifacts as arts
 import weapon as weap
@@ -20,18 +19,18 @@ if __name__ == '__main__':
         'ATK': 33
     }
 
-    plume_substats = {
+    plume_substats_potential = {
         'ATK%': 4.1,
         'DEF%': 7.3,
         'HP%': 5.3
     }
 
-    # plume_substats = {
-    #     'Crit DMG%': 19.4,
-    #     'Crit Rate%': 10.1,
-    #     'ATK%': 4.1,
-    #     'DEF%': 10.9
-    # }
+    plume_substats = {
+        'Crit DMG%': 19.4,
+        'Crit Rate%': 10.1,
+        'ATK%': 4.1,
+        'DEF%': 10.9
+    }
 
     sands_substats = {
         'Energy Recharge%': 5.2,
@@ -54,34 +53,9 @@ if __name__ == '__main__':
         'ATK': 29
     }
 
-    # flower_substat_1 = sub.Substat('DEF', 37)
-    # flower_substat_2 = sub.Substat('Crit DMG%', 7.8)
-    # flower_substat_3 = sub.Substat('Crit Rate%', 10.9)
-    # flower_substat_4 = sub.Substat('ATK', 33)
-
-    # plume_substat_1 = sub.Substat('Crit DMG%', 19.4)
-    # plume_substat_2 = sub.Substat('Crit Rate%', 10.1)
-    # plume_substat_3 = sub.Substat('ATK%', 4.1)
-    # plume_substat_4 = sub.Substat('DEF%', 10.9)
-
-    # sands_substat_1 = sub.Substat('Energy Recharge%', 5.2)
-    # sands_substat_2 = sub.Substat('Crit DMG%', 28.0)
-    # sands_substat_3 = sub.Substat('Elemental Mastery', 68)
-    # sands_substat_4 = sub.Substat('HP%', 4.7)
-
-    # goblet_substat_1 = sub.Substat('ATK', 64)
-    # goblet_substat_2 = sub.Substat('Elemental Mastery', 42)
-    # goblet_substat_3 = sub.Substat('Crit DMG%', 6.2)
-    # goblet_substat_4 = sub.Substat('DEF%', 7.3)
-
-    # circlet_substat_1 = sub.Substat('HP', 269)
-    # circlet_substat_2 = sub.Substat('Crit DMG%', 28.8)
-    # circlet_substat_3 = sub.Substat('HP%', 5.3)
-    # circlet_substat_4 = sub.Substat('ATK', 29)
-
     flower =  art.Flower( set='witch',      main_stat='HP',              stars=5, level=20, substats=flower_substats)
-    # plume =   art.Plume(  set='gladiators', main_stat='ATK',             stars=5, level=20, substats=[plume_substat_1, plume_substat_2, plume_substat_3, plume_substat_4])
-    plume =   art.Plume(  set='gladiators', main_stat='ATK',             stars=5, level= 0, substats=plume_substats)
+    # plume =   art.Plume(  set='gladiators', main_stat='ATK',             stars=5, level= 20, substats=plume_substats)
+    plume =   art.Plume(  set='gladiators', main_stat='ATK',             stars=5, level= 0, substats=plume_substats_potential)
     sands =   art.Sands(  set='noblesse',   main_stat='ATK%',            stars=5, level=20, substats=sands_substats)
     goblet =  art.Goblet( set='gladiators', main_stat='Elemental DMG%',  stars=5, level=20, substats=goblet_substats)
     circlet = art.Circlet(set='witch',      main_stat='Crit Rate%',      stars=5, level=20, substats=circlet_substats)
