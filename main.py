@@ -8,7 +8,7 @@ import artifact as art
 import artifacts as arts
 import weapon as weap
 import character as char
-import artifactEvaluator
+import potential as pot
 import evaluate as eval
     
 if __name__ == '__main__':
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     base_power = eval.evaluate_power(character=klee, weapon=dodoco_tales, artifacts=artifacts)
     print(base_power)
 
-    roll_combinations = artifactEvaluator.evaluate_artifact(character=klee, weapon=dodoco_tales, artifacts=artifacts, artifact=plume, target_level=16)
+    roll_combinations = pot.artifact_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, artifact=plume, target_level=20)
 
     power = [ind['power'] for ind in roll_combinations]
 
