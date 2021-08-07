@@ -101,28 +101,28 @@ if __name__ == '__main__':
 
     # Flower
     # TODO: Running this is impossible because the main stat doesn't exclude a scaling stat
-    # slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Flower, artifact_main_stat='HP', artifact_stars=5, target_level=20, source='domain', verbose=True)
+    # slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Flower, set=flower.set, main_stat='HP', stars=5, target_level=20, source='domain', verbose=True)
     # pot.graph_potential(slot_potentials_df, base_power=base_power, title='Potential of 5-star HP Flower on Klee')
     # del slot_potentials_df
 
     # Plume
-    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Plume, artifact_main_stat='ATK', artifact_stars=5, target_level=20, source='domain', verbose=True)
+    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Plume, set=plume.set, main_stat='ATK', stars=5, target_level=20, source='domain', verbose=True)
     pot.graph_potential(slot_potentials_df, base_power=base_power, title='Potential of 5-star ATK Plume on Klee')
     # TODO: This says my plume is 100th percentile. I'm not sure I believe it.
     # PROBLEM: Tested artifacts don't get Gladiator's Bonus
 
     # Sands
-    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Sands, artifact_main_stat='ATK%', artifact_stars=5, target_level=20, source='domain', verbose=True)
+    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Sands, set=sands.set, main_stat='ATK%', stars=5, target_level=20, source='domain', verbose=True)
     pot.graph_potential(slot_potentials_df, base_power=base_power, title='Potential of 5-star ATK% Sands on Klee')
 
     # Goblet
     # TODO: Running this is impossible because the main stat doesn't exclude a scaling sta
-    # slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Goblet, artifact_main_stat='Elemental DMG%', artifact_stars=5, target_level=20, source='domain', verbose=True)
+    # slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Goblet, set=goblet.set, main_stat='Elemental DMG%', stars=5, target_level=20, source='domain', verbose=True)
     # pot.graph_potential(slot_potentials_df, base_power=base_power, title='Potential of 5-star Elem DMG% Goblet on Klee')
     # del slot_potentials_df
 
     # Circlet
-    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Circlet, artifact_main_stat='Crit Rate%', artifact_stars=5, target_level=20, source='domain', verbose=True)
+    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Circlet, set=circlet.set, main_stat='Crit Rate%', stars=5, target_level=20, source='domain', verbose=True)
     pot.graph_potential(slot_potentials_df, base_power=base_power, title='Potential of 5-star Crit Rate% Circlet on Klee')
 
     a = 1

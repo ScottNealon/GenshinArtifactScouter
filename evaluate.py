@@ -9,16 +9,16 @@ import weapon as weap
 
 # TODO Move all these constants to a constant module
 _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
-                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
+                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%', 'probability']
 
 log = logging.getLogger(__name__)
 
 # TODO Use dimentionality to do all calculations simultaneously
 def evaluate_stats(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts, *args):
         stats = pd.Series(0.0, index=_stat_names)
-        stats += character.base_stats
-        stats += weapon.stats
-        stats += artifacts.stats
+        stats = stats + character.base_stats
+        stats = stats + weapon.stats
+        stats = stats + artifacts.stats
         for arg in args:
             stats = stats + arg
             #stats = args + stats # TODO: Fix why this doesn't work the opposite way
@@ -27,8 +27,8 @@ def evaluate_stats(character: char.Character, weapon: weap.Weapon, artifacts: ar
 def evaluate_power(character: char.Character, stats: pd.DataFrame = None, weapon: weap.Weapon = None, artifacts: arts.Artifacts = None, verbose: bool = False):
 
     if verbose:
-        log.info('-' * 80)
-        log.info('Evaluating Power...')
+        log.info('-' * 90)
+        log.info('Evaluating power...')
         log.info(f'Character: {character}')
         log.info(f'Weapon: {weapon}')
 
@@ -68,6 +68,6 @@ def evaluate_power(character: char.Character, stats: pd.DataFrame = None, weapon
 
     # Log
     if verbose:
-        log.info(f'Power: {power}')
+        log.info(f'Power: {power:,.2f}')
 
     return power

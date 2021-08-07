@@ -8,7 +8,7 @@ import artifact as art
 class Artifacts:
 
     _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
-                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
+                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%', 'probability']
     _set_stats = {
         'initiate':       [{}, {}],
         'adventurer':     [{'HP': 1000}, {}],
@@ -169,7 +169,9 @@ class Artifacts:
         # Artifact stats
         for artifact in self.artifact_list:
             if artifact is not None:
-                self._stats += artifact.stats
+                if (type(artifact.stats) is pd.DataFrame) and (type(self._stats) is pd.DataFrame):
+                    raise ValueError('Cannot have two probablistic artifacts.') # TODO
+                self._stats = self._stats + artifact.stats
                 sets[artifact.set] = sets.get(artifact.set, 0) + 1
         # Set stats
         for set, count in sets.items():

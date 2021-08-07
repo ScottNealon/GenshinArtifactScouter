@@ -8,7 +8,7 @@ import weapon as weap
 class Character:
 
     _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
-                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
+                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%', 'probability']
 
     def __init__(self, name: str, level: int, baseHP: int, baseATK: int, baseDEF: int, ascension_stat: str, ascension_stat_value: float, passive: dict[str],
                  dmg_type: str, scaling_stat: str = None, crits: str = None, amplifying_reaction: str = None, reaction_percentage: float = None):

@@ -1,5 +1,6 @@
 import copy
 import math
+from typing import Type, Union
 
 import numpy as np
 import pandas as pd
@@ -8,7 +9,7 @@ import pandas as pd
 class Artifact:
 
     _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
-                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
+                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%', 'probability']
     _max_level_by_stars = [np.nan, 4, 4, 12, 16, 20]
     _main_stat_scaling = {
         1: {
@@ -226,16 +227,24 @@ class Artifact:
         return self._substats
 
     @substats.setter
-    def substats(self, substats: dict[str]):
-        if len(substats) > 4:
-            raise ValueError(
-                'Invalid number of substats: cannot have more than 4 substats')
-        elif len(substats) > self.stars + math.floor(self.level / 4) - 1:
-            raise ValueError(
-                'Invalid number of substats: cannot have more substats than limited by stars and level')
-        self._substats = copy.deepcopy(substats)
+    def substats(self, substats: Union[dict[str], pd.DataFrame]):
+        if type(substats) is dict:
+            if len(substats) > 4:
+                raise ValueError(
+                    'Invalid number of substats: cannot have more than 4 substats')
+            elif len(substats) > self.stars + math.floor(self.level / 4) - 1:
+                raise ValueError(
+                    'Invalid number of substats: cannot have more substats than limited by stars and level')
+            self._substats = copy.deepcopy(substats)
+
+        elif type(substats) is pd.DataFrame:
+            self._substats = copy.deepcopy(substats)
+        else:
+            raise TypeError('Invalid substat type.')
 
     def add_substat(self, stat: str, value: float):
+        if type(self.substats) is pd.DataFrame:
+            raise ValueError('Changing substats of Dataframes not yet implemented.') # TODO
         if stat not in self._substat_roll_values:
             raise ValueError('Invalid stat name.')
         elif stat in self.substats:
@@ -246,6 +255,8 @@ class Artifact:
         self._substats[stat] = value
 
     def increase_substat(self, stat: str, value: int):
+        if type(self.substats) is pd.DataFrame:
+            raise ValueError('Changing substats of Dataframes not yet implemented.') # TODO
         if stat not in self._substat_roll_values:
             raise ValueError('Invalid substat name.')
         elif stat not in self.substats:
@@ -253,6 +264,8 @@ class Artifact:
         self._substats[stat] += value
 
     def roll_substat(self, stat: str, roll: int):
+        if type(self.substats) is pd.DataFrame:
+            raise ValueError('Changing substats of Dataframes not yet implemented.') # TODO
         if stat not in self._substat_roll_values:
             raise ValueError('Invalid substat name.')
         elif stat not in self.substats.keys():
@@ -266,13 +279,15 @@ class Artifact:
 
     @property
     def stats(self):
-
-        self._stats = pd.Series(0.0, index=self._stat_names)
+        # Substats
+        if type(self.substats) is pd.DataFrame:
+            self._stats = copy.copy(self.substats)
+        elif type(self.substats) is dict:
+            self._stats = pd.Series(0.0, index=self._stat_names)
+            for substat, value in self.substats.items():
+                self._stats[substat] += value
         # Main stat
         self._stats[self._main_stat] += self._main_stat_scaling[self._stars][self._main_stat][self._level]
-        # Substats
-        for substat, value in self.substats.items():
-            self._stats[substat] += value
         return self._stats
 
     @property
