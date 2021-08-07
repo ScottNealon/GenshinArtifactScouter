@@ -57,7 +57,6 @@ class Character:
     @name.setter
     def name(self, name: str):
         self._name = name
-        self._update_stats = True
 
     @property
     def level(self):
@@ -185,13 +184,14 @@ class Character:
         if amplifying_reaction is None:
             self._amplifying_reaction = amplifying_reaction
             self._amplification_factor = 0
-        if amplifying_reaction not in ['Vaporize', 'Reverse Vaporize', 'Melt', 'Reverse Melt']:
-            raise ValueError('Invalid amplification reaction')
-        self._amplifying_reaction = amplifying_reaction
-        if 'Reverse' not in amplifying_reaction:
-            self._amplification_factor = 2
         else:
-            self._amplification_factor = 1.5
+            if amplifying_reaction not in ['Vaporize', 'Reverse Vaporize', 'Melt', 'Reverse Melt', 'None']:
+                raise ValueError('Invalid amplification reaction')
+            self._amplifying_reaction = amplifying_reaction
+            if 'Reverse' not in amplifying_reaction:
+                self._amplification_factor = 2
+            else:
+                self._amplification_factor = 1.5
 
     @property
     def amplification_factor(self):
@@ -208,4 +208,4 @@ class Character:
         self._reaction_percentage = reaction_percentage
 
     def __str__(self):
-        return self._name
+        return f'{self.name}, Level: {self.level}'

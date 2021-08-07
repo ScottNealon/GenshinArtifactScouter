@@ -1,6 +1,7 @@
 import copy
 import math
 
+import numpy as np
 import pandas as pd
 
 
@@ -8,7 +9,7 @@ class Artifact:
 
     _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
                    'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
-    _max_level_by_stars = [-1, 4, 4, 12, 16, 20]
+    _max_level_by_stars = [np.nan, 4, 4, 12, 16, 20]
     _main_stat_scaling = {
         1: {
             'HP':                [129, 	178, 	227, 	275, 	324],
@@ -278,6 +279,20 @@ class Artifact:
     def slot(self):
         return self._slot
 
+    def to_string_table(self):
+        return_str = (
+            f'{self.slot.capitalize():>7s} '
+            f'{self.stars:>d}* '
+            f'{self.level:>2d}/{self._max_level_by_stars[self.stars]:>2d} '
+            f'{self.main_stat:>17s}: {self._main_stat_scaling[self._stars][self._main_stat][self._level]:>4}'
+        )
+        for possible_substat in self._substat_roll_values:
+            if possible_substat in self.substats:
+                return_str += f' {self.substats[possible_substat]:>4}'
+            else:
+                return_str += '     '
+
+        return return_str
 
 class Flower(Artifact):
 

@@ -48,14 +48,14 @@ class Artifacts:
         'reminiscnece':   [{'ATK%': 18.0}, {'DMG%': 50.0}]
     }
 
-    def __init__(self, flower: art.Flower = None, plume: art.Plume = None, sands: art.Sands = None, goblet: art.Goblet = None, circlet: art.Circlet = None, *args):
+    def __init__(self, artifacts: list[art.Artifact]):
 
-        self.set_artifact(flower, override=False)
-        self.set_artifact(plume, override=False)
-        self.set_artifact(sands, override=False)
-        self.set_artifact(goblet, override=False)
-        self.set_artifact(circlet, override=False)
-        for artifact in args:
+        self.flower = None
+        self.plume = None
+        self.sands = None
+        self.goblet = None
+        self.circlet = None
+        for artifact in artifacts:
             self.set_artifact(artifact, override=False)
 
     @property
@@ -106,7 +106,6 @@ class Artifacts:
 
         if type(slot) is str:
             return getattr(self, slot) # self.flower / self.plume / ...
-        
 
         if slot is art.Flower or slot == 'flower':
             return self.flower
@@ -118,9 +117,6 @@ class Artifacts:
             return self.goblet
         elif slot is art.Circlet or slot == 'circlet':
             return self.circlet
-
-    def get_artifacts(self):
-        return [self.flower, self.plume, self.sands, self.goblet, self.circlet]
 
     def set_artifact(self, artifact: art.Artifact, override: bool = False):
         slot = type(artifact)
@@ -150,19 +146,19 @@ class Artifacts:
         elif slot is art.Plume:
             if not hasattr(self, '_plume'):
                 return False
-            return self.plume is None
+            return self.plume is not None
         elif slot is art.Sands:
             if not hasattr(self, '_sands'):
                 return False
-            return self.sands is None
+            return self.sands is not None
         elif slot is art.Goblet:
             if not hasattr(self, '_goblet'):
                 return False
-            return self.goblet is None
+            return self.goblet is not None
         elif slot is art.Circlet:
             if not hasattr(self, '_circlet'):
                 return False
-            return self.circlet is None
+            return self.circlet is not None
         else:
             raise ValueError('Invalid slot type')
 
@@ -185,3 +181,15 @@ class Artifacts:
                     self._stas[stat] += value
 
         return self._stats
+
+    def __iter__(self):
+        self._iter_ind = 0
+        return self
+
+    def __next__(self):
+        if self._iter_ind >= 5:
+            raise StopIteration
+        else:
+            next = self.artifact_list[self._iter_ind]
+            self._iter_ind += 1
+            return next

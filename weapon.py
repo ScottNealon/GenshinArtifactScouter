@@ -13,7 +13,7 @@ class Weapon:
     def __init__(self, name: str, level: int, baseATK: int, ascension_stat: str, ascension_stat_value: float, passive: dict[str]):
 
         # Unvalidated inputs
-        self._name = name
+        self.name = name
 
         # Validated inputs
         self.level = level
@@ -21,6 +21,14 @@ class Weapon:
         self.ascension_stat = ascension_stat
         self.ascension_stat_value = ascension_stat_value
         self.passive = passive
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name: str):
+        self._name = name
 
     @property
     def level(self):
@@ -87,3 +95,6 @@ class Weapon:
         for key, value in self.passive.items():
             self._stats[key] += value
         return self._stats
+    
+    def __str__(self):
+        return f'{self.name}, Level: {self.level}'

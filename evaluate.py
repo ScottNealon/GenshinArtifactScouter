@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 
 import artifact as art
@@ -9,18 +11,30 @@ import weapon as weap
 _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
                    'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
 
+log = logging.getLogger(__name__)
+
 # TODO Use dimentionality to do all calculations simultaneously
-def evaluate_stats(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts):
+def evaluate_stats(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts, *args):
         stats = pd.Series(0.0, index=_stat_names)
-        stats += character._baseStats
+        stats += character.base_stats
         stats += weapon.stats
         stats += artifacts.stats
+        for arg in args:
+            stats = stats + arg
+            #stats = args + stats # TODO: Fix why this doesn't work the opposite way
         return stats
 
-def evaluate_power(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts):
+def evaluate_power(character: char.Character, stats: pd.DataFrame = None, weapon: weap.Weapon = None, artifacts: arts.Artifacts = None, verbose: bool = False):
 
-    # Calculate overall stats
-    stats = evaluate_stats(character=character, weapon=weapon, artifacts=artifacts)
+    if verbose:
+        log.info('-' * 80)
+        log.info('Evaluating Power...')
+        log.info(f'Character: {character}')
+        log.info(f'Weapon: {weapon}')
+
+    # Calculate overall stats if not provided
+    if stats is None:
+        stats = evaluate_stats(character=character, weapon=weapon, artifacts=artifacts)
 
     # ATK, DEF, or HP scaling
     scaling_stat_base = stats['Base ' + character.scaling_stat]
@@ -34,7 +48,8 @@ def evaluate_power(character: char.Character, weapon: weap.Weapon, artifacts: ar
     elif character.crits == 'always':
         crit_stat_value = 1 + stats['Crit DMG%']/100
     elif character.crits == 'average':
-        crit_stat_value = 1 + min(1, stats['Crit Rate%']/100) * stats['Crit DMG%']/100
+        stats[stats['Crit Rate%'] > 100] = 100
+        crit_stat_value = 1 + stats['Crit Rate%']/100 * stats['Crit DMG%']/100
 
     # Damage or healing scaling
     if character.dmg_type == 'Physical':
@@ -50,4 +65,9 @@ def evaluate_power(character: char.Character, weapon: weap.Weapon, artifacts: ar
 
     # Power
     power = scaling_stat_value * crit_stat_value * dmg_stat_value * em_stat_value
+
+    # Log
+    if verbose:
+        log.info(f'Power: {power}')
+
     return power
