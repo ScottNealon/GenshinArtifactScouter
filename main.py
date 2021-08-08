@@ -65,10 +65,11 @@ if __name__ == '__main__':
 
     flower =  art.Flower( set='witch',      main_stat='HP',              stars=5, level=20, substats=flower_substats)
     plume =   art.Plume(  set='gladiators', main_stat='ATK',             stars=5, level= 20, substats=plume_substats)
-    # plume =   art.Plume(  set='gladiators', main_stat='ATK',             stars=5, level= 0, substats=plume_substats_potential)
     sands =   art.Sands(  set='noblesse',   main_stat='ATK%',            stars=5, level=20, substats=sands_substats)
     goblet =  art.Goblet( set='gladiators', main_stat='Elemental DMG%',  stars=5, level=20, substats=goblet_substats)
     circlet = art.Circlet(set='witch',      main_stat='Crit Rate%',      stars=5, level=20, substats=circlet_substats)
+
+    plume_potential = art.Plume(set='gladiators', main_stat='ATK', stars=5, level= 0, substats=plume_substats_potential)
 
     artifacts = arts.Artifacts([flower, plume, sands, goblet, circlet])
 
@@ -98,26 +99,27 @@ if __name__ == '__main__':
         reaction_percentage=0.5,
         )
 
+    # Evaluate the current power of a single artifact
     base_power = eval.evaluate_power(character=klee, weapon=dodoco_tales, artifacts=artifacts, verbose=True)
 
-    # Flower
-    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Flower, set=flower.set, main_stat='HP', stars=5, target_level=20, source='domain', verbose=True)
-    pot.graph_potential(slot_potentials_df, base_power=base_power, title='Potential of 5-star HP Flower on Klee')
+    # Evaluate the potential of a single artifact
+    artifact_potentials_df = pot.artifact_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, artifact=plume_potential, target_level=20, verbose=True)
 
-    # Plume
-    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Plume, set=plume.set, main_stat='ATK', stars=5, target_level=20, source='domain', verbose=True)
-    pot.graph_potential(slot_potentials_df, base_power=base_power, title='Potential of 5-star ATK Plume on Klee')
+    # Evaluate the potential of an entire slot
+    # flower_potentials_df  = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Flower,  set=flower.set,  main_stat='HP',             stars=5, target_level=20, source='domain', verbose=True)
+    plume_potentials_df   = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Plume,   set=plume.set,   main_stat='ATK',            stars=5, target_level=20, source='domain', verbose=True)
+    # sands_potentials_df   = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Sands,   set=sands.set,   main_stat='ATK%',           stars=5, target_level=20, source='domain', verbose=True)
+    # goblet_potentials_df  = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Goblet,  set=goblet.set,  main_stat='Elemental DMG%', stars=5, target_level=20, source='domain', verbose=True)
+    # circlet_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Circlet, set=circlet.set, main_stat='Crit Rate%',     stars=5, target_level=20, source='domain', verbose=True)
 
-    # Sands
-    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Sands, set=sands.set, main_stat='ATK%', stars=5, target_level=20, source='domain', verbose=True)
-    pot.graph_potential(slot_potentials_df, base_power=base_power, title='Potential of 5-star ATK% Sands on Klee')
+    # Compare potentials
+    artifact_potentials = [artifact_potentials_df, plume_potentials_df]
+    legend_labels = ['Artifact', 'Slot']
+    pot.graph_potentials(artifact_potentials, base_power=base_power, title='Potential of Plume Artifact on Klee', legend_labels=legend_labels, smooth=True)
 
-    # Goblet
-    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Goblet, set=goblet.set, main_stat='Elemental DMG%', stars=5, target_level=20, source='domain', verbose=True)
-    pot.graph_potential(slot_potentials_df, base_power=base_power, title='Potential of 5-star Elem DMG% Goblet on Klee')
-
-    # Circlet
-    slot_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Circlet, set=circlet.set, main_stat='Crit Rate%', stars=5, target_level=20, source='domain', verbose=True)
-    pot.graph_potential(slot_potentials_df, base_power=base_power, title='Potential of 5-star Crit Rate% Circlet on Klee')
+    # Compare potentials
+    # artifact_potentials = [flower_potentials_df, plume_potentials_df, sands_potentials_df, goblet_potentials_df, circlet_potentials_df]
+    # legend_labels = ['Flower', 'Plume', 'Sands', 'Goblet', 'Circlet']
+    # pot.graph_potentials(artifact_potentials, base_power=base_power, title='Potential of Artifacts on Klee', legend_labels=legend_labels, smooth=True)
 
     plt.show()

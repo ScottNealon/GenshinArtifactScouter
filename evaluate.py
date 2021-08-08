@@ -2,7 +2,6 @@ import logging
 
 import pandas as pd
 
-import artifact as art
 import artifacts as arts
 import character as char
 import weapon as weap

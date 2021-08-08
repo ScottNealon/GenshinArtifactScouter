@@ -2,14 +2,11 @@ import copy
 import itertools
 import logging
 import math
-from matplotlib import colors
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
-from matplotlib.ticker import PercentFormatter
 import numpy as np
-from numpy.core.fromnumeric import prod
-from numpy.lib.function_base import percentile
+
 import pandas as pd
 
 import artifact as art
@@ -32,6 +29,7 @@ _unrelated_substat_rarity = pd.Series({
     'ATK%':              0.0909,
     'DEF%':              0.0909,
     'Energy Recharge%':  0.0909,
+    'Elemental Mastery': 0.0909,
     'Crit Rate%':        0.0682,
     'Crit DMG%':         0.0682
 })
@@ -94,7 +92,17 @@ _substat_rarity = {
         }),
     'Physical DMG%': _unrelated_substat_rarity,
     'Elemental DMG%': _unrelated_substat_rarity,
-    'Elemental Mastery': _unrelated_substat_rarity,
+    'Elemental Mastery': pd.Series({
+        'HP':                0.15,
+        'ATK':               0.15,
+        'DEF':               0.15,
+        'HP%':               0.1,
+        'ATK%':              0.1,
+        'DEF%':              0.1,
+        'Energy Recharge%':  0.1,
+        'Crit Rate%':        0.075,
+        'Crit DMG%':         0.075
+        }),
     'Energy Recharge%': pd.Series({
         'HP':                0.15,
         'ATK':               0.15,
@@ -313,11 +321,17 @@ def slot_potential(character: char.Character, weapon: weap.Weapon, artifacts: ar
     if verbose:
         log.info('-' * 90)
         log.info('Evaluating slot potential...')
-        log.info(f'Slot: {slot} {stars}* {target_level:>2d}/{_max_level_by_stars[stars]:>2d} {main_stat}')
-        log.info('Slot Stars: {}')
+        log.info('Artifact:')
+        log.info((
+            f'{slot._slot.capitalize():>7s} '
+            f'{stars:>d}* '
+            f'{set.capitalize():>14} '
+            f'{target_level:>2d}/{_max_level_by_stars[stars]:>2d} '
+            f'{main_stat:>17s}: {_main_stat_scaling[stars][main_stat][target_level]:>4}'
+        ))
         log.info(f'Character: {character}')
         log.info(f'Weapon: {weapon}')
-        log.info(f'Artifacts:                                 HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%')
+        log.info(f'Other Artifacts:                                          HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%')
         for artifact in artifacts:
             if type(artifact) is not slot:
                 log.info(f'{artifact.to_string_table()}')
@@ -343,13 +357,13 @@ def slot_potential(character: char.Character, weapon: weap.Weapon, artifacts: ar
     other_artifacts_list.append(artifact)
     other_artifacts = arts.Artifacts(other_artifacts_list)
 
-    # power = evaluate_power(character=character, stats=)
     if verbose:
         log.info('Calculating power distribution...')
-    # stats = eval.evaluate_stats(character, weapon, other_artifacts, artifact_potentials_df)
     power = eval.evaluate_power(character=character,  weapon=weapon, artifacts=other_artifacts)
     if verbose:
-        log.info('Power distribution calculated.')
+        log.info(f'Min Power:  {power.min():,.0f}')
+        log.info(f'Avg Power:  {power.dot(potential_artifacts_df["probability"]):,.0f}, +{100 * (power.dot(potential_artifacts_df["probability"])/power.min() - 1):.1f}%')
+        log.info(f'Max Power:  {power.max():,.0f}, +{100 * (power.max()/power.min() - 1):.1f}%')
 
     # Return results
     slot_potentials_df = pd.DataFrame({'power': power, 'probability': potential_artifacts_df['probability']})
@@ -361,36 +375,50 @@ def artifact_potential(character: char.Character, weapon: weap.Weapon, artifacts
     if target_level < artifact.level:
         raise ValueError('Target level cannot be less than artifact level')
 
+    # Logging
+    if verbose:
+        log.info('-' * 90)
+        log.info('Evaluating artifact potential...')
+        log.info(f'Artifacts:                                                HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%')
+        log.info(f'{artifact.to_string_table()}')
+        log.info(f'Character: {character}')
+        log.info(f'Weapon: {weapon}')
+        log.info(f'Other Artifacts:                                          HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%')
+        for other_artifact in artifacts:
+            if type(other_artifact) is not type(artifact):
+                log.info(f'{other_artifact.to_string_table()}')
+
     # Identify possible roll combinations
-    total_unlocks = math.floor(target_level / 4) - math.floor(artifact.level / 4) - min(4 - len(artifact.substats), math.floor(target_level / 4) - math.floor(artifact.level / 4))
-    artifact_potentials = _make_children(character=character, stars=artifact.stars, main_stat=artifact.main_stat, total_unlocks=total_unlocks, total_rolls_high_chance=0, verbose=verbose)
+    total_rolls = max(0, artifact.stars - 2) + math.floor(target_level / 4)
+    potential_artifacts_df = _make_children(artifact=artifact, character=character, stars=artifact.stars, main_stat=artifact.main_stat, total_rolls=total_rolls, total_rolls_high_chance=0, verbose=verbose)
     
-    # remaining_unlocks = min(4 - len(artifact.substats), math.floor(target_level / 4) - math.floor(artifact.level / 4))
-    # remaining_increases = math.floor(target_level / 4) - math.floor(artifact.level / 4) - remaining_unlocks
-    # artifact_potentials = _make_children(character=character, stars=artifact.stars, main_stat=artifact.main_stat, remaining_unlocks=remaining_unlocks, remaining_increases=remaining_increases, artifact=artifact)
+    # Format output
+    for stat in _stat_names:
+        if stat not in potential_artifacts_df:
+            potential_artifacts_df[stat] = 0
+    potential_artifacts_df = potential_artifacts_df.fillna(0)
 
-    # List of other artifacts that are not of the same type as primary artifact
-    other_artifacts_list = [other_artifact for other_artifact in artifacts if type(other_artifact) != type(artifact)]
+    # Assign to artifact
+    new_artifact = copy.deepcopy(artifact)
+    new_artifact.substats = potential_artifacts_df
+    new_artifact.level = target_level
 
-    # Simulate artifacts
-    for artifact_potential in artifact_potentials:
-        # Create new artifact
-        artifact_slot = type(artifact)
-        substats = copy.deepcopy(artifact.substats)
-        test_artifact = artifact_slot(set=artifact.set, main_stat=artifact.main_stat, stars=artifact.stars, level=target_level, substats=substats)
-        # Update substats
-        for substat, substat_rolls in artifact_potential['substats'].items():
-            if substat not in test_artifact.substats.keys():
-                test_artifact.add_substat(substat, 0)
-            for roll in substat_rolls:
-                test_artifact.roll_substat(substat, roll)
-        # Create new artifact collection
-        test_artifacts = arts.Artifacts(test_artifact, *other_artifacts_list)
-        # Calculate power
-        power = eval.evaluate_power(character=character, weapon=weapon, artifacts=test_artifacts)
-        artifact_potential['power'] = power
+    # Create artifact list, replacing previous artifact
+    other_artifacts_list = [other_artifact for other_artifact in artifacts if type(other_artifact) != type(new_artifact)]
+    other_artifacts_list.append(new_artifact)
+    other_artifacts = arts.Artifacts(other_artifacts_list)
 
-    return artifact_potentials
+    if verbose:
+        log.info('Calculating power distribution...')
+    power = eval.evaluate_power(character=character,  weapon=weapon, artifacts=other_artifacts)
+    if verbose:
+        log.info(f'Min Power:  {power.min():,.0f}')
+        log.info(f'Avg Power:  {power.dot(potential_artifacts_df["probability"]):,.0f}, +{100 * (power.dot(potential_artifacts_df["probability"])/power.min() - 1):.1f}%')
+        log.info(f'Max Power:  {power.max():,.0f}, +{100 * (power.max()/power.min() - 1):.1f}%')
+
+    # Return results
+    slot_potentials_df = pd.DataFrame({'power': power, 'probability': potential_artifacts_df['probability']})
+    return slot_potentials_df
 
 def _make_children(character: char.Character, stars: int, main_stat: str, total_rolls: int, total_rolls_high_chance: float, verbose: bool, artifact: art.Artifact = None) -> pd.DataFrame:
 # def _make_children(character: char.Character, stars: int, main_stat: str, remaining_unlocks: int, remaining_increases: int, artifact: art.Artifact = None) -> pd.DataFrame:
@@ -598,10 +626,7 @@ def _calculate_substats(pseudo_artifacts: list[dict], character: char.Character,
 
     # Calculate probability of possible expanded substats
     substat_rolls_probabillities = _substat_rolls_probabillities()
-
-    # Get condensable substats
-    condensable_substats = _condensable_substats(character=character)
-
+    
     # Creates empty list of pseudo artifacts
     pseudo_artifacts_list = []
 
@@ -614,10 +639,7 @@ def _calculate_substats(pseudo_artifacts: list[dict], character: char.Character,
         # Create list of possible roll combinations for each substat
         substat_products = []
         for substat in valid_substats:
-            if substat in condensable_substats:
-                substat_products.append([((0,0,0,0), 1)])
-            else:
-                substat_products.append(substat_rolls_probabillities[pseudo_artifact['substats'][substat]])
+            substat_products.append(substat_rolls_probabillities[pseudo_artifact['substats'][substat]])
 
         # Create list of all possible roll combinations across each substat
         pseudo_artifact_list = list(itertools.product(*substat_products))
@@ -680,51 +702,99 @@ def _condensable_substats(character: char.Character):
 
     return condensable_substats
 
-def graph_potential(artifact_potentials_df: pd.DataFrame, base_power: float = None, title: str = None, nbins: int = None):
+def graph_potentials(artifact_potentials_dfs: list[pd.DataFrame], legend_labels: list[str], base_power: float = None, title: str = None, nbins: int = None, smooth: bool = False):
 
+    # Calculate number of bins
     if nbins is None:
-        nbins = min(250, artifact_potentials_df.size / 100)
+        biggest_df = max([artifact_potentials_df.size for artifact_potentials_df in artifact_potentials_dfs])
+        nbins = min(250, biggest_df / 100)
 
-    min_power = artifact_potentials_df['power'].min()
-    max_power = artifact_potentials_df['power'].max()
+    # Prepare histogram
+    min_power = min([artifact_potentials_df['power'].min() for artifact_potentials_df in artifact_potentials_dfs])
+    max_power = max([artifact_potentials_df['power'].max() for artifact_potentials_df in artifact_potentials_dfs])
     bin_size = (max_power - min_power) / nbins
-
     bins = pd.DataFrame([(
-        min_power + bin*bin_size,
-        min_power + (bin+1)*bin_size,
-        min_power + (bin+0.5)*bin_size,
-        np.nan
-        ) for bin in range(nbins)], columns=['bin bottom', 'bin top', 'bin mid', 'population'])
+            min_power + bin*bin_size,
+            min_power + (bin+1)*bin_size,
+            min_power + (bin+0.5)*bin_size
+            ) for bin in range(nbins)], columns=['bin bottom', 'bin top', 'bin mid'])
 
-    for ind, bin in bins.iterrows():
-        bins['population'][ind] = artifact_potentials_df[(artifact_potentials_df['power'] >= bin['bin bottom']) & (artifact_potentials_df['power'] < bin['bin top'])]['probability'].sum()
+    # Fill histogram
+    for (input_ind, artifact_potentials_df) in enumerate(artifact_potentials_dfs):
+        bins[f'pop_{input_ind}'] = np.nan
+        for bin_ind, bin in bins.iterrows():
+            bins[f'pop_{input_ind}'][bin_ind] = artifact_potentials_df[(artifact_potentials_df['power'] >= bin['bin bottom']) & (artifact_potentials_df['power'] < bin['bin top'])]['probability'].sum()
+        # Calculate percentiles
+        bins[f'per_{input_ind}'] = bins[f'pop_{input_ind}'].cumsum()
+        # Apply smoothing after percentiles
+        if smooth:
+            smoothing_period = math.floor(nbins / 50)
+            bins[f'pop_{input_ind}'] = bins[f'pop_{input_ind}'].rolling(window=smoothing_period, min_periods=1).sum()/smoothing_period
 
-    percentiles = bins['population'].cumsum()
-    base_percentile = artifact_potentials_df[artifact_potentials_df['power'] < base_power]['probability'].sum()
-
-    # Plot
+    # Create axes
     fig, ax1 = plt.subplots()
     ax1.set_title(title)
     ax2 = ax1.twinx()
     ax3 = ax1.twiny()
 
-    ax1.bar(x=bins['bin bottom'], height=bins['population'], width=bin_size, color=[136/255,204/255,238/255])
+    # plot_colors = [(127/255, 201/255, 127/255), (190/255, 174/255, 212/255), (253/255, 192/255, 134/255), (255/255, 255/255, 153/255), (56/255, 108/255, 176/255)]
+    plot_colors = [(179/255, 205/255, 227/255), (204/255, 235/255, 197/255), (254/255, 217/255, 166/255), (222/255, 203/255, 228/255), (251/255, 180/255, 174/255)] # Source: https://colorbrewer2.org/#type=qualitative&scheme=Pastel1&n=5
+    plot_color_iter = itertools.cycle(plot_colors)
+
+    fills = []
+    for ind in range(len(artifact_potentials_dfs)):
+        # Select plot color
+        plot_color = next(plot_color_iter)
+        plot_color_dark = _adjust_lightness(plot_color, 0.5)
+        # Plot histogram
+        # ax1.bar(x=bins['bin bottom'], height=bins[f'pop_{ind}'], width=bin_size, color=plot_color_w_alpha)
+        # Plot fill with thick border
+        ax1.plot(bins['bin mid'], bins[f'pop_{ind}'], color=plot_color)
+        fill = ax1.fill(bins['bin mid'].tolist() + [bins['bin mid'].loc[0]], bins[f'pop_{ind}'].to_list() + [0], color=plot_color, alpha=0.3)
+        fills.append(fill)
+        # Plot percentile line
+        ax2.plot(bins['bin mid'], bins[f'per_{ind}'], color=plot_color_dark)
+
+    # Draw base power comparisons
+    if base_power is not None:
+        ax2.plot([base_power, base_power], [0, 1], 'r-')
+        percentiles = [(artifact_potentials_df[artifact_potentials_df['power'] < base_power]['probability'].sum(), ind) for (artifact_potentials_df, ind) in zip(artifact_potentials_dfs, list(range(len(artifact_potentials_dfs))))]
+        percentiles = sorted(percentiles, key=lambda x: x[0], reverse=True)
+        ax2.scatter([base_power] * len(percentiles), [percentile for (percentile, _) in percentiles], c='k')
+        # Determine positions of labels. If far enough fro right hand side, alternate between left and right.
+        if (base_power - min_power) / (max_power - min_power) < 0.85:
+            x_location = itertools.cycle([base_power - (max_power - min_power) * 0.02, base_power + (max_power - min_power) * 0.02])
+            horizontal_allignment = itertools.cycle(['right', 'left'])
+        else:
+            x_location = itertools.cycle([base_power - (max_power - min_power) * 0.02])
+            horizontal_allignment = itertools.cycle(['left'])
+        max_height = 1
+        for (percentile, ind) in percentiles:
+            label = legend_labels[ind]
+            delta_power = base_power/artifact_potentials_dfs[ind]['power'].min() - 1
+            if percentile < 0.15:
+                y_location =  percentile + 0.05
+                max_height = y_location
+            else:
+                y_location = min(max_height - 0.0375, percentile - 0.05)
+                max_height = y_location
+            # Plot labels
+            ax2.annotate(
+                    f' {label}: ({100*percentile:.1f}% / +{100*delta_power:.1f}%)',
+                    (next(x_location), y_location), horizontalalignment=next(horizontal_allignment),
+                    bbox=dict(facecolor='white', alpha=0.5))
+
+    # Legend
+    fills = [fill[0] for fill in fills]
+    ax3.legend(handles=fills, labels=legend_labels, loc='lower right', framealpha=0.9)
+
     ax1.set_xlabel('Power')
     ax1.set_ylabel('Probability')
+    ax1.set_xlim(min_power, max_power)
+    # Ignore first bin in setting ymax. If things are smoothed, this is generally ignored but that's OK.
+    y_max = max([bins[f'pop_{ind}'].loc[1:].max() for ind in range(len(artifact_potentials_dfs))])
+    ax1.set_ylim(0, y_max)
 
-    ax2.plot(bins['bin mid'], percentiles, color='r')
-    ax2.plot([base_power, base_power], [0, 1], 'g-')
-    ax2.scatter([base_power], [base_percentile], c='g')
-    if (base_power - min_power) / (max_power - min_power) < 0.85:
-        ax2.annotate(
-            f'({int(base_power)}, {100*base_percentile:.1f}%)',
-            (base_power + (max_power - min_power) * 0.02, base_percentile - 0.04))
-    else:
-        ax2.annotate(
-            f'({int(base_power)}, {100*base_percentile:.1f}%)',
-            (base_power - (max_power - min_power) * 0.02, base_percentile - 0.04),
-            horizontalalignment='right'
-            )
     ax2.set_ylabel('Power Percentile')
     ax2.set_ylim(0, 1)
     ax2.set_yticks(np.arange(0, 1.1, 0.1))
@@ -749,6 +819,7 @@ def _substat_rolls_probabillities():
 
     # Create list of possible expanded substats
     possible_substat_rolls = {
+        0: tuple(_sums(4, 0)),
         1: tuple(_sums(4, 1)),
         2: tuple(_sums(4, 2)),
         3: tuple(_sums(4, 3)),
@@ -782,3 +853,13 @@ def _sums(length, total_sum):
         for value in range(total_sum + 1):
             for permutation in _sums(length - 1, total_sum - value):
                 yield (value,) + permutation
+
+def _adjust_lightness(color, amount=0.5):
+    import matplotlib.colors as mc
+    import colorsys
+    try:
+        c = mc.cnames[color]
+    except:
+        c = color
+    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
+    return colorsys.hls_to_rgb(c[0], max(0, min(1, amount * c[1])), c[2])

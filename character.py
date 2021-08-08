@@ -1,10 +1,5 @@
 import pandas as pd
 
-import artifact as art
-import artifacts as arts
-import weapon as weap
-
-
 class Character:
 
     _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',

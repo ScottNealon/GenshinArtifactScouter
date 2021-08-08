@@ -1,6 +1,6 @@
 import copy
 import math
-from typing import Type, Union
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -216,10 +216,10 @@ class Artifact:
         elif level > self._max_level_by_stars[self.stars]:
             raise ValueError(
                 f'Invalid artifact level: {self.stars}-star artifacts must be less than or equal to level {level}.')
-        elif hasattr(self, 'substats'):
-            if self.stars + math.floor(level / 4) - 1 < len(self.substats):
-                raise ValueError(
-                    f'Cannot lower level below {self.stars + math.floor(level / 4) - 1} while there are {len(self.substats)} substats.')
+        # elif hasattr(self, 'substats'):
+        #     if self.stars + math.floor(level / 4) - 1 < len(self.substats):
+        #         raise ValueError(
+        #             f'Cannot lower level below {self.stars + math.floor(level / 4) - 1} while there are {len(self.substats)} substats.')
         self._level = level
 
     @property
@@ -298,6 +298,7 @@ class Artifact:
         return_str = (
             f'{self.slot.capitalize():>7s} '
             f'{self.stars:>d}* '
+            f'{self.set.capitalize():>14} '
             f'{self.level:>2d}/{self._max_level_by_stars[self.stars]:>2d} '
             f'{self.main_stat:>17s}: {self._main_stat_scaling[self._stars][self._main_stat][self._level]:>4}'
         )
