@@ -29,10 +29,16 @@ if __name__ == '__main__':
         'ATK': 33
     }
 
+    # plume_substats_potential = {
+    #     'ATK%': 4.1,
+    #     'DEF%': 7.3,
+    #     'HP%': 5.3
+    # }
+
     plume_substats_potential = {
-        'ATK%': 4.1,
-        'DEF%': 7.3,
-        'HP%': 5.3
+        'Crit Rate%': 2.7,
+        'ATK%': 4.7,
+        'HP': 299
     }
 
     plume_substats = {
@@ -113,9 +119,11 @@ if __name__ == '__main__':
     # circlet_potentials_df = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=artifacts, slot=art.Circlet, set=circlet.set, main_stat='Crit Rate%',     stars=5, target_level=20, source='domain', verbose=True)
 
     # Compare potentials
-    artifact_potentials = [artifact_potentials_df, plume_potentials_df]
-    legend_labels = ['Artifact', 'Slot']
-    pot.graph_potentials(artifact_potentials, base_power=base_power, title='Potential of Plume Artifact on Klee', legend_labels=legend_labels, smooth=True)
+    pot.artifact_potential_summary(artifact=plume_potential, character=klee, weapon=dodoco_tales, artifacts=artifacts, artifact_potential_df=artifact_potentials_df, slot_potential_df=plume_potentials_df, base_power=base_power)
+    
+    # artifact_potentials = [artifact_potentials_df, plume_potentials_df]
+    # legend_labels = ['Artifact', 'Slot']
+    # pot.graph_potentials(artifact_potentials, base_power=base_power, title='Potential of Plume Artifact on Klee', legend_labels=legend_labels, smooth=True)
 
     # Compare potentials
     # artifact_potentials = [flower_potentials_df, plume_potentials_df, sands_potentials_df, goblet_potentials_df, circlet_potentials_df]

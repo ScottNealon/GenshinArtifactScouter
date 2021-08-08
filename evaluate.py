@@ -12,7 +12,6 @@ _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'AT
 
 log = logging.getLogger(__name__)
 
-# TODO Use dimentionality to do all calculations simultaneously
 def evaluate_stats(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts, *args):
         stats = pd.Series(0.0, index=_stat_names)
         stats = stats + character.base_stats
@@ -20,7 +19,6 @@ def evaluate_stats(character: char.Character, weapon: weap.Weapon, artifacts: ar
         stats = stats + artifacts.stats
         for arg in args:
             stats = stats + arg
-            #stats = args + stats # TODO: Fix why this doesn't work the opposite way
         return stats
 
 def evaluate_power(character: char.Character, stats: pd.DataFrame = None, weapon: weap.Weapon = None, artifacts: arts.Artifacts = None, verbose: bool = False):
