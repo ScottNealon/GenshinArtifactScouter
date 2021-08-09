@@ -44,8 +44,8 @@ class Artifacts:
         'depth':          [{'Elemental DMG%': 15.0}, {'DMG%': 30.0}],
         'millelith':      [{'HP%': 20.0}, {'ATK%': 20.0}],
         'pale':           [{'Physical DMG%': 25.0}, {'ATK%': 18.0, 'Physical DMG%': 15.0}],
-        'fate':           [{'Energy Recharge%': 20.0}, {}],
-        'reminiscnece':   [{'ATK%': 18.0}, {'DMG%': 50.0}]
+        'emblem':         [{'Energy Recharge%': 20.0}, {}],
+        'reminiscence':   [{'ATK%': 18.0}, {'DMG%': 50.0}]
     }
 
     def __init__(self, artifacts: list[art.Artifact]):

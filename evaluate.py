@@ -40,11 +40,11 @@ def evaluate_power(character: char.Character, stats: pd.DataFrame = None, weapon
     scaling_stat_value = scaling_stat_base * (1 + scaling_stat_percent) + scaling_stat_flat
 
     # Crit scaling
-    if character.crits == 'never':
+    if character.crits == 'hit':
         crit_stat_value = 1
-    elif character.crits == 'always':
+    elif character.crits == 'critHit':
         crit_stat_value = 1 + stats['Crit DMG%']/100
-    elif character.crits == 'average':
+    elif character.crits == 'avgHit':
         stats[stats['Crit Rate%'] > 100] = 100
         crit_stat_value = 1 + stats['Crit Rate%']/100 * stats['Crit DMG%']/100
 
@@ -56,7 +56,7 @@ def evaluate_power(character: char.Character, stats: pd.DataFrame = None, weapon
     elif character.dmg_type == 'Healing':
         dmg_stat_value = 1 + stats['Healing Bonus%']/100
 
-    # Elemental Master scaling
+    # Elemental Mastery scaling
     em_stat_value = (1 - character.reaction_percentage) + \
         character.reaction_percentage * character.amplification_factor * (1 + 2.78 * stats['Elemental Mastery'] / (stats['Elemental Mastery'] + 1400))
 

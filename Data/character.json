@@ -1,0 +1,313 @@
+{
+    "albedo": {
+        "AvatarPromoteId": 38,
+        "HpBase": 1029.5855712890625,
+        "AttackBase": 19.551000595092773,
+        "DefenseBase": 68.2061996459961,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "amber": {
+        "AvatarPromoteId": 21,
+        "HpBase": 793.2581787109375,
+        "AttackBase": 18.698400497436523,
+        "DefenseBase": 50.358001708984375,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "barbara": {
+        "AvatarPromoteId": 14,
+        "HpBase": 820.6118774414062,
+        "AttackBase": 13.355999946594238,
+        "DefenseBase": 56.080501556396484,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "beidou": {
+        "AvatarPromoteId": 24,
+        "HpBase": 1094.149169921875,
+        "AttackBase": 18.876480102539062,
+        "DefenseBase": 54.36375045776367,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "bennett": {
+        "AvatarPromoteId": 32,
+        "HpBase": 1039.4417724609375,
+        "AttackBase": 16.02720069885254,
+        "DefenseBase": 64.66425323486328,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "chongyun": {
+        "AvatarPromoteId": 36,
+        "HpBase": 920.908935546875,
+        "AttackBase": 18.698400497436523,
+        "DefenseBase": 54.36375045776367,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "diluc": {
+        "AvatarPromoteId": 16,
+        "HpBase": 1010.5192260742188,
+        "AttackBase": 26.06800079345703,
+        "DefenseBase": 61.0265998840332,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "diona": {
+        "AvatarPromoteId": 39,
+        "HpBase": 802.3760986328125,
+        "AttackBase": 17.808000564575195,
+        "DefenseBase": 50.358001708984375,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "fischl": {
+        "AvatarPromoteId": 31,
+        "HpBase": 770.46337890625,
+        "AttackBase": 20.47920036315918,
+        "DefenseBase": 49.78575134277344,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "ganyu": {
+        "AvatarPromoteId": 37,
+        "HpBase": 762.656005859375,
+        "AttackBase": 26.06800079345703,
+        "DefenseBase": 49.06060028076172,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "hutao": {
+        "AvatarPromoteId": 46,
+        "HpBase": 1210.7164306640625,
+        "AttackBase": 8.285900115966797,
+        "DefenseBase": 68.2061996459961,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "jean": {
+        "AvatarPromoteId": 3,
+        "HpBase": 1143.9840087890625,
+        "AttackBase": 18.6200008392334,
+        "DefenseBase": 59.83000183105469,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "kaeya": {
+        "AvatarPromoteId": 15,
+        "HpBase": 975.6163940429688,
+        "AttackBase": 18.698400497436523,
+        "DefenseBase": 66.38099670410156,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "keqing": {
+        "AvatarPromoteId": 42,
+        "HpBase": 1020.0524291992188,
+        "AttackBase": 25.136999130249023,
+        "DefenseBase": 62.223201751708984,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "klee": {
+        "AvatarPromoteId": 29,
+        "HpBase": 800.788818359375,
+        "AttackBase": 24.20599937438965,
+        "DefenseBase": 47.86399841308594,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "lisa": {
+        "AvatarPromoteId": 4,
+        "ScalingStars": 4
+    },
+    "mona": {
+        "AvatarPromoteId": 41,
+        "HpBase": 810.322021484375,
+        "AttackBase": 22.3439998626709,
+        "DefenseBase": 50.855499267578125,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "ningguang": {
+        "AvatarPromoteId": 27,
+        "HpBase": 820.6118774414062,
+        "AttackBase": 17.808000564575195,
+        "DefenseBase": 48.069000244140625,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "noelle": {
+        "AvatarPromoteId": 34,
+        "HpBase": 1012.0880126953125,
+        "AttackBase": 16.02720069885254,
+        "DefenseBase": 66.9532470703125,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "qiqi": {
+        "AvatarPromoteId": 35,
+        "HpBase": 962.8532104492188,
+        "AttackBase": 22.3439998626709,
+        "DefenseBase": 71.7959976196289,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "razor": {
+        "AvatarPromoteId": 20,
+        "HpBase": 1002.9700927734375,
+        "AttackBase": 19.58880043029785,
+        "DefenseBase": 62.9474983215332,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "sucrose": {
+        "AvatarPromoteId": 43,
+        "HpBase": 775.0223388671875,
+        "AttackBase": 14.246399879455566,
+        "DefenseBase": 58.941749572753906,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "tartaglia": {
+        "AvatarPromoteId": 33,
+        "HpBase": 1020.0524291992188,
+        "AttackBase": 23.461200714111328,
+        "DefenseBase": 63.4197998046875,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+
+    },
+    "traveler": {
+        "AvatarPromoteId": 12,
+        "HpBase": 911.791015625,
+        "AttackBase": 17.808000564575195,
+        "DefenseBase": 57.224998474121094,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "venti": {
+        "AvatarPromoteId": 22,
+        "HpBase": 819.855224609375,
+        "AttackBase": 20.48200035095215,
+        "DefenseBase": 52.052101135253906,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "xiao": {
+        "AvatarPromoteId": 26,
+        "HpBase": 991.4528198242188,
+        "AttackBase": 27.185199737548828,
+        "DefenseBase": 62.223201751708984,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "xiangling": {
+        "AvatarPromoteId": 23,
+        "HpBase": 911.791015625,
+        "AttackBase": 18.876480102539062,
+        "DefenseBase": 56.080501556396484,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "xingqiu": {
+        "AvatarPromoteId": 25,
+        "HpBase": 857.0835571289062,
+        "AttackBase": 16.917600631713867,
+        "DefenseBase": 63.51974868774414,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "xinyan": {
+        "AvatarPromoteId": 44,
+        "HpBase": 939.1447143554688,
+        "AttackBase": 20.835359573364258,
+        "DefenseBase": 66.9532470703125,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "zhongli": {
+        "AvatarPromoteId": 30,
+        "HpBase": 1143.9840087890625,
+        "AttackBase": 19.551000595092773,
+        "DefenseBase": 57.436798095703125,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "rosaria": {
+        "AvatarPromoteId": 45,
+        "HpBase": 1030.3238525390625,
+        "AttackBase": 20.12303924560547,
+        "DefenseBase": 59.513999938964844,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "yanfei": {
+        "AvatarPromoteId": 48,
+        "HpBase": 784.1402587890625,
+        "AttackBase": 20.12303924560547,
+        "DefenseBase": 49.2135009765625,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 4
+    },
+    "eula": {
+        "AvatarPromoteId": 51,
+        "HpBase": 1029.5855712890625,
+        "AttackBase": 26.62660026550293,
+        "DefenseBase": 58.45391082763672,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "kaedeharakazuha": {
+        "AvatarPromoteId": 47,
+        "HpBase": 1039.1187744140625,
+        "AttackBase": 23.08880043029785,
+        "DefenseBase": 62.82149887084961,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    },
+    "kamisatoayaka": {
+        "AvatarPromoteId": 2,
+        "HpBase": 1000.9860229492188,
+        "AttackBase": 26.62660026550293,
+        "DefenseBase": 61.0265998840332,
+        "Critical": 0.05000000074505806,
+        "CriticalHurt": 0.5,
+        "ScalingStars": 5
+    }
+}

@@ -5,7 +5,6 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-
 class Artifact:
 
     _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
@@ -156,7 +155,7 @@ class Artifact:
         }
     }
     _valid_sets = ['initiate', 'adventurer', 'lucky', 'doctor', 'resolution', 'miracle', 'berserker', 'instructor', 'exile', 'defenders', 'brave', 'martial', 'gambler', 'scholar', 'illumination', 'destiny', 'wisdom', 'springtime',
-                   'gladiators', 'wanderers', 'thundersoother', 'thundering', 'maiden', 'viridescent', 'witch', 'lavawalker', 'noblesse', 'chivalry', 'petra', 'bolide', 'blizard', 'depth', 'millelith', 'pale', 'fate', 'reminiscnece']
+                   'gladiators', 'wanderers', 'thundersoother', 'thundering', 'maiden', 'viridescent', 'witch', 'lavawalker', 'noblesse', 'chivalry', 'petra', 'bolide', 'blizard', 'depth', 'millelith', 'pale', 'emblem', 'reminiscence']
 
     # To be overwritten by inherited types
     _main_stats = []
@@ -304,7 +303,10 @@ class Artifact:
         )
         for possible_substat in self._substat_roll_values:
             if possible_substat in self.substats:
-                return_str += f' {self.substats[possible_substat]:>4}'
+                if '%' in possible_substat:
+                    return_str += f' {self.substats[possible_substat]:>4.1f}'
+                else:
+                    return_str += f' {self.substats[possible_substat]:>4}'
             else:
                 return_str += '     '
 
@@ -325,7 +327,7 @@ class Plume(Artifact):
 class Sands(Artifact):
 
     _main_stats = ['HP%', 'ATK%', 'DEF%',
-                   'Elemental Master', 'Energy Rechage%']
+                   'Elemental Mastery', 'Energy Recharge%']
     _slot = 'sands'
 
 
@@ -338,6 +340,14 @@ class Goblet(Artifact):
 
 class Circlet(Artifact):
 
-    _main_stats = ['HP%', 'ATK%', 'DEF%',
-                   'ELemental Mastery', 'Crit Rate%', 'Crit DMG%']
+    _main_stats = ['HP%', 'ATK%', 'DEF%', 'Elemental Mastery',
+                   'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
     _slot = 'circlet'
+
+artifact_map = {
+    'flower': Flower,
+    'plume': Plume,
+    'sands': Sands,
+    'goblet': Goblet,
+    'circlet': Circlet
+}
