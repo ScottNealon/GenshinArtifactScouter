@@ -161,10 +161,10 @@ class Artifact:
     _main_stats = []
     _slot = ''
 
-    def __init__(self, set: str, main_stat: str, stars: int, level: int, substats: dict[str]):
+    def __init__(self, set_str: str, main_stat: str, stars: int, level: int, substats: dict[str]):
 
         # Validated inputs
-        self.set = set
+        self.set = set_str
         self.stars = stars
         self.main_stat = main_stat
         self.level = level
@@ -175,10 +175,10 @@ class Artifact:
         return self._set
 
     @set.setter
-    def set(self, set: str):
-        if set not in self._valid_sets:
+    def set(self, set_str: str):
+        if set_str not in self._valid_sets:
             raise ValueError('Invalid set.')
-        self._set = set
+        self._set = set_str
 
     @property
     def stars(self):
@@ -344,10 +344,19 @@ class Circlet(Artifact):
                    'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
     _slot = 'circlet'
 
-artifact_map = {
+
+str2type = {
     'flower': Flower,
     'plume': Plume,
     'sands': Sands,
     'goblet': Goblet,
     'circlet': Circlet
+}
+
+type2str = {
+    Flower: 'flower',
+    Plume: 'plume',
+    Sands: 'sands',
+    Goblet: 'goblet',
+    Circlet: 'circlet'
 }

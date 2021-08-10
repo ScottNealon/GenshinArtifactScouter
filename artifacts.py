@@ -185,13 +185,4 @@ class Artifacts:
         return self._stats
 
     def __iter__(self):
-        self._iter_ind = 0
-        return self
-
-    def __next__(self):
-        if self._iter_ind >= 5:
-            raise StopIteration
-        else:
-            next = self.artifact_list[self._iter_ind]
-            self._iter_ind += 1
-            return next
+        return iter(self.artifact_list)

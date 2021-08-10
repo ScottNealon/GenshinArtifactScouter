@@ -26,8 +26,8 @@ def evaluate_power(character: char.Character, stats: pd.DataFrame = None, weapon
     if verbose:
         log.info('-' * 90)
         log.info('Evaluating power...')
-        log.info(f'Character: {character}')
-        log.info(f'Weapon: {weapon}')
+        log.info(f'Character: {character.name.title()}')
+        log.info(f'Weapon: {weapon.name.title()}')
 
     # Calculate overall stats if not provided
     if stats is None:

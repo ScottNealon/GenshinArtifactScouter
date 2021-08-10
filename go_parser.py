@@ -212,9 +212,9 @@ class GenshinOptimizerData():
         self._artifacts = {}
         for artifact_name, artifact_data in self.data['artifactDatabase'].items():
             # Read data
-            slot = art.artifact_map[artifact_data['slotKey']]
+            slot = art.str2type[artifact_data['slotKey']]
             data = {
-                'set': go_set_map[artifact_data['setKey']],
+                'set_str': go_set_map[artifact_data['setKey']],
                 'main_stat': go_stat_map[artifact_data['mainStatKey']],
                 'stars': artifact_data['numStars'],
                 'level': artifact_data['level'],
