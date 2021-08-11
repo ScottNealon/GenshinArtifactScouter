@@ -8,71 +8,93 @@ import pandas as pd
 
 import artifact as art
 import artifacts as arts
-import weapon as weap
 import character as char
-import potential as pot
 import evaluate as eval
 import go_parser as gop
-    
-if __name__ == '__main__':
+import potential as pot
+import weapon as weap
+
+if __name__ == "__main__":
 
     # Setup Logging
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    config_path = os.path.join(dir_path, 'logging.conf')
+    config_path = os.path.join(dir_path, "logging.conf")
     logging.config.fileConfig(config_path)
-    logging.info('Logging initialized.')
+    logging.info("Logging initialized.")
 
     # Import data from Genshin Optimizer
-    go_data = gop.GenshinOptimizerData('go_data.json')
+    go_data = gop.GenshinOptimizerData("go_data.json")
 
     # Import Klee from Genshin Optimizer
-    klee = go_data.get_character(character_name='klee')
-    klee.amplifying_reaction = 'pyro_vaporize'
+    klee = go_data.get_character(character_name="klee")
+    klee.amplifying_reaction = "pyro_vaporize"
     klee.reaction_percentage = 0.5
-    klee_artifacts = go_data.get_characters_artifacts(character_name='klee')
+    klee_artifacts = go_data.get_characters_artifacts(character_name="klee")
 
     # TODO Import weapon from GO and reattribute to characters
     dodoco_tales = weap.Weapon(
-        name='Dodoco Tales',
+        name="Dodoco Tales",
         level=90,
         baseATK=454,
-        ascension_stat='ATK%',
+        ascension_stat="ATK%",
         ascension_stat_value=55.1,
-        passive= {
-            'DMG%': 32.0,
-            'ATK%': 16.0
-        }
+        passive={"DMG%": 32.0, "ATK%": 16.0},
     )
 
     # Evaluate character current power
     base_power = eval.evaluate_power(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, verbose=True)
 
-    # Evaluate the potential of an entire slot
-    # flower_potentials_df   = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, artifact_like=klee_artifacts.flower,  source='domain', verbose=True)
-    # plume_potentials_df    = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, artifact_like=klee_artifacts.plume,   source='domain', verbose=True)
-    # sands_potentials_df    = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, artifact_like=klee_artifacts.sands,   source='domain', verbose=True)
-    goblet_potentials_df   = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, artifact_like=klee_artifacts.goblet,  source='domain', verbose=True)
-    circlet_potentials_df  = pot.slot_potential(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, artifact_like=klee_artifacts.circlet, source='domain', verbose=True)
+    # Evaluate the potential of every slot
+    slots_substat_potentials = pot.all_slots_substats_potentials(
+        character=klee, weapon=dodoco_tales, equipped_artifacts=klee_artifacts, base_power=base_power, verbose=True
+    )
 
-    # Evaluate potential of every nonleveled flower of same set
-    #flower = go_data.get_artifacts(sets=[klee_artifacts.flower.set], slot=[art.Flower], max_level=19)
-    # flower_potentials_df = pot.multiple_artifact_potential(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, artifact_list=flower.values(), target_level=20, verbose=True, slot_potential_df=flower_potentials_df, base_power=base_power)
+    # Evalute the potential of a single slot using properties in equipped_artifacts
+    slot_substat_potentials = pot.slot_substat_potentials(
+        character=klee,
+        weapon=dodoco_tales,
+        equipped_artifacts=klee_artifacts,
+        slot=art.Sands,
+        base_power=base_power,
+        verbose=True,
+    )
 
-    # Evaluate potential of every nonleveled plume of same set
-    #plumes = go_data.get_artifacts(sets=[klee_artifacts.plume.set], slot=[art.Plume],  max_level=19)
-    #plumes_potentials_df = pot.multiple_artifact_potential(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, artifact_list=plumes.values(), target_level=20, verbose=True, slot_potential_df=plume_potentials_df, base_power=base_power)
-    
-    # Evaluate potential of every nonleveled sands of same set
-    # sands = go_data.get_artifacts(sets=[klee_artifacts.sands.set], slot=[art.Sands], main_stat=['ATK%'], max_level=19)
-    # sands_potentials_df = pot.multiple_artifact_potential(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, artifact_list=sands.values(), target_level=20, verbose=True, slot_potential_df=sands_potentials_df, base_power=base_power)
-    
-    # Evaluate potential of every nonleveled goblet of same set
-    goblets = go_data.get_artifacts(sets=[klee_artifacts.goblet.set], slot=[art.Goblet], main_stat=['ATK%', 'Elemental DMG%'], max_level=19)
-    goblets_potentials_df = pot.multiple_artifact_potential(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, artifact_list=goblets.values(), target_level=20, verbose=True, slot_potential_df=goblet_potentials_df, base_power=base_power)
-    
-    # Evaluate potential of every nonleveled circlet of same set
-    circlets = go_data.get_artifacts(sets=[klee_artifacts.circlet.set], slot=[art.Circlet], main_stat=['ATK%', 'Crit Rate%', 'Crit DMG%'], max_level=19)
-    circlets_potentials_df = pot.multiple_artifact_potential(character=klee, weapon=dodoco_tales, artifacts=klee_artifacts, artifact_list=circlets.values(), target_level=20, verbose=True, slot_potential_df=circlet_potentials_df, base_power=base_power)
+    # Evaluate the potential of a single slot using explicit properties
+    slot_substat_potentials_explicit = pot.slot_substat_potentials(
+        character=klee,
+        weapon=dodoco_tales,
+        equipped_artifacts=klee_artifacts,
+        slot=art.Sands,
+        set_str="gladiators",
+        stars=5,
+        main_stat="ATK%",
+        base_power=base_power,
+        verbose=True,
+    )
+
+    # Collect all gladiators ATK% sands from Genshin Optimizer
+    sands = go_data.get_artifacts(sets="gladiators", slot=[art.Sands], main_stat="ATK%")
+
+    # Evaluate the potential of all gladiators ATK% sands I own
+    artifacts_substat_potentials = pot.artifacts_substat_potentials(
+        character=klee,
+        weapon=dodoco_tales,
+        equipped_artifacts=klee_artifacts,
+        evaluating_artifacts=sands,
+        slot_substat_potentials=slot_substat_potentials,
+        verbose=True,
+    )
+
+    # Evaluate the potential of a single gladiators ATK% sands I own
+    sands_singular = sands[list(sands.keys())[0]]
+    artifact_substat_potentials = pot.artifact_substat_potential(
+        character=klee,
+        weapon=dodoco_tales,
+        equipped_artifacts=klee_artifacts,
+        evaluating_artifact=sands_singular,
+        slot_substat_potentials=slot_substat_potentials,
+        verbose=True,
+    )
 
     # Compare potentials
     # artifact_potentials = [flower_potentials_df, plume_potentials_df, sands_potentials_df, goblet_potentials_df, circlet_potentials_df]

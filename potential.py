@@ -3,549 +3,674 @@ import itertools
 import logging
 import math
 
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
 import numpy as np
-
 import pandas as pd
 
 import artifact as art
 import artifacts as arts
 import character as char
 import evaluate as eval
+import genshindata as gd
 import weapon as weap
 
-_stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
-                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%', 'probability']
 
-_valid_main_stats = ['HP', 'ATK', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%', 'Elemental DMG%',
-                    'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%']
+def all_slots_substats_potentials(
+    character: char.Character,
+    weapon: weap.Weapon,
+    equipped_artifacts: arts.Artifacts,
+    target_level: int = None,
+    source: str = None,
+    base_power: float = None,
+    verbose: bool = False,
+) -> dict[type]:
+    """Calculates the probabillity and power of all possible substats for all slots
 
-_unrelated_substat_rarity = pd.Series({
-    'HP':                0.1364,
-    'ATK':               0.1364,
-    'DEF':               0.1364,
-    'HP%':               0.0909,
-    'ATK%':              0.0909,
-    'DEF%':              0.0909,
-    'Energy Recharge%':  0.0909,
-    'Elemental Mastery': 0.0909,
-    'Crit Rate%':        0.0682,
-    'Crit DMG%':         0.0682
-})
+    Parameters
+    ----------
+    character : char.Character
+        Character to evaluate artifacts on
+    weapon : weap.Weapon
+        Weapon to equip character with
+    equipped_artifacts : arts.Artifacts
+        Source of set, stars, and main stat for evaluating slots. Will be equipped on character when evaluating other
+        slots
+    target_level : int, default=None,
+        Artifact level to evaluate to. If not supplied, defaults to max level.
+    source : str, default=None,
+        Source of artifacts. Different sources have different low vs high substat drop rates. Default defined by set in
+        genshindata.py.
+    base_power: float, default=None
+        Baseline power to compare artifact potential to
+    verbose : bool, default=False
+        Booleon whether to output updates to console
 
-_substat_rarity = {
-    'HP': pd.Series({
-        'ATK':               0.1579,
-        'DEF':               0.1579,
-        'HP%':               0.1053,
-        'ATK%':              0.1053,
-        'DEF%':              0.1053,
-        'Energy Recharge%':  0.1053,
-        'Elemental Mastery': 0.1053,
-        'Crit Rate%':        0.0789,
-        'Crit DMG%':         0.0789
-        }),
-    'ATK': pd.Series({
-        'HP':                0.1579,
-        'DEF':               0.1579,
-        'HP%':               0.1053,
-        'ATK%':              0.1053,
-        'DEF%':              0.1053,
-        'Energy Recharge%':  0.1053,
-        'Elemental Mastery': 0.1053,
-        'Crit Rate%':        0.0789,
-        'Crit DMG%':         0.0789
-        }),
-    'HP%': pd.Series({
-        'HP':                0.15,
-        'ATK':               0.15,
-        'DEF':               0.15,
-        'ATK%':              0.1,
-        'DEF%':              0.1,
-        'Energy Recharge%':  0.1,
-        'Elemental Mastery': 0.1,
-        'Crit Rate%':        0.075,
-        'Crit DMG%':         0.075
-        }),
-    'ATK%': pd.Series({
-        'HP':                0.15,
-        'ATK':               0.15,
-        'DEF':               0.15,
-        'HP%':               0.1,
-        'DEF%':              0.1,
-        'Energy Recharge%':  0.1,
-        'Elemental Mastery': 0.1,
-        'Crit Rate%':        0.075,
-        'Crit DMG%':         0.075
-        }),
-    'DEF%': pd.Series({
-        'HP':                0.15,
-        'ATK':               0.15,
-        'DEF':               0.15,
-        'HP%':               0.1,
-        'ATK%':              0.1,
-        'Energy Recharge%':  0.1,
-        'Elemental Mastery': 0.1,
-        'Crit Rate%':        0.075,
-        'Crit DMG%':         0.075
-        }),
-    'Physical DMG%': _unrelated_substat_rarity,
-    'Elemental DMG%': _unrelated_substat_rarity,
-    'Elemental Mastery': pd.Series({
-        'HP':                0.15,
-        'ATK':               0.15,
-        'DEF':               0.15,
-        'HP%':               0.1,
-        'ATK%':              0.1,
-        'DEF%':              0.1,
-        'Energy Recharge%':  0.1,
-        'Crit Rate%':        0.075,
-        'Crit DMG%':         0.075
-        }),
-    'Energy Recharge%': pd.Series({
-        'HP':                0.15,
-        'ATK':               0.15,
-        'DEF':               0.15,
-        'HP%':               0.1,
-        'ATK%':              0.1,
-        'DEF%':              0.1,
-        'Elemental Mastery': 0.1,
-        'Crit Rate%':        0.075,
-        'Crit DMG%':         0.075
-        }),
-    'Crit Rate%': pd.Series({
-        'HP':                0.1463,
-        'ATK':               0.1463,
-        'DEF':               0.1463,
-        'HP%':               0.0976,
-        'ATK%':              0.0976,
-        'DEF%':              0.0976,
-        'Energy Recharge%':  0.0976,
-        'Elemental Mastery': 0.0976,
-        'Crit DMG%':         0.0732
-        }),
-    'Crit DMG%':  pd.Series({
-        'HP':                0.1463,
-        'ATK':               0.1463,
-        'DEF':               0.1463,
-        'HP%':               0.0976,
-        'ATK%':              0.0976,
-        'DEF%':              0.0976,
-        'Energy Recharge%':  0.0976,
-        'Elemental Mastery': 0.0976,
-        'Crit Rate%':        0.0732
-        }),
-    'Healing Bonus%': _unrelated_substat_rarity,
-}
+    Returns
+    ----------
+    dict[type] = pd.Dataframe
+        Dictionary of substat potential dataframes indexed by slot and main stat. Dataframe contains stats,
+        probabillity, and power of every potential substat outcome for every slot and main stat combination provided.
+    """
 
-_substat_roll_values = {
-        'HP': {
-            1: [23.90, 29.88],
-            2: [50.19, 60.95, 71.70],
-            3: [100.38, 114.72, 129.06, 143.40],
-            4: [167.30, 191.20, 215.10, 239.00],
-            5: [209.13, 239.00, 269.88, 299.75]
-        },
-        'ATK': {
-            1: [1.56, 1.95],
-            2: [3.27, 3.97, 4.67],
-            3: [6.54, 7.47, 8.40, 9.34],
-            4: [10.89, 12.45, 14.00, 15.56],
-            5: [13.62, 15.56, 17.51, 19.45]
-        },
-        'DEF': {
-            1: [1.85, 2.31],
-            2: [3.89, 4.72, 5.56],
-            3: [7.78, 8.89, 10.00, 11.11],
-            4: [12.96, 14.82, 16.67, 18.52],
-            5: [16.20, 18.52, 20.83, 23.15]
-        },
-        'HP%': {
-            1: [1.17, 1.46],
-            2: [1.63, 1.98, 2.33],
-            3: [2.45, 2.80, 3.15, 3.50],
-            4: [3.26, 3.73, 4.20, 4.66],
-            5: [4.08, 4.66, 5.25, 5.83]
-        },
-        'ATK%': {
-            1: [1.17, 1.46],
-            2: [1.63, 1.98, 2.33],
-            3: [2.45, 2.80, 3.15, 3.50],
-            4: [3.26, 3.73, 4.20, 4.66],
-            5: [4.08, 4.66, 5.25, 5.83]
-        },
-        'DEF%': {
-            1: [1.46, 1.82],
-            2: [2.04, 2.48, 2.91],
-            3: [3.06, 3.50, 3.93, 4.37],
-            4: [4.08, 4.66, 5.25, 5.83],
-            5: [5.10, 5.83, 6.56, 7.29]
-        },
-        'Elemental Mastery': {
-            1: [4.66, 5.83],
-            2: [6.53, 7.93, 9.33],
-            3: [9.79, 11.19, 12.59, 13.99],
-            4: [13.06, 14.92, 16.79, 18.56],
-            5: [16.32, 18.65, 20.98, 23.31]
-        },
-        'Energy Recharge%': {
-            1: [1.30, 1.62],
-            2: [1.81, 2.20, 2.59, ],
-            3: [2.72, 3.11, 3.50, 3.89],
-            4: [3.63, 4.14, 4.66, 5.18],
-            5: [4.53, 5.18, 5.83, 6.48]
-        },
-        'Crit Rate%': {
-            1: [0.78, 0.97],
-            2: [1.09, 1.32, 1.55],
-            3: [1.63, 1.86, 2.10, 2.33],
-            4: [2.18, 2.49, 2.80, 3.11],
-            5: [2.72, 3.11, 3.50, 3.89]
-        },
-        'Crit DMG%':  {
-            1: [1.55, 1.94],
-            2: [2.18, 2.64, 3.11],
-            3: [3.26, 3.73, 4.20, 4.66],
-            4: [4.35, 4.97, 5.60, 6.22],
-            5: [5.44, 6.22, 6.99, 7.77]
-        }
-    }
-    
-_main_stat_scaling = {
-        1: {
-            'HP':                [129, 	178, 	227, 	275, 	324],
-            'ATK':               [8, 	12, 	15, 	18, 	21],
-            'HP%':               [3.1, 	4.3, 	5.5, 	6.7, 	7.9],
-            'ATK%':              [3.1, 	4.3, 	5.5, 	6.7, 	7.9],
-            'DEF%':              [3.9, 	5.4, 	6.9, 	8.4, 	9.9],
-            'Physical DMG%':     [3.9, 	5.4, 	6.9, 	8.4, 	9.9],
-            'Elemental DMG%':    [3.1, 	4.3, 	5.5, 	6.7, 	7.9],
-            'Elemental Mastery': [13, 	17, 	22, 	27, 	32],
-            'Energy Recharge%':  [3.5, 	4.8, 	6.1, 	7.5, 	8.8],
-            'Crit Rate%':        [2.1, 	2.9, 	3.7, 	4.5, 	5.3],
-            'Crit DMG%':         [4.2, 	5.8, 	7.4, 	9.0, 	10.5],
-            'Healing Bonus%':    [2.4, 	3.3, 	4.3, 	5.2, 	6.1],
-        },
-        2: {
-            'HP':                [258, 	331, 	404, 	478, 	551],
-            'ATK':               [17, 	22, 	26, 	31, 	36],
-            'HP%':               [4.2, 	5.4, 	6.6, 	7.8, 	9],
-            'ATK%':              [4.2, 	5.4, 	6.6, 	7.8, 	9],
-            'DEF%':              [5.2, 	6.7, 	8.2, 	9.7, 	11.2],
-            'Physical DMG%':     [5.2, 	6.7, 	8.2, 	9.7, 	11.2],
-            'Elemental DMG%':    [4.2, 	5.4, 	6.6, 	7.8, 	9],
-            'Elemental Mastery': [17, 	22, 	26, 	31, 	36],
-            'Energy Recharge%':  [4.7, 	6.0, 	7.3, 	8.6, 	9.9],
-            'Crit Rate%':        [2.8, 	3.6, 	4.4, 	5.2, 	6],
-            'Crit DMG%':         [5.6, 	7.2, 	8.8, 	10.4, 	11.9],
-            'Healing Bonus%':    [3.2, 	4.1, 	5.1, 	6.0, 	6.9],
-        },
-        3: {
-            'HP':                [430, 	552, 	674, 	796, 	918, 	1040, 	1162, 	1283, 	1405, 	1527, 	1649, 	1771, 	1893],
-            'ATK':               [28, 	36, 	44, 	52, 	60, 	68, 	76, 	84, 	91, 	99, 	107, 	115, 	123],
-            'HP%':               [5.2, 	6.7, 	8.2, 	9.7, 	11.2, 	12.7, 	14.2, 	15.6, 	17.1, 	18.6, 	20.1, 	21.6, 	23.1],
-            'ATK%':              [5.2, 	6.7, 	8.2, 	9.7, 	11.2, 	12.7, 	14.2, 	15.6, 	17.1, 	18.6, 	20.1, 	21.6, 	23.1],
-            'DEF%':              [6.6, 	8.4, 	10.3, 	12.1, 	14.0, 	15.8, 	17.7, 	19.6, 	21.4, 	23.3, 	25.1, 	27.0, 	28.8],
-            'Physical DMG%':     [6.6, 	8.4, 	10.3, 	12.1, 	14.0, 	15.8, 	17.7, 	19.6, 	21.4, 	23.3, 	25.1, 	27.0, 	28.8],
-            'Elemental DMG%':    [5.2, 	6.7, 	8.2, 	9.7, 	11.2, 	12.7, 	14.2, 	15.6, 	17.1, 	18.6, 	20.1, 	21.6, 	23.1],
-            'Elemental Mastery': [21, 	27, 	33, 	39, 	45, 	51, 	57, 	63, 	69, 	75, 	80, 	86, 	92],
-            'Energy Recharge%':  [5.8, 	7.5, 	9.1, 	10.8, 	12.4, 	14.1, 	15.7, 	17.4, 	19.0, 	20.7, 	22.3, 	24.0, 	25.6],
-            'Crit Rate%':        [3.5, 	4.5, 	5.5, 	6.5, 	7.5, 	8.4, 	9.4, 	10.4, 	11.4, 	12.4, 	13.4, 	14.4, 	15.4],
-            'Crit DMG%':         [7.0, 	9.0, 	11.0, 	12.9, 	14.9, 	16.9, 	18.9, 	20.9, 	22.8, 	24.8, 	26.8, 	28.8, 	30.8],
-            'Healing Bonus%':    [4.0, 	5.2, 	6.3, 	7.5, 	8.6, 	9.8, 	10.9, 	12.0, 	13.2, 	14.3, 	15.5, 	16.6, 	17.8],
-        },
-        4: {
-            'HP':                [645, 	828, 	1011, 	1194, 	1377, 	1559, 	1742, 	1925, 	2108, 	2291, 	2474, 	2657, 	2839, 	3022, 	3205, 	3388, 	3571],
-            'ATK':               [42, 	54, 	66, 	78, 	90, 	102, 	113, 	125, 	137, 	149, 	161, 	173, 	185, 	197, 	209, 	221, 	232],
-            'HP%':               [6.3, 	8.1, 	9.9, 	11.6, 	13.4, 	15.2, 	17.0, 	18.8, 	20.6, 	22.3, 	24.1, 	25.9, 	27.7, 	29.5, 	31.3, 	33.0, 	34.8],
-            'ATK%':              [6.3, 	8.1, 	9.9, 	11.6, 	13.4, 	15.2, 	17.0, 	18.8, 	20.6, 	22.3, 	24.1, 	25.9, 	27.7, 	29.5, 	31.3, 	33.0, 	34.8],
-            'DEF%':              [7.9, 	10.1, 	12.3, 	14.6, 	16.8, 	19.0, 	21.2, 	23.5, 	25.7, 	27.9, 	30.2, 	32.4, 	34.6, 	36.8, 	39.1, 	41.3, 	43.5],
-            'Physical DMG%':     [7.9, 	10.1, 	12.3, 	14.6, 	16.8, 	19.0, 	21.2, 	23.5, 	25.7, 	27.9, 	30.2, 	32.4, 	34.6, 	36.8, 	39.1, 	41.3, 	43.5],
-            'Elemental DMG%':    [6.3, 	8.1, 	9.9, 	11.6, 	13.4, 	15.2, 	17.0, 	18.8, 	20.6, 	22.3, 	24.1, 	25.9, 	27.7, 	29.5, 	31.3, 	33.0, 	34.8],
-            'Elemental Mastery': [25, 	32, 	39, 	47, 	54, 	61, 	68, 	75, 	82, 	89, 	97, 	104, 	111, 	118, 	125, 	132, 	139],
-            'Energy Recharge%':  [7.0, 	9.0, 	11.0, 	12.9, 	14.9, 	16.9, 	18.9, 	20.9, 	22.8, 	24.8, 	26.8, 	28.8, 	30.8, 	32.8, 	34.7, 	36.7, 	38.7],
-            'Crit Rate%':        [4.2, 	5.4, 	6.6, 	7.8, 	9.0, 	10.1, 	11.3, 	12.5, 	13.7, 	14.9, 	16.1, 	17.3, 	18.5, 	19.7, 	20.8, 	22.0, 	23.2],
-            'Crit DMG%':         [8.4, 	10.8, 	13.1, 	15.5, 	17.9, 	20.3, 	22.7, 	25.0, 	27.4, 	29.8, 	32.2, 	34.5, 	36.9, 	39.3, 	41.7, 	44.1, 	46.4],
-            'Healing Bonus%':    [4.8, 	6.2, 	7.6, 	9.0, 	10.3, 	11.7, 	13.1, 	14.4, 	15.8, 	17.2, 	18.6, 	19.9, 	21.3, 	22.7, 	24.0, 	25.4, 	26.8],
-        },
-        5: {
-            'HP':                [717, 	920, 	1123, 	1326, 	1530, 	1733, 	1936, 	2139, 	2342, 	2545, 	2749, 	2952, 	3155, 	3358, 	3561, 	3764, 	3967, 	4171, 	4374, 	4577, 	4780],
-            'ATK':               [47, 	60, 	73, 	86, 	100, 	113, 	126, 	139, 	152, 	166, 	179, 	192, 	205, 	219, 	232, 	245, 	258, 	272, 	285, 	298, 	311],
-            'HP%':               [7.0, 	9.0, 	11.0, 	12.9, 	14.9, 	16.9, 	18.9, 	20.9, 	22.8, 	24.8, 	26.8, 	28.8, 	30.8, 	32.8, 	34.7, 	36.7, 	38.7, 	40.7, 	42.7, 	44.6, 	46.6],
-            'ATK%':              [7.0, 	9.0, 	11.0, 	12.9, 	14.9, 	16.9, 	18.9, 	20.9, 	22.8, 	24.8, 	26.8, 	28.8, 	30.8, 	32.8, 	34.7, 	36.7, 	38.7, 	40.7, 	42.7, 	44.6, 	46.6],
-            'DEF%':              [8.7, 	11.2, 	13.7, 	16.2, 	18.6, 	21.1, 	23.6, 	26.1, 	28.6, 	31, 	33.5, 	36, 	38.5, 	40.9, 	43.4, 	45.9, 	48.4, 	50.8, 	53.3, 	55.8, 	58.3],
-            'Physical DMG%':     [8.7, 	11.2, 	13.7, 	16.2, 	16.2, 	21.1, 	23.6, 	26.1, 	28.6, 	31, 	33.5, 	36, 	38.5, 	40.9, 	43.4, 	45.9, 	48.4, 	50.8, 	53.3, 	55.8, 	58.3],
-            'Elemental DMG%':    [7.0, 	9.0, 	11.0, 	12.9, 	14.9, 	16.9, 	18.9, 	20.9, 	22.8, 	24.8, 	26.8, 	28.8, 	30.8, 	32.8, 	34.7, 	36.7, 	38.7, 	40.7, 	42.7, 	44.6, 	46.6],
-            'Elemental Mastery': [28, 	36, 	44, 	52, 	60, 	68, 	76, 	84, 	91, 	99, 	107, 	115, 	123, 	131, 	139, 	147, 	155, 	163, 	171, 	179, 	187],
-            'Energy Recharge%':  [7.8, 	10.0, 	12.2, 	14.4, 	16.6, 	18.8, 	21.0, 	23.2, 	25.4, 	27.6, 	29.8, 	32.0, 	34.2, 	36.4, 	38.6, 	40.8, 	43.0, 	45.2, 	47.4, 	49.6, 	51.8],
-            'Crit Rate%':        [4.7, 	6.0, 	7.4, 	8.7, 	10.0, 	11.4, 	12.7, 	14.0, 	15.4, 	16.7, 	18.0, 	19.3, 	20.7, 	22.0, 	23.3, 	24.7, 	26.0, 	27.3, 	28.7, 	30.0, 	31.1],
-            'Crit DMG%':         [9.3, 	11.9, 	14.6, 	17.2, 	19.9, 	22.5, 	25.2, 	27.8, 	30.5, 	33.1, 	35.8, 	38.4, 	41.1, 	43.7, 	46.3, 	49.0, 	51.6, 	54.3, 	56.9, 	59.6, 	62.2],
-            'Healing Bonus%':    [5.4, 	6.9, 	8.4, 	10.0, 	11.5, 	13.0, 	14.5, 	16.1, 	17.6, 	19.1, 	20.6, 	22.2, 	23.7, 	25.2, 	26.7, 	28.3, 	29.8, 	31.3, 	32.8, 	34.4, 	35.9],
-        },
-    }
-
-# Source: https://genshin-impact.fandom.com/wiki/Loot_System/Artifact_Drop_Distribution
-_number_substats_probability = {
-    'domain': {
-        'less': [np.nan, np.nan, 0.8, 0.8, 0.8, 0.8],
-        'more': [np.nan, np.nan, 0.2, 0.2, 0.2, 0.2]
-        },
-    'world boss': {
-        'less': [np.nan, np.nan, 2/3, 2/3, 2/3, 2/3],
-        'more': [np.nan, np.nan, 1/3, 1/3, 1/3, 1/3]
-        },
-    'weekly boss': {
-        'less': [np.nan, np.nan, 2/3, 2/3, 2/3, 2/3],
-        'more': [np.nan, np.nan, 1/3, 1/3, 1/3, 1/3]
-        },
-    'elite enemies': { # Inaccurate for l
-        'less': [np.nan, np.nan, 0.9, 0.9, 0.97, 0.97],
-        'more': [np.nan, np.nan, 0.1, 0.1, 0.03, 0.03]
-        }
-    }
-
-_max_level_by_stars = [np.nan, 4, 4, 12, 16, 20]
-
-log = logging.getLogger(__name__)
-
-def slot_potential(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts, artifact_like: art.Artifact = None, slot: type = None, set: str = None, stars: int = None, main_stat: str = None, target_level: int = None, source: str = 'domain', verbose: bool = False) -> list[dict]:
-
-    # Input warnings and errors
-    if (artifact_like is not None) and ((slot is not None) or (set is not None) or (stars is not None) or (main_stat is not None) or (target_level is not None)):
-        log.warning('Both artifact like and artifact parameters supplied. Defaulting to artifact like.')
-    if (artifact_like is None) and ((slot is None) or (set is None) or (stars is None) or (main_stat is None) or (target_level is None)):
-        raise ValueError('Either an artifact like or all artifact parameters must be supplied.')
-
-    # Use artifact like if supplied
-    if artifact_like is not None:
-        slot = type(artifact_like)
-        set = artifact_like.set
-        stars = artifact_like.stars
-        main_stat = artifact_like.main_stat
-        target_level = artifact_like.level
+    # Set verbosity
+    log = logging.getLogger(__name__)
+    if verbose:
+        log.setLevel("INFO")
+    else:
+        log.setLevel("WARNING")
 
     # Validate inputs
-    if target_level < 0:
-        raise ValueError('Target level cannot be less than 0.')
-    if source not in _number_substats_probability:
-        raise ValueError('Invalid artifact source.')
+    # Source must be a valid source
+    if source is not None and source not in gd.extra_substat_probability:
+        raise ValueError("Invalid domain name.")
+    # Target level must be a valid target level
+    if target_level is not None:
+        if target_level < 0:
+            raise ValueError("Target level cannot be less than 0.")
+        elif target_level > 20:
+            raise ValueError("Target level cannot be greater than 20.")
 
-    # Logging
+    # Log intro
+    log.info("-" * 120)
+    log.info("Evaluating substat potential of all slots...")
+    log.info(f"Character: {character.name.title()}")
+    log.info(f"Weapon: {weapon.name.title()}")
+    log.info(
+        f"Equipped Artifacts:                                       HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
+    )
+    for artifact in equipped_artifacts:
+        log.info(f"{artifact.to_string_table()}")
+
+    # Iterate through artifacts
+    substat_potentials = {}
+    for slot in [art.Flower, art.Plume, art.Sands, art.Goblet, art.Circlet]:
+        substat_potentials[slot] = {}
+        base_artifact = equipped_artifacts.get_artifact(slot)
+        if base_artifact is None:
+            log.warning(f"Artifacts does not contain a {art.type2str(slot)}")
+        else:
+            # Default target_level
+            iter_target_level = gd.max_level_by_stars[base_artifact.stars] if target_level is None else target_level
+            # Default source
+            iter_source = gd.default_artifact_source[base_artifact.set] if source is None else source
+            # Log artifact
+            log.info("-" * 10)
+            log.info(f"Evaluating {art.type2str[slot]} potential...")
+            log.info("Artifact:")
+            log.info(
+                (
+                    f"{slot._slot.capitalize():>7s} "
+                    f"{base_artifact.stars:>d}* "
+                    f"{base_artifact.set.capitalize():>14} "
+                    f"{iter_target_level:>2d}/{gd.max_level_by_stars[base_artifact.stars]:>2d} "
+                    f"{base_artifact.main_stat:>17s}: {gd.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][iter_target_level]:>4}"
+                )
+            )
+            # Calculate potential
+            substat_potential_df = _individual_slot_potential(
+                character=character,
+                weapon=weapon,
+                equipped_artifacts=equipped_artifacts,
+                slot=slot,
+                set_str=base_artifact.set,
+                stars=base_artifact.stars,
+                main_stat=base_artifact.main_stat,
+                target_level=iter_target_level,
+                source=iter_source,
+            )
+            log.info(f"{len(substat_potential_df.index):,} different ways to roll condensed substats.")
+            # TODO Report on potential
+            substat_potentials[type(base_artifact)][base_artifact.main_stat] = substat_potential_df
+
+    return substat_potentials
+
+
+def slot_substat_potentials(
+    character: char.Character,
+    weapon: weap.Weapon,
+    equipped_artifacts: arts.Artifacts,
+    slot: type,
+    set_str: str = None,
+    stars: int = None,
+    main_stat: str = None,
+    target_level: int = None,
+    source: str = None,
+    base_power: float = None,
+    verbose: bool = False,
+) -> pd.DataFrame:
+    """Calculates the probabillity and power of all possible substats for a single slots
+
+    Parameters
+    ----------
+    character : char.Character
+        Character to evaluate artifacts on
+    weapon : weap.Weapon
+        Weapon to equip character with
+    equipped_artifacts : arts.Artifacts
+        Artifacts to equip character with if not in slot
+    slot : type
+        Base artifact slot.
+    set_str : str, default=None
+        Base artifact set. If not supplied, defaults to set of artifact in slot in equipped_artifacts.
+    stars : int, default=None
+        Base artifact number of stars. If not supplied, defaults to stars of artifact in slot in equipped_artifacts.
+    main_stat : str, default=None,
+        Base artifact main stat. If not supplied, defaults to main stat of artifact in slot in equipped_artifacts.
+    target_level : int, default=None,
+        Artifact level to evaluate to. If not supplied, defaults to maximum give artifact stars.
+    source : str, default=None,
+        Source of artifacts. Different sources have different low vs high substat drop rates. Default defined by set in
+        genshindata.py.
+    base_power: float, default=None
+        Baseline power to compare artifact potential to
+    verbose : bool, default=False
+        Booleon whether to output updates to console
+
+    Returns
+    ----------
+    pd.Dataframe
+        Dataframe containing stats, probabillity, and power of every potential substat outcome for the given slot
+    """
+
+    # Set verbosity
+    log = logging.getLogger(__name__)
     if verbose:
-        log.info('-' * 90)
-        log.info('Evaluating slot potential...')
-        log.info('Artifact:')
-        log.info((
-            f'{slot._slot.capitalize():>7s} '
-            f'{stars:>d}* '
-            f'{set.capitalize():>14} '
-            f'{target_level:>2d}/{_max_level_by_stars[stars]:>2d} '
-            f'{main_stat:>17s}: {_main_stat_scaling[stars][main_stat][target_level]:>4}'
-        ))
-        log.info(f'Character: {character.name.title()}')
-        log.info(f'Weapon: {weapon.name.title()}')
-        log.info(f'Other Artifacts:                                          HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%')
-        for artifact in artifacts:
-            if type(artifact) is not slot:
-                log.info(f'{artifact.to_string_table()}')
+        log.setLevel("INFO")
+    else:
+        log.setLevel("WARNING")
+
+    # Default inputs to artifact in slot
+    base_artifact = equipped_artifacts.get_artifact(slot)
+    if (set_str is None) or (stars is None) or (main_stat is None):
+        if base_artifact is None:
+            raise ValueError(
+                f"Either artifacts must contain a {art.type2str(slot)} or {art.type2str(slot)} parameters are provided to evaluate slot."
+            )
+        else:
+            set_str = base_artifact.set if set_str is None else set_str
+            stars = base_artifact.stars if stars is None else stars
+            main_stat = base_artifact.main_stat if main_stat is None else main_stat
+
+    # Validate inputs
+    # Source must be a valid source
+    if source is not None and source not in gd.extra_substat_probability:
+        raise ValueError("Invalid domain name.")
+    # Target level must be a valid target level
+    if target_level is not None:
+        if target_level < 0:
+            raise ValueError("Target level cannot be less than 0.")
+        elif target_level > 20:
+            raise ValueError("Target level cannot be greater than 20.")
+    else:
+        # Default target level to maximum
+        target_level = gd.max_level_by_stars[stars]
+    # Default source
+    if source is None:
+        source = gd.default_artifact_source[set_str]
+
+    # Log intro
+    log.info("-" * 120)
+    log.info(f"Evaluating substat potential of {art.type2str[slot]}...")
+    log.info(f"Character: {character.name.title()}")
+    log.info(f"Weapon: {weapon.name.title()}")
+    log.info("Artifact:")
+    log.info(
+        (
+            f"{slot._slot.capitalize():>7s} "
+            f"{base_artifact.stars:>d}* "
+            f"{base_artifact.set.capitalize():>14} "
+            f"{target_level:>2d}/{gd.max_level_by_stars[base_artifact.stars]:>2d} "
+            f"{base_artifact.main_stat:>17s}: {gd.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][target_level]:>4}"
+        )
+    )
+    log.info(
+        f"Equipped Artifacts:                                      HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
+    )
+    for equipped_artifact in equipped_artifacts:
+        if type(equipped_artifact) is not slot:
+            log.info(f"{equipped_artifact.to_string_table()}")
+
+    # Evaluate single slot
+    substat_potential_df = _individual_slot_potential(
+        character=character,
+        weapon=weapon,
+        equipped_artifacts=equipped_artifacts,
+        slot=slot,
+        set_str=set_str,
+        stars=stars,
+        main_stat=main_stat,
+        target_level=target_level,
+        source=source,
+    )
+    log.info(f"{len(substat_potential_df.index):,} different ways to roll condensed substats.")
+
+    # TODO Report on potential
+
+    return substat_potential_df
+
+
+def artifacts_substat_potentials(
+    character: char.Character,
+    weapon: weap.Weapon,
+    equipped_artifacts: arts.Artifacts,
+    evaluating_artifacts: dict[str],
+    target_level: int = None,
+    source: str = None,
+    slot_substat_potentials: dict[type] = None,
+    base_power: float = None,
+    verbose: bool = False,
+):
+    """Calculates the probabillity and power of all possible substats for the artifacts
+
+    Parameters
+    ----------
+    character : char.Character
+        Character to evaluate artifacts on
+    weapon : weap.Weapon
+        Weapon to equip character with
+    equipped_artifacts : arts.Artifacts
+        Artifacts to equip character with if not in slot
+    evaluating_artifacts : dict[str]
+        Dictionary of artifacts to evaluate substats for, keyed to "name" of artifact
+    target_level : int, default=None,
+        Artifact level to evaluate to. If not supplied, defaults to maximum give artifact stars.
+    source : str, default=None,
+        Source of artifacts. Different sources have different low vs high substat drop rates. Default defined by set in
+        genshindata.py.
+    slot_substat_potentials : dict[type], default=None
+        Dictionary of substat potential dataframes indexed by slot and main stat. Dataframe contains stats,
+        probabillity, and power of every potential substat outcome for every slot and main stat combination provided.
+        Used as a baseline for comparing the potential of the artifact.
+    base_power: float, default=None
+        Baseline power to compare artifact potential to
+    verbose : bool, default=False
+        Booleon whether to output updates to console
+
+    Returns
+    ----------
+    dict[str] = pd.Dataframe
+        Dictionary of dataframe containing stats, probabillity, and power of every potential substat outcome for the
+        artifacts, keyed to the names of
+    """
+
+    # Set verbosity
+    log = logging.getLogger(__name__)
+    if verbose:
+        log.setLevel("INFO")
+    else:
+        log.setLevel("WARNING")
+
+    # Validate inputs
+    # Source must be a valid source
+    if source is not None and source not in gd.extra_substat_probability:
+        raise ValueError("Invalid domain name.")
+    # Target level must be a valid target level
+    if target_level is not None:
+        if target_level < 0:
+            raise ValueError("Target level cannot be less than 0.")
+        elif target_level > 20:
+            raise ValueError("Target level cannot be greater than 20.")
+
+    # Log intro
+    log.info("-" * 120)
+    log.info("Evaluating substat potential of artifacts...")
+    log.info(f"Character: {character.name.title()}")
+    log.info(f"Weapon: {weapon.name.title()}")
+    log.info(
+        f"Equipped Artifacts:                                      HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
+    )
+    for artifact in equipped_artifacts:
+        log.info(f"{artifact.to_string_table()}")
+
+    # Iterate through artifacts
+    substat_potentials = {}
+    for artifact_name, base_artifact in evaluating_artifacts.items():
+        # Default target_level
+        iter_target_level = gd.max_level_by_stars[base_artifact.stars] if target_level is None else target_level
+        # Default source
+        iter_source = gd.default_artifact_source[base_artifact.set] if source is None else source
+        # Log artifact
+        log.info("-" * 10)
+        log.info(f"Evaluating {artifact_name} potential...")
+        log.info(
+            (
+                f"{base_artifact.slot.capitalize():>7s} "
+                f"{base_artifact.stars:>d}* "
+                f"{base_artifact.set.capitalize():>14} "
+                f"{iter_target_level:>2d}/{gd.max_level_by_stars[base_artifact.stars]:>2d} "
+                f"{base_artifact.main_stat:>17s}: {gd.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][iter_target_level]:>4}"
+            )
+        )
+        # Calculate potential
+        substat_potential_df = _individual_slot_potential(
+            character=character,
+            weapon=weapon,
+            equipped_artifacts=equipped_artifacts,
+            slot=type(base_artifact),
+            set_str=base_artifact.set,
+            stars=base_artifact.stars,
+            main_stat=base_artifact.main_stat,
+            target_level=iter_target_level,
+            substats=base_artifact.substats,
+            source=iter_source,
+        )
+        log.info(f"{len(substat_potential_df.index):,} different ways to roll condensed substats.")
+        # TODO Report on potential
+        substat_potentials[artifact_name] = substat_potential_df
+
+    return substat_potentials
+
+
+def artifact_substat_potential(
+    character: char.Character,
+    weapon: weap.Weapon,
+    equipped_artifacts: arts.Artifacts,
+    evaluating_artifact: art.Artifact,
+    target_level: int = None,
+    source: str = None,
+    slot_substat_potentials: dict[type] = None,
+    base_power: float = None,
+    verbose: bool = False,
+) -> pd.DataFrame:
+    """Calculates the probabillity and power of all possible substats rolls for a given artifact
+
+    Parameters
+    ----------
+    character : char.Character
+        Character to evaluate artifacts on
+    weapon : weap.Weapon
+        Weapon to equip character with
+    equipped_artifacts : arts.Artifacts
+        Artifacts to equip character with if not in slot
+    evaluating_artifact : art.Artifact
+       Artifacts to evaluate substats for
+    target_level : int, default=None,
+        Artifact level to evaluate to. If not supplied, defaults to maximum give artifact stars.
+    source : str, default=None,
+        Source of artifacts. Different sources have different low vs high substat drop rates. Default defined by set in
+        genshindata.py.
+    slot_substat_potentials : pd.Dataframe, default=None
+        Dataframe containing stats, probabillity, and power of every potential substat outcome for the slot of artifact.
+        Used as a baseline for comparing the potential of the artifact.
+    base_power: float, default=None
+        Baseline power to compare artifact potential to
+    verbose : bool, default=False
+        Booleon whether to output updates to console
+
+    Returns
+    ----------
+    pd.Dataframe
+        Dataframe containing stats, probabillity, and power of every potential substat outcome for the given slot
+    """
+
+    # Set verbosity
+    log = logging.getLogger(__name__)
+    if verbose:
+        log.setLevel("INFO")
+    else:
+        log.setLevel("WARNING")
+
+    # Validate inputs
+    # Source must be a valid source
+    if source is not None and source not in gd.extra_substat_probability:
+        raise ValueError("Invalid domain name.")
+    # Target level must be a valid target level
+    if target_level is not None:
+        if target_level < 0:
+            raise ValueError("Target level cannot be less than 0.")
+        elif target_level > 20:
+            raise ValueError("Target level cannot be greater than 20.")
+    else:
+        # Default target level to maximum
+        target_level = gd.max_level_by_stars[evaluating_artifact.stars]
+    # Default source
+    if source is None:
+        source = gd.default_artifact_source[evaluating_artifact.set]
+
+    # Log intro
+    log.info("-" * 120)
+    log.info(f"Evaluating substat potential of single artifact...")
+    log.info(f"Character: {character.name.title()}")
+    log.info(f"Weapon: {weapon.name.title()}")
+    log.info("Artifact:")
+    log.info(
+        (
+            f"{evaluating_artifact.slot.capitalize():>7s} "
+            f"{evaluating_artifact.stars:>d}* "
+            f"{evaluating_artifact.set.capitalize():>14} "
+            f"{target_level:>2d}/{gd.max_level_by_stars[evaluating_artifact.stars]:>2d} "
+            f"{evaluating_artifact.main_stat:>17s}: {gd.main_stat_scaling[evaluating_artifact.stars][evaluating_artifact.main_stat][target_level]:>4}"
+        )
+    )
+    log.info(
+        f"Equipped Artifacts:                                      HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
+    )
+    for equipped_artifact in equipped_artifacts:
+        if type(equipped_artifact) is not type(evaluating_artifact):
+            log.info(f"{equipped_artifact.to_string_table()}")
+
+    # Evaluate single slot
+    substat_potential_df = _individual_slot_potential(
+        character=character,
+        weapon=weapon,
+        equipped_artifacts=equipped_artifacts,
+        slot=type(evaluating_artifact),
+        set_str=evaluating_artifact.set,
+        stars=evaluating_artifact.stars,
+        main_stat=evaluating_artifact.main_stat,
+        target_level=target_level,
+        substats=evaluating_artifact.substats,
+        source=source,
+    )
+    log.info(f"{len(substat_potential_df.index):,} different ways to roll condensed substats.")
+
+    # TODO Report on potential
+
+    return substat_potential_df
+
+
+def _individual_slot_potential(
+    character: char.Character,
+    weapon: weap.Weapon,
+    equipped_artifacts: arts.Artifacts,
+    slot: type,
+    set_str: str,
+    stars: int,
+    main_stat: str,
+    target_level: int,
+    source: str,
+    substats: dict[str] = None,
+) -> pd.DataFrame:
+    """Calculates the probabillity and power of all possible substats rolls for given parameters
+
+    Parameters
+    ----------
+    character : char.Character
+        Character to evaluate artifacts on
+    weapon : weap.Weapon
+        Weapon to equip character with
+    equipped_artifacts : arts.Artifacts
+        Artifacts to equip character with if not in slot
+    slot : type
+        Base artifact slot
+    set_str : str
+        Base artifact set
+    stars : int
+        Base artifact number of stars
+    main_stat : str
+        Base artifact main stat
+    target_level : int
+        Artifact level to evaluate to
+    source : str
+        Source of artifacts. Different sources have different low vs high substat drop rates.
+    substats : dict[str], default=None
+        Dictionary of substats to start with. If not provided, will evaluate all possible starting substats.
+
+    Returns
+    ----------
+    pd.Dataframe
+       Slot potentials including substats, power, and probability
+    """
+
+    # Default substats
+    seed_pseudo_artifact = {"substats": {}, "probability": 1.0}
+    if substats is not None:
+        for substat in substats:
+            seed_pseudo_artifact["substats"][substat] = 0
+
+    # Calculate number of unlocks and increases
+    existing_unlocks = len(seed_pseudo_artifact["substats"])
+    existing_increases = 0  # TODO Actually calculate number of increases already occured
+    remaining_unlocks = min(4, max(0, stars - 2) + math.floor(target_level / 4)) - existing_unlocks
+    remaining_increases = (
+        max(0, stars - 2) + math.floor(target_level / 4) - existing_unlocks - remaining_unlocks - existing_increases
+    )
+    total_rolls_high_chance = gd.extra_substat_probability[source][stars]
 
     # Identify roll combinations
-    remaining_unlocks = min(4, max(0, artifact.stars - 2) + math.floor(target_level / 4))
-    remaining_increases = max(0, artifact.stars - 2) + math.floor(target_level / 4) - remaining_unlocks
-    total_rolls_high_chance = _number_substats_probability[source]['more'][stars]
-    if verbose:
-        log.info(f'Making potential artifacts...')
-    substat_values_df, pseudo_artifacts_df = _make_children(character=character, stars=stars, main_stat=main_stat, remaining_unlocks=remaining_unlocks, remaining_increases=remaining_increases, total_rolls_high_chance=total_rolls_high_chance, verbose=verbose)
+    substat_values_df, slot_potential_df = _make_children(
+        character=character,
+        stars=stars,
+        main_stat=main_stat,
+        remaining_unlocks=remaining_unlocks,
+        remaining_increases=remaining_increases,
+        total_rolls_high_chance=total_rolls_high_chance,
+        seed_pseudo_artifact=seed_pseudo_artifact,
+    )
 
     # Format output
-    for stat in _stat_names:
+    for stat in gd.stat_names:
         if stat not in substat_values_df:
             substat_values_df[stat] = 0
     substat_values_df = substat_values_df.fillna(0)
 
     # Assign to artifact
-    artifact = slot(set=set, main_stat=main_stat, stars=stars, level=target_level, substats=substat_values_df)
+    artifact = slot(set_str=set_str, main_stat=main_stat, stars=stars, level=target_level, substats=substat_values_df)
 
     # Create artifact list, replacing previous artifact
-    other_artifacts_list = [other_artifact for other_artifact in artifacts if type(other_artifact) != slot]
+    other_artifacts_list = [other_artifact for other_artifact in equipped_artifacts if type(other_artifact) != slot]
     other_artifacts_list.append(artifact)
-    other_artifacts = arts.Artifacts(other_artifacts_list)
+    other_artifacts = arts.Artifacts(other_artifacts_list, use_set_bonus=equipped_artifacts.use_set_bonus)
 
-    if verbose:
-        log.info('Calculating power distribution...')
+    # Calculate stats and power
     stats = eval.evaluate_stats(character=character, weapon=weapon, artifacts=other_artifacts)
-    power = eval.evaluate_power(character=character, stats=stats)
-    if verbose:
-        log.info(f'Min Power:  {power.min():,.0f}')
-        log.info(f'Avg Power:  {power.dot(pseudo_artifacts_df["probability"]):,.0f}, {100 * (power.dot(pseudo_artifacts_df["probability"])/power.min() - 1):+.1f}%')
-        log.info(f'Max Power:  {power.max():,.0f}, {100 * (power.max()/power.min() - 1):+.1f}%')
+    power = eval.evaluate_power(
+        character=character, weapon=weapon, stats=stats, probability=slot_potential_df["probability"]
+    )
 
     # Return results
-    pseudo_artifacts_df['power'] = power
-    # slot_potentials_df = pd.DataFrame({'power': power, 'probability': substat_values_df['probability']})
-    return pseudo_artifacts_df
+    slot_potential_df["power"] = power
+    return slot_potential_df
 
-def single_artifact_potential(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts, artifact: art.Artifact, target_level: int, verbose: bool, slot_potential_df: pd.DataFrame = None) -> list[dict]:
 
-    # Validate inputs
-    if target_level < artifact.level:
-        raise ValueError('Target level cannot be less than artifact level')
+def _make_children(
+    character: char.Character,
+    stars: int,
+    main_stat: str,
+    remaining_unlocks: int,
+    remaining_increases: int,
+    total_rolls_high_chance: float,
+    seed_pseudo_artifact: dict[str],
+) -> pd.DataFrame:
+    """Calculate probabillity of every possible substat roll
 
-    # Logging
-    if verbose:
-        log.info('-' * 90)
-        log.info('Evaluating artifact potential...')
-        log.info(f'Artifact:                                                 HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%')
-        log.info(f'{artifact.to_string_table()}')
-        log.info(f'Character: {character}')
-        log.info(f'Weapon: {weapon}')
-        log.info(f'Other Artifacts:                                          HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%')
-        for other_artifact in artifacts:
-            if type(other_artifact) is not type(artifact):
-                log.info(f'{other_artifact.to_string_table()}')
+    Parameters
+    ----------
+    character : char.Character
+        Character to evaluate artifacts on
+    stars : int
+        Base artifact number of stars
+    main_stat : str
+        Base artifact main stat
+    remaining_unlocks : int
+        Number of times to unlock substats
+    remaining_increases : int
+        Number of times to increase existing substats
+    total_rolls_high_chance : float
+        Probabillity that an artifact will be rolled with an increased number of initial stats
+    seed_pseudo_artifact : dict[str]
+        Pseudo-artifact dictionary to iterate off of
 
-    # Identify possible roll combinations.
-    num_substats = len(artifact.substats)
-    remaining_unlocks = min(4, max(0, artifact.stars - 2) + math.floor(target_level / 4)) - num_substats
-    remaining_increases = math.floor(target_level / 4) - math.floor(artifact.level / 4) - remaining_unlocks
-    total_rolls_high_chance = 0
-    
-    substat_values_df, pseudo_artifacts_df = _make_children(artifact=artifact, character=character, stars=artifact.stars, main_stat=artifact.main_stat, remaining_unlocks=remaining_unlocks, remaining_increases=remaining_increases, total_rolls_high_chance=total_rolls_high_chance, verbose=verbose)
-    
-    # Format output
-    for stat in _stat_names:
-        if stat not in substat_values_df:
-            substat_values_df[stat] = 0
-    substat_values_df = substat_values_df.fillna(0)
+    Returns
+    ----------
+    pd.Dataframe
+       Slot potentials including substats, power, and probability
+    """
 
-    # Add power from existing substats
-    for substat, value in artifact.substats.items():
-        substat_values_df[substat] += value
-    # substat_values_df += artifact.stats
+    # Calculate initial substat count
+    initial_substats = len(seed_pseudo_artifact["substats"])
 
-    # Assign to artifact
-    slot = type(artifact)
-    new_artifact = slot(set=artifact.set, main_stat=artifact.main_stat, stars=artifact.stars, level=target_level, substats=substat_values_df)
-    # new_artifact = copy.deepcopy(artifact)
-    # new_artifact.substats = substat_values_df
-    # new_artifact.level = target_level
-
-    # Create artifact list, replacing previous artifact
-    other_artifacts_list = [other_artifact for other_artifact in artifacts if type(other_artifact) != type(new_artifact)]
-    other_artifacts_list.append(new_artifact)
-    other_artifacts = arts.Artifacts(other_artifacts_list)
-
-    if verbose:
-        log.info('Calculating power distribution...')
-    stats = eval.evaluate_stats(character=character, weapon=weapon, artifacts=other_artifacts)
-    power = eval.evaluate_power(character=character, stats=stats)
-    if verbose:
-        log.info(f'Min Power:  {power.min():,.0f}')
-        log.info(f'Avg Power:  {power.dot(pseudo_artifacts_df["probability"]):,.0f}, {100 * (power.dot(pseudo_artifacts_df["probability"])/power.min() - 1):+.1f}%')
-        log.info(f'Max Power:  {power.max():,.0f}, {100 * (power.max()/power.min() - 1):+.1f}%')
-
-    # Return results
-    pseudo_artifacts_df['power'] = power
-    # slot_potentials_df = pd.DataFrame({'power': power, 'probability': substat_values_df['probability']})
-    return pseudo_artifacts_df
-
-def multiple_artifact_potential(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts, artifact_list: list[art.Artifact], target_level: int, verbose: bool, slot_potential_df: pd.DataFrame = None, base_power: float = None) -> list[dict]:
-
-    # Logging
-    if verbose:
-        log.info('-' * 90)
-        log.info('Evaluating multiple artifacts potential...')
-        log.info(f'Character: {character}')
-        log.info(f'Weapon: {weapon}')
-        log.info(f'Default Artifacts:                                        HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%')
-        for other_artifact in artifacts:
-            log.info(f'{other_artifact.to_string_table()}')
-
-    # Iterate across artifacts
-    pseudo_artifacts_df_list = []
-    for artifact in artifact_list:
-        pseudo_artifacts_df = single_artifact_potential(character=character, weapon=weapon, artifacts=artifacts, artifact=artifact, target_level=target_level, verbose=False)
-        if verbose:
-            log.info('-' * 5)
-            log.info(f'Artifact:                                                 HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%')
-            log.info(f'{artifact.to_string_table()}')
-            if slot_potential_df is not None:
-                _artifact_potential_summary(artifact_potential_df=pseudo_artifacts_df, slot_potential_df=slot_potential_df, base_power=base_power)
-            else:
-                log.info(f'Min Power:  {pseudo_artifacts_df["power"].min():,.0f}')
-                log.info(f'Avg Power:  {pseudo_artifacts_df["power"].dot(pseudo_artifacts_df["probability"]):,.0f}, {100 * (pseudo_artifacts_df["power"].dot(pseudo_artifacts_df["probability"])/pseudo_artifacts_df["power"].min() - 1):+.1f}%')
-                log.info(f'Max Power:  {pseudo_artifacts_df["power"].max():,.0f}, {100 * (pseudo_artifacts_df["power"].max()/pseudo_artifacts_df["power"].min() - 1):+.1f}%')
-        pseudo_artifacts_df_list.append(pseudo_artifacts_df)
-
-    return pseudo_artifacts_df_list
-
-def _make_children(character: char.Character, stars: int, main_stat: str, remaining_unlocks: int, remaining_increases: int, total_rolls_high_chance: float, verbose: bool, artifact: art.Artifact = None) -> pd.DataFrame:
-    '''Creates dataframe containing every possible end result of artifact along with probability'''
-    
-    # Creates initial pseudo-artifact
-    pseudo_artifacts = [{'substats': {}, 'probability':1.0}]
-    if artifact is not None:
-        starting_substats = len(artifact.substats)
-        for substat in artifact.substats:
-            pseudo_artifacts[0]['substats'][substat] = 0
-    else:
-        starting_substats = 0
+    # Create pseudo artifact list
+    pseudo_artifacts = [seed_pseudo_artifact]
 
     # Create every possible pseudo artifact by unlocking substats
     if remaining_unlocks > 0:
-        pseudo_artifacts = _add_substats(pseudo_artifacts=pseudo_artifacts, remaining_unlocks=remaining_unlocks, character=character, main_stat=main_stat)
+        pseudo_artifacts = _add_substats(
+            pseudo_artifacts=pseudo_artifacts,
+            remaining_unlocks=remaining_unlocks,
+            character=character,
+            main_stat=main_stat,
+        )
     # Add extra unlocks (this should only occur for low stars or low target level)
-    extra_unlock_chance = int((total_rolls_high_chance > 0) and (starting_substats + remaining_unlocks < 4)) * total_rolls_high_chance
+    extra_unlock_chance = total_rolls_high_chance * int(
+        (total_rolls_high_chance > 0) and (initial_substats + remaining_unlocks < 4)
+    )
     if extra_unlock_chance > 0:
         remaining_unlocks_extra = remaining_unlocks + 1
-        pseudo_artifacts_extra = _add_substats(pseudo_artifacts=pseudo_artifacts, remaining_unlocks=remaining_unlocks_extra, character=character, main_stat=main_stat)
+        pseudo_artifacts_extra = _add_substats(
+            pseudo_artifacts=pseudo_artifacts,
+            remaining_unlocks=remaining_unlocks_extra,
+            character=character,
+            main_stat=main_stat,
+        )
         # Fix original probabilities
         for pseudo_artifact in pseudo_artifacts:
-            pseudo_artifact['probability'] *= 1 - extra_unlock_chance
+            pseudo_artifact["probability"] *= 1 - extra_unlock_chance
         for pseudo_artifact_extra in pseudo_artifacts_extra:
-            pseudo_artifact_extra['probability'] *= extra_unlock_chance
+            pseudo_artifact_extra["probability"] *= extra_unlock_chance
             pseudo_artifacts.append(pseudo_artifact_extra)
-    if verbose:
-        log.info(f'{len(pseudo_artifacts):,} different ways to unlock condensed substats.')
 
     # Create every possible pseudo artifact by assigning substat rolls
     if remaining_increases > 0:
-        extra_increase_chance = int((total_rolls_high_chance > 0) and (starting_substats + remaining_unlocks >= 4)) * total_rolls_high_chance
-        pseudo_artifacts = _add_substat_rolls(pseudo_artifacts=pseudo_artifacts, remaining_increases=remaining_increases, extra_increase_chance=extra_increase_chance, character=character)
-    if verbose:
-        log.info(f'{len(pseudo_artifacts):,} different ways to assign rolls to condensed substats.')
+        extra_increase_chance = total_rolls_high_chance * int(
+            (total_rolls_high_chance > 0) and (initial_substats + remaining_unlocks >= 4)
+        )
+        pseudo_artifacts = _add_substat_rolls(
+            pseudo_artifacts=pseudo_artifacts,
+            remaining_increases=remaining_increases,
+            extra_increase_chance=extra_increase_chance,
+            character=character,
+        )
 
     # Convert pseudo artifacts by calculating roll values
-    substat_values_df, pseudo_artifacts_df = _calculate_substats(pseudo_artifacts=pseudo_artifacts, character=character, stars=stars)
-    if verbose:
-        log.info(f'{len(substat_values_df.index):,} different ways to roll condensed substats.')
+    substat_values_df, pseudo_artifacts_df = _calculate_substats(
+        pseudo_artifacts=pseudo_artifacts, character=character, stars=stars
+    )
 
     return substat_values_df, pseudo_artifacts_df
 
-def _add_substats(pseudo_artifacts: list[dict], remaining_unlocks: int, character: char.Character, main_stat: str) -> list[dict]:
-    '''Creates pseudo artifacts with every possible combination of revealed substats'''
+
+def _add_substats(
+    pseudo_artifacts: list[dict], remaining_unlocks: int, character: char.Character, main_stat: str
+) -> list[dict]:
+    """Creates pseudo artifacts with every possible combination of revealed substats"""
 
     # Generate list of possible substats
-    valid_substats = set(_substat_rarity[main_stat].keys())
-    for substat in pseudo_artifacts[0]['substats']:
+    valid_substats = set(gd.substat_rarity[main_stat].keys())
+    for substat in pseudo_artifacts[0]["substats"]:
         valid_substats.remove(substat)
 
     # Consolodate similar substats (don't need DEF vs DEF% or low roll DEF vs high roll DEF on an ATK scaling character)
     condensable_substats = _condensable_substats(character=character)
-    base_probability = sum([_substat_rarity[main_stat][substat] for substat in valid_substats])
+    base_probability = sum([gd.substat_rarity[main_stat][substat] for substat in valid_substats])
 
     # Create list of possible substats
     possibilities = []
     for substat in valid_substats:
-        possibility = {
-            'substat': substat,
-            'probability': _substat_rarity[main_stat][substat] / base_probability
-        }
+        possibility = {"substat": substat, "probability": gd.substat_rarity[main_stat][substat] / base_probability}
         possibilities.append(possibility)
 
     # Verify probability math (sum of probabilities is almost 1)
-    assert abs(sum([possibility['probability'] for possibility in possibilities]) - 1) < 1e-6
+    assert abs(sum([possibility["probability"] for possibility in possibilities]) - 1) < 1e-6
 
     # Create all possible combinations of new substats
     combinations = tuple(itertools.combinations(possibilities, remaining_unlocks))
@@ -559,7 +684,7 @@ def _add_substats(pseudo_artifacts: list[dict], remaining_unlocks: int, characte
 
         # Assign every new substat a single roll
         for substat in combination:
-            pseudo_artifact['substats'][substat['substat']] = 1
+            pseudo_artifact["substats"][substat["substat"]] = 1
 
         # Calculate probability of pseudo artifact
         combination_probability = 0
@@ -568,38 +693,43 @@ def _add_substats(pseudo_artifacts: list[dict], remaining_unlocks: int, characte
             permutation_probability = 1
             remaining_probability = 1
             for substat in permutation:
-                permutation_probability *= substat['probability'] / remaining_probability
-                remaining_probability -= substat['probability']
+                permutation_probability *= substat["probability"] / remaining_probability
+                remaining_probability -= substat["probability"]
             combination_probability += permutation_probability
-        pseudo_artifact['probability'] = combination_probability
+        pseudo_artifact["probability"] = combination_probability
 
         # Consolodate substats (don't need DEF vs DEF% or low roll DEF vs high roll DEF on an ATK scaling character)
-        artifact_condensable_substats = [substat for substat in pseudo_artifact['substats'] if substat in condensable_substats] #condensable_substats.intersection(pseudo_artifact['substats'])
+        artifact_condensable_substats = [
+            substat for substat in pseudo_artifact["substats"] if substat in condensable_substats
+        ]
         for (ind, artifact_condensable_substat) in enumerate(artifact_condensable_substats):
             condensed_substat = condensable_substats[ind]
-            pseudo_artifact['substats'][condensed_substat] = 0
+            pseudo_artifact["substats"][condensed_substat] = 0
         for artifact_condensable_substat in artifact_condensable_substats:
-            if artifact_condensable_substat not in condensable_substats[:len(artifact_condensable_substats)]:
-                del pseudo_artifact['substats'][artifact_condensable_substat]
-        assert len(pseudo_artifact['substats']) == 4
+            if artifact_condensable_substat not in condensable_substats[: len(artifact_condensable_substats)]:
+                del pseudo_artifact["substats"][artifact_condensable_substat]
+        assert len(pseudo_artifact["substats"]) == 4
 
         # Add pseudo artifact to dict
-        pseudo_artifact['substats'] = dict(sorted(pseudo_artifact['substats'].items())) # sort keys
-        key = str(pseudo_artifact['substats'])
+        pseudo_artifact["substats"] = dict(sorted(pseudo_artifact["substats"].items()))  # sort keys
+        key = str(pseudo_artifact["substats"])
         if key not in new_pseudo_artifacts:
             new_pseudo_artifacts[key] = pseudo_artifact
         else:
-            new_pseudo_artifacts[key]['probability'] += pseudo_artifact['probability']
-        
+            new_pseudo_artifacts[key]["probability"] += pseudo_artifact["probability"]
+
     # Verify probability math (sum of probabilities is almost 1)
-    assert abs(sum([possibility['probability'] for possibility in pseudo_artifacts]) - 1) < 1e-6
-    
+    assert abs(sum([possibility["probability"] for possibility in pseudo_artifacts]) - 1) < 1e-6
+
     # Return new pseudo artifacts
     pseudo_artifacts = [pseudo_artifact for pseudo_artifact in new_pseudo_artifacts.values()]
     return pseudo_artifacts
 
-def _add_substat_rolls(pseudo_artifacts: list[dict], remaining_increases: int, extra_increase_chance: float, character: char.Character) -> list[dict]:
-    '''Creates pseudo artifacts with every possible combination of number of rolls for each substat'''
+
+def _add_substat_rolls(
+    pseudo_artifacts: list[dict], remaining_increases: int, extra_increase_chance: float, character: char.Character
+) -> list[dict]:
+    """Creates pseudo artifacts with every possible combination of number of rolls for each substat"""
 
     # Get condensable substats
     condensable_substats = _condensable_substats(character=character)
@@ -618,8 +748,12 @@ def _add_substat_rolls(pseudo_artifacts: list[dict], remaining_increases: int, e
         for pseudo_artifact in pseudo_artifacts:
 
             # Consolodate similar substats (don't need DEF vs DEF% or low roll DEF vs high roll DEF on an ATK scaling character)
-            valid_substats = set(pseudo_artifact['substats'].keys())
-            condensable_substats_on_artifact = [condensable_substat for condensable_substat in condensable_substats if condensable_substat in valid_substats]
+            valid_substats = set(pseudo_artifact["substats"].keys())
+            condensable_substats_on_artifact = [
+                condensable_substat
+                for condensable_substat in condensable_substats
+                if condensable_substat in valid_substats
+            ]
 
             # Create list of possible substats
             possibilities = []
@@ -631,55 +765,56 @@ def _add_substat_rolls(pseudo_artifacts: list[dict], remaining_increases: int, e
                         continue
                 else:
                     substat_possibility = 0.25
-                possibility = {
-                    'substat': substat,
-                    'probability': substat_possibility
-                }
+                possibility = {"substat": substat, "probability": substat_possibility}
                 possibilities.append(possibility)
 
             # Verify probability math (sum of probabilities is almost 1)
-            assert abs(sum([possibility['probability'] for possibility in possibilities]) - 1) < 1e-6
+            assert abs(sum([possibility["probability"] for possibility in possibilities]) - 1) < 1e-6
 
             # Create new pseudo artifacts for each possibility
             for possibility in possibilities:
                 new_pseudo_artifact = copy.deepcopy(pseudo_artifact)
-                if possibility['substat'] not in condensable_substats:
-                    new_pseudo_artifact['substats'][possibility['substat']] += 1
-                new_pseudo_artifact['probability'] *= possibility['probability']
+                if possibility["substat"] not in condensable_substats:
+                    new_pseudo_artifact["substats"][possibility["substat"]] += 1
+                new_pseudo_artifact["probability"] *= possibility["probability"]
                 # Add pseudo artifact to dict
-                key = str(new_pseudo_artifact['substats'])
+                key = str(new_pseudo_artifact["substats"])
                 if key not in new_pseudo_artifacts:
                     new_pseudo_artifacts[key] = new_pseudo_artifact
                 else:
-                    new_pseudo_artifacts[key]['probability'] += new_pseudo_artifact['probability']
-    
+                    new_pseudo_artifacts[key]["probability"] += new_pseudo_artifact["probability"]
+
         # If extra increase, merge with previous list
         if ind == 0 and extra_increase_chance > 0:
             # Update probability of new artifacts
             for new_pseudo_artifact in new_pseudo_artifacts.values():
-                new_pseudo_artifact['probability'] *= extra_increase_chance
+                new_pseudo_artifact["probability"] *= extra_increase_chance
             # Update probability of old artifacts and add to dict
             for old_pseudo_artifact in pseudo_artifacts:
-                old_pseudo_artifact['probability'] *= (1 - extra_increase_chance)
-                key = str(old_pseudo_artifact['substats'])
+                old_pseudo_artifact["probability"] *= 1 - extra_increase_chance
+                key = str(old_pseudo_artifact["substats"])
                 if key not in new_pseudo_artifacts:
                     new_pseudo_artifacts[key] = old_pseudo_artifact
                 else:
-                    new_pseudo_artifacts[key]['probability'] += old_pseudo_artifact['probability']
+                    new_pseudo_artifacts[key]["probability"] += old_pseudo_artifact["probability"]
 
         # Verify probability math (sum of probabilities is almost 1)
-        assert abs(sum([new_pseudo_artifact['probability'] for new_pseudo_artifact in new_pseudo_artifacts.values()]) - 1) < 1e-6
+        assert (
+            abs(sum([new_pseudo_artifact["probability"] for new_pseudo_artifact in new_pseudo_artifacts.values()]) - 1)
+            < 1e-6
+        )
 
         # Return overwrite pseudo_artifacts
         pseudo_artifacts = [pseudo_artifact for pseudo_artifact in new_pseudo_artifacts.values()]
 
     # Verify probability math (sum of probabilities is almost 1)
-    assert abs(sum([pseudo_artifact['probability'] for pseudo_artifact in pseudo_artifacts]) - 1) < 1e-6
+    assert abs(sum([pseudo_artifact["probability"] for pseudo_artifact in pseudo_artifacts]) - 1) < 1e-6
 
     return pseudo_artifacts
 
+
 def _calculate_substats(pseudo_artifacts: list[dict], character: char.Character, stars: int) -> pd.DataFrame:
-    '''Creates every possible artifact from the given number of substat rolls'''
+    """Creates every possible artifact from the given number of substat rolls"""
 
     ## NOTE: This function is where the vast majority of the computational time is spent
 
@@ -693,31 +828,34 @@ def _calculate_substats(pseudo_artifacts: list[dict], character: char.Character,
     for pseudo_artifact in pseudo_artifacts:
 
         # Consolodate substats
-        valid_substats = set(pseudo_artifact['substats'].keys())
+        valid_substats = set(pseudo_artifact["substats"].keys())
 
         # Create list of possible roll combinations for each substat
         substat_products = []
         for substat in valid_substats:
-            substat_products.append(substat_rolls_probabillities[pseudo_artifact['substats'][substat]])
+            substat_products.append(substat_rolls_probabillities[pseudo_artifact["substats"][substat]])
 
         # Create list of all possible roll combinations across each substat
         pseudo_artifact_list = list(itertools.product(*substat_products))
         pseudo_artifact_df = pd.DataFrame(pseudo_artifact_list, columns=valid_substats)
 
         # Calculate probabillity of each case
-        pseudo_artifact_df['probability'] = pseudo_artifact['probability']
+        pseudo_artifact_df["probability"] = pseudo_artifact["probability"]
         for column in pseudo_artifact_df:
             column_df = pd.DataFrame(pseudo_artifact_df[column].tolist())
             if len(column_df.columns) == 2:
-                pseudo_artifact_df['probability'] *= column_df[column_df.columns[1]]
-                pseudo_artifact_df[column] =column_df[column_df.columns[0]]
+                pseudo_artifact_df["probability"] *= column_df[column_df.columns[1]]
+                pseudo_artifact_df[column] = column_df[column_df.columns[0]]
 
         # Verify probability math (sum of probabilities is almost the initial pseudo artifact probabillity)
-        assert abs(pseudo_artifact_df['probability'].sum() - pseudo_artifact['probability']) < 1e-6 * pseudo_artifact['probability']
+        assert (
+            abs(pseudo_artifact_df["probability"].sum() - pseudo_artifact["probability"])
+            < 1e-6 * pseudo_artifact["probability"]
+        )
 
         # Append to list
         pseudo_artifacts_list.append(pseudo_artifact_df)
-    
+
     # Append dataframes
     pseudo_artifacts_df = pd.concat(pseudo_artifacts_list)
 
@@ -725,67 +863,75 @@ def _calculate_substats(pseudo_artifacts: list[dict], character: char.Character,
     substats_values = {}
     for substat in pseudo_artifacts_df:
         if pseudo_artifacts_df[substat].dtype is np.dtype(object):
-            column_names = [f'{substat}_{roll}' for roll in range(4)]
+            column_names = [f"{substat}_{roll}" for roll in range(4)]
             substat_list = pseudo_artifacts_df[substat].tolist()
             if substat_list[0] is np.nan:
                 substat_list[0] = (0, 0, 0, 0)
             rolls_split = pd.DataFrame(substat_list, columns=column_names)
-            substat_value = rolls_split.dot(_substat_roll_values[substat][stars])
+            substat_value = rolls_split.dot(gd.substat_roll_values[substat][stars])
             substats_values[substat] = substat_value
         else:
             substats_values[substat] = pd.Series(pseudo_artifacts_df[substat].tolist())
-        
+
     substat_values_df = pd.DataFrame(substats_values)
 
     # Verify probability math (sum of probabilities is almost 1)
-    assert abs(substat_values_df['probability'].sum() - 1) < 1e-6
+    assert abs(substat_values_df["probability"].sum() - 1) < 1e-6
 
     # Reset pseudo_artifacts index
     pseudo_artifacts_df.index = substat_values_df.index
 
     return substat_values_df, pseudo_artifacts_df
 
+
 def _condensable_substats(character: char.Character):
 
     # Create list of condensable stats
-    if character.scaling_stat == 'ATK':
-        condensable_substats = ['DEF', 'DEF%', 'HP', 'HP%', 'Energy Recharge%']
-    elif character.scaling_stat == 'DEF':
-        condensable_substats = ['ATK', 'ATK%', 'HP', 'HP%', 'Energy Recharge%']
-    elif character.scaling_stat == 'HP':
-        condensable_substats = ['ATK', 'ATK%', 'DEF', 'DEF%', 'Energy Recharge%']
+    if character.scaling_stat == "ATK":
+        condensable_substats = ["DEF", "DEF%", "HP", "HP%", "Energy Recharge%"]
+    elif character.scaling_stat == "DEF":
+        condensable_substats = ["ATK", "ATK%", "HP", "HP%", "Energy Recharge%"]
+    elif character.scaling_stat == "HP":
+        condensable_substats = ["ATK", "ATK%", "DEF", "DEF%", "Energy Recharge%"]
     if character.amplifying_reaction is None:
-        condensable_substats.append('Elemental Mastery')
-    if character.crits == 'always':
-        condensable_substats.append('Crit Rate%')
-    elif character.crits == 'never':
-        condensable_substats.append('Crit Rate%')
-        condensable_substats.append('Crit DMG%')
+        condensable_substats.append("Elemental Mastery")
+    if character.crits == "always":
+        condensable_substats.append("Crit Rate%")
+    elif character.crits == "never":
+        condensable_substats.append("Crit Rate%")
+        condensable_substats.append("Crit DMG%")
 
     return condensable_substats
 
-def _artifact_potential_summary(artifact_potential_df: pd.DataFrame, slot_potential_df: pd.DataFrame, base_power: float = None):
 
-    slot_min_power = slot_potential_df["power"].min()
+def _artifact_potential_summary(
+    artifact_potential_df: pd.DataFrame, slot_potential: pd.DataFrame, base_power: float = None
+):
 
-    artifact_min_power = artifact_potential_df["power"].min()
-    artifact_min_increase = 100 * (artifact_min_power/slot_min_power - 1)
-    artifact_min_percentile = 100 * slot_potential_df[slot_potential_df['power'] < artifact_min_power]['probability'].sum()
+    slot_power = slot_potential["power"]
+    artifact_power = artifact_potential_df["power"]
 
-    artifact_avg_power = artifact_potential_df["power"].dot(artifact_potential_df["probability"])
-    artifact_avg_increase = 100 * (artifact_avg_power/slot_min_power - 1)
-    artifact_avg_percentile = 100 * slot_potential_df[slot_potential_df['power'] < artifact_avg_power]['probability'].sum()
+    slot_min_power = slot_power.min()
 
-    artifact_max_power = artifact_potential_df["power"].max()
-    artifact_max_increase = 100 * (artifact_max_power/slot_min_power - 1)
-    artifact_max_percentile = 100 * slot_potential_df[slot_potential_df['power'] < artifact_max_power]['probability'].sum()
+    artifact_min_power = artifact_power.min()
+    artifact_min_increase = 100 * (artifact_min_power / slot_min_power - 1)
+    artifact_min_percentile = 100 * slot_potential[slot_power < artifact_min_power]["probability"].sum()
+
+    artifact_avg_power = artifact_power.dot(artifact_potential_df["probability"])
+    artifact_avg_increase = 100 * (artifact_avg_power / slot_min_power - 1)
+    artifact_avg_percentile = 100 * slot_potential[slot_power < artifact_avg_power]["probability"].sum()
+
+    artifact_max_power = artifact_power.max()
+    artifact_max_increase = 100 * (artifact_max_power / slot_min_power - 1)
+    artifact_max_percentile = 100 * slot_potential[slot_power < artifact_max_power]["probability"].sum()
 
     if base_power is not None:
-        base_power_increase = 100 * (base_power/slot_min_power - 1)
-        base_power_slot_percentile = 100 * slot_potential_df[slot_potential_df['power'] < base_power]['probability'].sum()
-        base_power_artifact_percentile = 100 * artifact_potential_df[artifact_potential_df['power'] < base_power]['probability'].sum()
+        base_power_increase = 100 * (base_power / slot_min_power - 1)
+        base_power_slot_percentile = 100 * slot_potential[slot_power < base_power]["probability"].sum()
+        base_power_artifact_percentile = 100 * artifact_potential_df[artifact_power < base_power]["probability"].sum()
 
     # Output artifact min, avg, max and base power, sorted.
+    # fmt: off
     if base_power is not None:
         if base_power < artifact_min_power:
             log.info(f'Base Power:         {base_power:>6,.0f} | {base_power_increase:>+5.1f}% | {base_power_artifact_percentile:>5.1f}{_suffix(base_power_artifact_percentile)} Artifact Percentile | {base_power_slot_percentile:>5.1f}{_suffix(base_power_slot_percentile)} Slot Percentile')
@@ -804,129 +950,17 @@ def _artifact_potential_summary(artifact_potential_df: pd.DataFrame, slot_potent
         log.info(f'Artifact has a {max(0, 100 - base_power_artifact_percentile):>.1f}% chance of outperforming the baseline.')
         if artifact_min_power == artifact_avg_power == artifact_max_power == base_power:
             log.info(f'Artifact is very likely the baseline.')
+    # fmt: on
+
 
 def _suffix(value: float) -> str:
-    suffix = ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th']
+    suffix = ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"]
     mod_value = math.floor(10 * value) % 10
     return suffix[mod_value]
 
-def graph_potentials(artifact_potentials_dfs: list[pd.DataFrame], legend_labels: list[str], base_power: float = None, title: str = None, nbins: int = None, smooth: bool = False):
 
-    log.info('-' * 90)
-    log.info(f'Plotting {title}...')
-
-    # Calculate number of bins
-    if nbins is None:
-        biggest_df = max([artifact_potentials_df.size for artifact_potentials_df in artifact_potentials_dfs])
-        nbins = min(250, biggest_df / 100)
-
-    # Prepare histogram
-    min_power = min([artifact_potentials_df['power'].min() for artifact_potentials_df in artifact_potentials_dfs])
-    max_power = max([artifact_potentials_df['power'].max() for artifact_potentials_df in artifact_potentials_dfs])
-    bin_size = (max_power - min_power) / nbins
-    bins = pd.DataFrame([(
-            min_power + bin*bin_size,
-            min_power + (bin+1)*bin_size,
-            min_power + (bin+0.5)*bin_size
-            ) for bin in range(nbins)], columns=['bin bottom', 'bin top', 'bin mid'])
-
-    # Fill histogram
-    for (input_ind, artifact_potentials_df) in enumerate(artifact_potentials_dfs):
-        bins[f'pop_{input_ind}'] = np.nan
-        for bin_ind, bin in bins.iterrows():
-            bins[f'pop_{input_ind}'][bin_ind] = artifact_potentials_df[(artifact_potentials_df['power'] >= bin['bin bottom']) & (artifact_potentials_df['power'] < bin['bin top'])]['probability'].sum()
-        # Calculate percentiles
-        bins[f'per_{input_ind}'] = bins[f'pop_{input_ind}'].cumsum()
-        # Apply smoothing after percentiles
-        if smooth:
-            smoothing_period = math.floor(nbins / 50)
-            bins[f'pop_{input_ind}'] = bins[f'pop_{input_ind}'].rolling(window=smoothing_period, min_periods=1).sum()/smoothing_period
-
-    # Create axes
-    fig, ax1 = plt.subplots()
-    ax1.set_title(title)
-    ax2 = ax1.twinx()
-    ax3 = ax1.twiny()
-
-    # plot_colors = [(127/255, 201/255, 127/255), (190/255, 174/255, 212/255), (253/255, 192/255, 134/255), (255/255, 255/255, 153/255), (56/255, 108/255, 176/255)]
-    plot_colors = [(179/255, 205/255, 227/255), (204/255, 235/255, 197/255), (254/255, 217/255, 166/255), (222/255, 203/255, 228/255), (251/255, 180/255, 174/255)] # Source: https://colorbrewer2.org/#type=qualitative&scheme=Pastel1&n=5
-    plot_color_iter = itertools.cycle(plot_colors)
-
-    fills = []
-    for ind in range(len(artifact_potentials_dfs)):
-        # Select plot color
-        plot_color = next(plot_color_iter)
-        plot_color_dark = _adjust_lightness(plot_color, 0.5)
-        # Plot histogram
-        # ax1.bar(x=bins['bin bottom'], height=bins[f'pop_{ind}'], width=bin_size, color=plot_color_w_alpha)
-        # Plot fill with thick border
-        ax1.plot(bins['bin mid'], bins[f'pop_{ind}'], color=plot_color)
-        fill = ax1.fill(bins['bin mid'].tolist() + [bins['bin mid'].loc[0]], bins[f'pop_{ind}'].to_list() + [0], color=plot_color, alpha=0.3)
-        fills.append(fill)
-        # Plot percentile line
-        ax2.plot(bins['bin mid'], bins[f'per_{ind}'], color=plot_color_dark)
-
-    # Draw base power comparisons
-    if base_power is not None:
-        ax2.plot([base_power, base_power], [0, 1], 'r-')
-        percentiles = [(artifact_potentials_df[artifact_potentials_df['power'] < base_power]['probability'].sum(), ind) for (artifact_potentials_df, ind) in zip(artifact_potentials_dfs, list(range(len(artifact_potentials_dfs))))]
-        percentiles = sorted(percentiles, key=lambda x: x[0], reverse=True)
-        ax2.scatter([base_power] * len(percentiles), [percentile for (percentile, _) in percentiles], c='k')
-        # Determine positions of labels. If far enough fro right hand side, alternate between left and right.
-        if (base_power - min_power) / (max_power - min_power) < 0.85:
-            x_location = itertools.cycle([base_power - (max_power - min_power) * 0.02, base_power + (max_power - min_power) * 0.02])
-            horizontal_allignment = itertools.cycle(['right', 'left'])
-        else:
-            x_location = itertools.cycle([base_power - (max_power - min_power) * 0.02])
-            horizontal_allignment = itertools.cycle(['left'])
-        max_height = 1
-        for (percentile, ind) in percentiles:
-            label = legend_labels[ind]
-            delta_power = base_power/artifact_potentials_dfs[ind]['power'].min() - 1
-            if percentile < 0.15:
-                y_location =  percentile + 0.05
-                max_height = y_location
-            else:
-                y_location = min(max_height - 0.0375, percentile - 0.05)
-                max_height = y_location
-            # Plot labels
-            ax2.annotate(
-                    f' {label}: ({100*percentile:.1f}% / {100*delta_power:+.1f}%)',
-                    (next(x_location), y_location), horizontalalignment=next(horizontal_allignment),
-                    bbox=dict(facecolor='white', alpha=0.5))
-
-    # Legend
-    fills = [fill[0] for fill in fills]
-    ax3.legend(handles=fills, labels=legend_labels, loc='upper left', framealpha=0.9)
-
-    ax1.set_xlabel('Power')
-    ax1.set_ylabel('Probability')
-    ax1.set_xlim(min_power, max_power)
-    # Ignore first bin in setting ymax. If things are smoothed, this is generally ignored but that's OK.
-    y_max = max([bins[f'pop_{ind}'].loc[1:].max() for ind in range(len(artifact_potentials_dfs))])
-    ax1.set_ylim(0, y_max)
-
-    ax2.set_ylabel('Power Percentile')
-    ax2.set_ylim(0, 1)
-    ax2.set_yticks(np.arange(0, 1.1, 0.1))
-    ax2.yaxis.set_major_formatter(mtick.PercentFormatter(1.0)) 
-    ax2.grid(axis='both')
-
-    num_x_ticks = math.floor((max_power - min_power) / min_power / 0.05) + 1
-    x_tick_locations = min_power + 0.05 * min_power * np.array(list(range(num_x_ticks)))
-    ax3.set_xlabel('ΔPower')
-    ax3.set_xlim(ax1.get_xlim())
-    ax3.set_xticks(x_tick_locations)
-    ax3.set_xticklabels([f'{5*num}%' for num in range(num_x_ticks)])
-
-    plt.subplots_adjust(top=0.85)
-    plt.subplots_adjust(right=0.85)
-
-    plt.draw()
-    plt.pause(0.001)
-
-def _substat_rolls_probabillities():
-    '''Creates reference of probabillity of rolls being distibuted in a given manner'''
+def _substat_rolls_probabillities() -> dict[int]:
+    """Creates reference of probabillity of rolls being distibuted in a given manner"""
 
     # Create list of possible expanded substats
     possible_substat_rolls = {
@@ -949,28 +983,18 @@ def _substat_rolls_probabillities():
             for num_substat_rolls in roll_tuple:
                 arrangements *= math.comb(remaining_rolls, num_substat_rolls)
                 remaining_rolls -= num_substat_rolls
-            substat_rolls_probabillities[num_rolls].append((
-                roll_tuple,
-                arrangements / len(roll_tuple)**sum(roll_tuple)
-            ))
+            substat_rolls_probabillities[num_rolls].append(
+                (roll_tuple, arrangements / len(roll_tuple) ** sum(roll_tuple))
+            )
 
     return substat_rolls_probabillities
 
-def _sums(length, total_sum):
-    '''Generates '''
+
+# Source: https://stackoverflow.com/questions/7748442/generate-all-possible-lists-of-length-n-that-sum-to-s-in-python
+def _sums(length, total_sum) -> tuple:
     if length == 1:
         yield (total_sum,)
     else:
         for value in range(total_sum + 1):
             for permutation in _sums(length - 1, total_sum - value):
                 yield (value,) + permutation
-
-def _adjust_lightness(color, amount=0.5):
-    import matplotlib.colors as mc
-    import colorsys
-    try:
-        c = mc.cnames[color]
-    except:
-        c = color
-    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
-    return colorsys.hls_to_rgb(c[0], max(0, min(1, amount * c[1])), c[2])

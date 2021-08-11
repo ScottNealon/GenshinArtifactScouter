@@ -1,16 +1,12 @@
 import pandas as pd
 
+import genshindata as gd
+
 
 class Weapon:
-
-    _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
-                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%', 'probability']
-    _valid_passive_stats = ['Base ATK', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%', 'Elemental DMG%',
-                            'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%']
-    _valid_ascension_stats = ['HP%', 'ATK%', 'DEF%', 'Physical DMG%',
-                              'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%']
-
-    def __init__(self, name: str, level: int, baseATK: int, ascension_stat: str, ascension_stat_value: float, passive: dict[str]):
+    def __init__(
+        self, name: str, level: int, baseATK: int, ascension_stat: str, ascension_stat_value: float, passive: dict[str]
+    ):
 
         # Unvalidated inputs
         self.name = name
@@ -37,7 +33,7 @@ class Weapon:
     @level.setter
     def level(self, level: int):
         if level < 1 or level > 90:
-            raise ValueError('Invalid character level')
+            raise ValueError("Invalid character level")
         else:
             self._level = level
 
@@ -48,7 +44,7 @@ class Weapon:
     @baseATK.setter
     def baseATK(self, baseATK: int):
         if baseATK <= 0:
-            raise ValueError('Invalid base attack.')
+            raise ValueError("Invalid base attack.")
         else:
             self._baseATK = baseATK
 
@@ -58,8 +54,8 @@ class Weapon:
 
     @ascension_stat.setter
     def ascension_stat(self, ascension_stat: str):
-        if ascension_stat not in self._valid_ascension_stats:
-            raise ValueError('Invalid ascension stat.')
+        if ascension_stat not in gd.stat_names:
+            raise ValueError("Invalid ascension stat.")
         else:
             self._ascension_stat = ascension_stat
 
@@ -70,7 +66,7 @@ class Weapon:
     @ascension_stat_value.setter
     def ascension_stat_value(self, ascension_stat_value: float):
         if ascension_stat_value <= 0:
-            raise ValueError('Invalid ascension stat value.')
+            raise ValueError("Invalid ascension stat value.")
         else:
             self._ascension_stat_value = ascension_stat_value
 
@@ -81,20 +77,20 @@ class Weapon:
     @passive.setter
     def passive(self, passive: dict[str]):
         for key, value in passive.items():
-            if key not in self._valid_passive_stats:
-                raise ValueError('Invalid passive stat.')
+            if key not in gd.stat_names:
+                raise ValueError("Invalid passive stat.")
             elif value < 0:
-                raise ValueError('Invalid passive stat value.')
+                raise ValueError("Invalid passive stat value.")
         self._passive = passive
 
     @property
     def stats(self):
-        self._stats = pd.Series(0.0, index=self._stat_names)
-        self._stats['Base ATK'] += self.baseATK
+        self._stats = pd.Series(0.0, index=gd.stat_names)
+        self._stats["Base ATK"] += self.baseATK
         self._stats[self.ascension_stat] += self.ascension_stat_value
         for key, value in self.passive.items():
             self._stats[key] += value
         return self._stats
-    
+
     def __str__(self):
-        return f'{self.name}, Level: {self.level}'
+        return f"{self.name}, Level: {self.level}"

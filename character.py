@@ -1,6 +1,6 @@
+import logging
 import math
 
-import logging
 import numpy as np
 import pandas as pd
 
@@ -8,15 +8,20 @@ import genshindata as gd
 
 log = logging.getLogger(__name__)
 
+
 class Character:
-
-    _stat_names = ['Base HP', 'Base ATK', 'Base DEF', 'HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'Physical DMG%',
-                   'Elemental DMG%', 'DMG%', 'Elemental Mastery', 'Energy Recharge%', 'Crit Rate%', 'Crit DMG%', 'Healing Bonus%', 'probability']
-
-    def __init__(self, name: str, level: int, ascension: int, passive: dict[str], dmg_type: str, scaling_stat: str = None, crits: str = None,
-        amplifying_reaction: str = None, reaction_percentage: float = None):
-
-        # Undefaulted inputs
+    def __init__(
+        self,
+        name: str,
+        level: int,
+        ascension: int,
+        passive: dict[str],
+        dmg_type: str,
+        scaling_stat: str = None,
+        crits: str = None,
+        amplifying_reaction: str = None,
+        reaction_percentage: float = None
+    ):
 
         if name.lower() not in gd.character_stats:
             raise ValueError('Invalid character name.')
@@ -54,7 +59,6 @@ class Character:
         # Updated
         self._update_stats = True
 
-
     @property
     def name(self):
         return self._name
@@ -74,7 +78,9 @@ class Character:
             if self.ascension != intended_ascension:
                 self.ascension = intended_ascension
                 if level in [20, 40, 50, 60, 70, 80]:
-                    log.warning(f'Character {self.name.title()} set to level {level}. Ascension defaulted to {intended_ascension}.')
+                    log.warning(
+                        f'Character {self.name.title()} set to level {level}. Ascension defaulted to {intended_ascension}.'
+                    )
         self._update_stats = True
 
     @property
@@ -159,7 +165,7 @@ class Character:
     @passive.setter
     def passive(self, passive: dict[str]):
         for key, value in passive.items():
-            if key not in self._stat_names:
+            if key not in gd.stat_names:
                 raise ValueError('Invalid passive.')
         self._passive = passive
         self._update_stats = True
@@ -171,7 +177,7 @@ class Character:
         return self._baseStats
 
     def update_stats(self):
-        self._baseStats = pd.Series(0.0, index=self._stat_names)
+        self._baseStats = pd.Series(0.0, index=gd.stat_names)
         self._baseStats['Base HP'] += self.base_HP
         self._baseStats['Base ATK'] += self.base_ATK
         self._baseStats['Base DEF'] += self.base_DEF
