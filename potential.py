@@ -362,6 +362,14 @@ def artifacts_substat_potentials(
         )
         log.info(f"{len(substat_potential_df.index):,} different ways to roll condensed substats.")
         # TODO Report on potential
+        equipped_artifact_set = equipped_artifacts.get_artifact(type(base_artifact)).set
+        if (base_artifact.set != equipped_artifact_set) and equipped_artifacts.use_set_bonus:
+            log.warn(
+                f"Evaluating artifact set ({base_artifact.set}) is different from equipped artifact set ({equipped_artifact_set})."
+            )
+            log.warn(
+                f"This may interfere with comparing artifact potentials. Consider evaluating slot with correct set or turn artifacts.use_set_bonus = False"
+            )
         substat_potentials[artifact_name] = substat_potential_df
 
     return substat_potentials
@@ -467,6 +475,14 @@ def artifact_substat_potential(
     log.info(f"{len(substat_potential_df.index):,} different ways to roll condensed substats.")
 
     # TODO Report on potential
+    equipped_artifact_set = equipped_artifacts.get_artifact(type(evaluating_artifact)).set
+    if evaluating_artifact.set != equipped_artifact_set and equipped_artifacts.use_set_bonus:
+        log.warn(
+            f"Evaluating artifact set ({evaluating_artifact.set}) is different from equipped artifact set ({equipped_artifact_set})."
+        )
+        log.warn(
+            f"This may interfere with comparing artifact potentials. Consider evaluating slot with correct set or turn artifacts.use_set_bonus = False"
+        )
 
     return substat_potential_df
 
