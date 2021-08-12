@@ -1,8 +1,14 @@
+import itertools
 import json
+import logging
+import math
 import os
 
 import numpy as np
 import pandas as pd
+
+log = logging.getLogger(__name__)
+log.info("Importing and calculating data...")
 
 
 def _get_character_stats():
@@ -257,6 +263,52 @@ substat_roll_values = {
     }
 }
 
+def _get_value_to_rolls_map():
+    """Creates mapping between the end substat value and the possible substat rolls resulting in it"""
+
+    value2rolls = {}
+    # Iterate through substat-stars pairing
+    for substat in substat_roll_values:
+        value2rolls[substat] = {}
+        for stars, roll_values in substat_roll_values[substat].items():
+            # Calculate all possible results
+            value2rolls[substat][stars] = {}
+            for num_rolls in range(1, 6 + 1):
+                possible_rolls = itertools.combinations_with_replacement(roll_values, num_rolls)
+                for possible_roll in possible_rolls:
+                    # Rounds total (complicated to explain why)
+                    total = round(sum(possible_roll), 1)
+                    if total in value2rolls[substat][stars]:
+                        value2rolls[substat][stars][total].append(possible_roll)
+                    else:
+                        value2rolls[substat][stars][total] = [possible_roll]
+            # Determine if any total can result from different number of rolls
+            num_rolls = {}
+            for total, rolls in value2rolls[substat][stars].items():
+                num_rolls = []
+                for roll in rolls:
+                    if len(roll) not in num_rolls:
+                        num_rolls.append(len(roll))
+                # For each number of rolls, only save first instance
+                shortened_rolls = []
+                for num_roll in num_rolls:
+                    for roll in rolls:
+                        if len(roll) == num_roll:
+                            shortened_rolls.append(roll)
+                            break
+                value2rolls[substat][stars][total] = shortened_rolls
+
+    return value2rolls
+
+def round_normal(value, precision):
+    '''Implement 5 and above, give it a shove rounding'''
+    if value * 10**precision % 1 == 0.5:
+        return math.ceil(value * 10**precision) / 10**precision
+    else:
+        return round(value, precision)
+
+value2rolls = _get_value_to_rolls_map()
+
 _unrelated_substat_rarity = pd.Series({
     'HP':                0.1364,
     'ATK':               0.1364,
@@ -473,3 +525,5 @@ default_artifact_source = {
     'reminiscence':   'domain'
 }
 # fmt: on
+
+log.info("Data imported and calcualted.")

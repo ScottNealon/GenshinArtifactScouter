@@ -6,6 +6,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+# Setup Logging
+dir_path = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(dir_path, "logging.conf")
+logging.config.fileConfig(config_path)
+logging.info("Logging initialized.")
+
 import artifact as art
 import artifacts as arts
 import character as char
@@ -15,12 +21,6 @@ import potential as pot
 import weapon as weap
 
 if __name__ == "__main__":
-
-    # Setup Logging
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    config_path = os.path.join(dir_path, "logging.conf")
-    logging.config.fileConfig(config_path)
-    logging.info("Logging initialized.")
 
     # Import data from Genshin Optimizer
     go_data = gop.GenshinOptimizerData("go_data.json")
