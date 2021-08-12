@@ -71,6 +71,10 @@ class Artifact:
         # Create empty dictionary
         self._substat_rolls = {}
 
+        # Ignore if dataframe
+        if type(self.substats) is pd.DataFrame:
+            return
+
         # Resolve the trivial case
         if len(self.substats) == 0:
             return

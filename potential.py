@@ -223,7 +223,7 @@ def slot_substat_potentials(
         )
     )
     log.info(
-        f"Equipped Artifacts:                                      HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
+        f"Equipped Artifacts:                                       HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
     )
     for equipped_artifact in equipped_artifacts:
         if type(equipped_artifact) is not slot:
@@ -316,7 +316,7 @@ def artifacts_substat_potentials(
     log.info(f"Character: {character.name.title()}")
     log.info(f"Weapon: {weapon.name.title()}")
     log.info(
-        f"Equipped Artifacts:                                      HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
+        f"Equipped Artifacts:                                       HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
     )
     for artifact in equipped_artifacts:
         log.info(f"{artifact.to_string_table()}")
@@ -350,7 +350,7 @@ def artifacts_substat_potentials(
             stars=base_artifact.stars,
             main_stat=base_artifact.main_stat,
             target_level=iter_target_level,
-            substats=base_artifact.substats,
+            substat_rolls=base_artifact.substat_rolls,
             source=iter_source,
         )
         log.info(f"{len(substat_potential_df.index):,} different ways to roll condensed substats.")
@@ -442,7 +442,7 @@ def artifact_substat_potential(
         )
     )
     log.info(
-        f"Equipped Artifacts:                                      HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
+        f"Equipped Artifacts:                                       HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
     )
     for equipped_artifact in equipped_artifacts:
         if type(equipped_artifact) is not type(evaluating_artifact):
@@ -458,7 +458,7 @@ def artifact_substat_potential(
         stars=evaluating_artifact.stars,
         main_stat=evaluating_artifact.main_stat,
         target_level=target_level,
-        substats=evaluating_artifact.substats,
+        substat_rolls=evaluating_artifact.substat_rolls,
         source=source,
     )
     log.info(f"{len(substat_potential_df.index):,} different ways to roll condensed substats.")
@@ -478,7 +478,7 @@ def _individual_slot_potential(
     main_stat: str,
     target_level: int,
     source: str,
-    substats: dict[str] = None,
+    substat_rolls: dict[str] = None,
 ) -> pd.DataFrame:
     """Calculates the probabillity and power of all possible substats rolls for given parameters
 
@@ -502,8 +502,8 @@ def _individual_slot_potential(
         Artifact level to evaluate to
     source : str
         Source of artifacts. Different sources have different low vs high substat drop rates.
-    substats : dict[str], default=None
-        Dictionary of substats to start with. If not provided, will evaluate all possible starting substats.
+    substats_rolls : dict[str], default=None
+        Dictionary of rolls of substats to start with. If not provided, will evaluate all possible starting substats.
 
     Returns
     ----------
@@ -513,13 +513,21 @@ def _individual_slot_potential(
 
     # Default substats
     seed_pseudo_artifact = {"substats": {}, "probability": 1.0}
-    if substats is not None:
-        for substat in substats:
+    seed_pseudo_artifact_rolls = {"substats": {}, "probability": 1.0}
+    if substat_rolls is not None:
+        for substat, rolls in substat_rolls.items():
             seed_pseudo_artifact["substats"][substat] = 0
+            seed_pseudo_artifact_rolls["substats"][substat] = [0, 0, 0, 0]
+            for roll in rolls:
+                roll_level = gd.substat_roll_values[substat][stars].index(roll)
+                seed_pseudo_artifact_rolls["substats"][substat][roll_level] += 1
 
     # Calculate number of unlocks and increases
     existing_unlocks = len(seed_pseudo_artifact["substats"])
-    existing_increases = 0  # TODO Actually calculate number of increases already occured
+    if substat_rolls is not None:
+        existing_increases = sum([len(rolls) for substat, rolls in substat_rolls.items()]) - existing_unlocks
+    else:
+        existing_increases = 0
     remaining_unlocks = min(4, max(0, stars - 2) + math.floor(target_level / 4)) - existing_unlocks
     remaining_increases = (
         max(0, stars - 2) + math.floor(target_level / 4) - existing_unlocks - remaining_unlocks - existing_increases
@@ -535,6 +543,7 @@ def _individual_slot_potential(
         remaining_increases=remaining_increases,
         total_rolls_high_chance=total_rolls_high_chance,
         seed_pseudo_artifact=seed_pseudo_artifact,
+        seed_pseudo_artifact_rolls=seed_pseudo_artifact_rolls,
     )
 
     # Format output
@@ -570,6 +579,7 @@ def _make_children(
     remaining_increases: int,
     total_rolls_high_chance: float,
     seed_pseudo_artifact: dict[str],
+    seed_pseudo_artifact_rolls: dict[str],
 ) -> pd.DataFrame:
     """Calculate probabillity of every possible substat roll
 
@@ -589,6 +599,8 @@ def _make_children(
         Probabillity that an artifact will be rolled with an increased number of initial stats
     seed_pseudo_artifact : dict[str]
         Pseudo-artifact dictionary to iterate off of
+    seed_pseudo_artifact_rolls : dict[str]
+        Pseudo-artifact dictionary recording existing rolls
 
     Returns
     ----------
@@ -643,7 +655,10 @@ def _make_children(
 
     # Convert pseudo artifacts by calculating roll values
     substat_values_df, pseudo_artifacts_df = _calculate_substats(
-        pseudo_artifacts=pseudo_artifacts, character=character, stars=stars
+        pseudo_artifacts=pseudo_artifacts,
+        character=character,
+        stars=stars,
+        seed_pseudo_artifact_rolls=seed_pseudo_artifact_rolls,
     )
 
     return substat_values_df, pseudo_artifacts_df
@@ -813,13 +828,15 @@ def _add_substat_rolls(
     return pseudo_artifacts
 
 
-def _calculate_substats(pseudo_artifacts: list[dict], character: char.Character, stars: int) -> pd.DataFrame:
+def _calculate_substats(
+    pseudo_artifacts: list[dict], character: char.Character, stars: int, seed_pseudo_artifact_rolls: dict[str]
+) -> pd.DataFrame:
     """Creates every possible artifact from the given number of substat rolls"""
 
     ## NOTE: This function is where the vast majority of the computational time is spent
 
     # Calculate probability of possible expanded substats
-    substat_rolls_probabillities = _substat_rolls_probabillities()
+    substat_rolls_probabillities_map = _substat_rolls_probabillities(seed_pseudo_artifact_rolls)
 
     # Creates empty list of pseudo artifacts
     pseudo_artifacts_list = []
@@ -833,7 +850,7 @@ def _calculate_substats(pseudo_artifacts: list[dict], character: char.Character,
         # Create list of possible roll combinations for each substat
         substat_products = []
         for substat in valid_substats:
-            substat_products.append(substat_rolls_probabillities[pseudo_artifact["substats"][substat]])
+            substat_products.append(substat_rolls_probabillities_map[substat][pseudo_artifact["substats"][substat]])
 
         # Create list of all possible roll combinations across each substat
         pseudo_artifact_list = list(itertools.product(*substat_products))
@@ -885,6 +902,8 @@ def _calculate_substats(pseudo_artifacts: list[dict], character: char.Character,
 
 
 def _condensable_substats(character: char.Character):
+
+    # TODO Include this on a character by character basis
 
     # Create list of condensable stats
     if character.scaling_stat == "ATK":
@@ -959,7 +978,7 @@ def _suffix(value: float) -> str:
     return suffix[mod_value]
 
 
-def _substat_rolls_probabillities() -> dict[int]:
+def _substat_rolls_probabillities(seed_pseudo_artifact_rolls: dict[str]) -> dict[int]:
     """Creates reference of probabillity of rolls being distibuted in a given manner"""
 
     # Create list of possible expanded substats
@@ -987,7 +1006,27 @@ def _substat_rolls_probabillities() -> dict[int]:
                 (roll_tuple, arrangements / len(roll_tuple) ** sum(roll_tuple))
             )
 
-    return substat_rolls_probabillities
+    # Complicated method for adding in pre-existing substat rolls from the seed artifact
+    substat_rolls_probabillities_map = {}
+    for substat in gd.substat_roll_values:
+        substat_rolls_probabillities_map[substat] = copy.deepcopy(substat_rolls_probabillities)
+        if substat in seed_pseudo_artifact_rolls["substats"]:
+            for num_rolls in substat_rolls_probabillities_map[substat]:
+                new_combinations = []
+                for combination in substat_rolls_probabillities_map[substat][num_rolls]:
+                    # if combination[0] != (0,):
+                    new_combination_rolls = np.array(combination[0]) + np.array(
+                        seed_pseudo_artifact_rolls["substats"][substat]
+                    )
+                    new_combinations.append(
+                        (
+                            tuple(new_combination_rolls),
+                            combination[1],
+                        )
+                    )
+                substat_rolls_probabillities_map[substat][num_rolls] = new_combinations
+
+    return substat_rolls_probabillities_map
 
 
 # Source: https://stackoverflow.com/questions/7748442/generate-all-possible-lists-of-length-n-that-sum-to-s-in-python
