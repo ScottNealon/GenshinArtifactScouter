@@ -74,6 +74,13 @@ def all_slots_substats_potentials(
     log.info("Evaluating substat potential of all slots...")
     log.info(f"Character: {character.name.title()}")
     log.info(f"Weapon: {weapon.name.title()}")
+    if character.amplifying_reaction is not None:
+        if character.reaction_percentage != 1:
+            log.info(
+                f"Elemental Reaction: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
+            )
+        else:
+            log.info(f"Elemental Reaction: {character.amplifying_reaction.replace('_', ' ').title()}")
     log.info(
         f"Equipped Artifacts:                                       HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
     )
@@ -212,6 +219,13 @@ def slot_substat_potentials(
     log.info(f"Evaluating substat potential of {art.type2str[slot]}...")
     log.info(f"Character: {character.name.title()}")
     log.info(f"Weapon: {weapon.name.title()}")
+    if character.amplifying_reaction is not None:
+        if character.reaction_percentage != 1:
+            log.info(
+                f"Elemental Reaction: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
+            )
+        else:
+            log.info(f"Elemental Reaction: {character.amplifying_reaction.replace('_', ' ').title()}")
     log.info("Artifact:")
     log.info(
         (
@@ -315,6 +329,13 @@ def artifacts_substat_potentials(
     log.info("Evaluating substat potential of artifacts...")
     log.info(f"Character: {character.name.title()}")
     log.info(f"Weapon: {weapon.name.title()}")
+    if character.amplifying_reaction is not None:
+        if character.reaction_percentage != 1:
+            log.info(
+                f"Elemental Reaction: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
+            )
+        else:
+            log.info(f"Elemental Reaction: {character.amplifying_reaction.replace('_', ' ').title()}")
     log.info(
         f"Equipped Artifacts:                                       HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
     )
@@ -431,6 +452,13 @@ def artifact_substat_potential(
     log.info(f"Evaluating substat potential of single artifact...")
     log.info(f"Character: {character.name.title()}")
     log.info(f"Weapon: {weapon.name.title()}")
+    if character.amplifying_reaction is not None:
+        if character.reaction_percentage != 1:
+            log.info(
+                f"Elemental Reaction: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
+            )
+        else:
+            log.info(f"Elemental Reaction: {character.amplifying_reaction.replace('_', ' ').title()}")
     log.info("Artifact:")
     log.info(
         (
