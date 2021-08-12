@@ -39,9 +39,13 @@ def evaluate_power(
 
     log.info("-" * 120)
     log.info("Evaluating power...")
-    log.info(f"Character: {character.name.title()}")
+    log.info(f"CHARACTER: {character.name.title()}")
     if weapon is not None:
-        log.info(f"Weapon: {weapon.name.title()}")
+        log.info(f"WEAPON: {weapon.name.title()}")
+    if character.amplifying_reaction is not None:
+        log.info(
+            f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
+        )
 
     # Calculate overall stats if not provided
     if stats is None:
@@ -82,11 +86,11 @@ def evaluate_power(
     # Log
     if type(power) is pd.Series:
         if probability is not None:
-            log.info(f"Min Power: {power.min():,.2f}")
-            log.info(f"Avg Power: {power.dot(probability):,.2f}")
-            log.info(f"Max Power: {power.max():,.2f}")
+            log.info(f"MIN POWER: {power.min():,.2f}")
+            log.info(f"AVG POWER: {power.dot(probability):,.2f}")
+            log.info(f"MAX POWER: {power.max():,.2f}")
     else:
-        log.info(f"Power: {power:,.2f}")
+        log.info(f"POWER: {power:,.2f}")
 
     return power
 
