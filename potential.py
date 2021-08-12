@@ -98,7 +98,7 @@ def all_slots_substats_potentials(
             iter_source = gd.default_artifact_source[base_artifact.set] if source is None else source
             # Log artifact
             log.info("-" * 10)
-            log.info(f"Evaluating {art.type2str[slot]} potential...")
+            log.info(f"Evaluating {art.type2str[slot]} slot potential...")
             log.info("ARTIFACT:")
             log.info(
                 (
@@ -213,7 +213,7 @@ def slot_substat_potentials(
 
     # Log intro
     log.info("-" * 120)
-    log.info(f"Evaluating substat potential of {art.type2str[slot]}...")
+    log.info(f"Evaluating substat potential of {art.type2str[slot]} slot...")
     log.info(f"CHARACTER: {character.name.title()}")
     log.info(f"WEAPON: {weapon.name.title()}")
     if character.amplifying_reaction is not None:
@@ -344,14 +344,9 @@ def artifacts_substat_potentials(
         log.info("-" * 10)
         log.info(f"Evaluating {artifact_name} potential...")
         log.info(
-            (
-                f"{base_artifact.slot.capitalize():>7s} "
-                f"{base_artifact.stars:>d}* "
-                f"{base_artifact.set.capitalize():>14} "
-                f"{iter_target_level:>2d}/{gd.max_level_by_stars[base_artifact.stars]:>2d} "
-                f"{base_artifact.main_stat:>17s}: {gd.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][iter_target_level]:>4}"
-            )
+            f"ARTIFACT:                                                 HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
         )
+        log.info(f"{artifact.to_string_table()}")
         # Calculate potential
         substat_potential_df = _individual_slot_potential(
             character=character,
@@ -447,19 +442,11 @@ def artifact_substat_potential(
         log.info(
             f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
         )
-    log.info("ARTIFACT:")
     log.info(
-        (
-            f"{evaluating_artifact.slot.capitalize():>7s} "
-            f"{evaluating_artifact.stars:>d}* "
-            f"{evaluating_artifact.set.capitalize():>14} "
-            f"{target_level:>2d}/{gd.max_level_by_stars[evaluating_artifact.stars]:>2d} "
-            f"{evaluating_artifact.main_stat:>17s}: {gd.main_stat_scaling[evaluating_artifact.stars][evaluating_artifact.main_stat][target_level]:>4}"
-        )
+        f"ARTIFACT:                                                 HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
     )
-    log.info(
-        f"EQUIPPED ARTIFACTS:                                       HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
-    )
+    log.info(f"{evaluating_artifact.to_string_table()}")
+    log.info(f"EQUIPPED ARTIFACTS:")
     for equipped_artifact in equipped_artifacts:
         if type(equipped_artifact) is not type(evaluating_artifact):
             log.info(f"{equipped_artifact.to_string_table()}")
