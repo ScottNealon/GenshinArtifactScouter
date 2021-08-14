@@ -6,9 +6,68 @@ import os
 
 import numpy as np
 import pandas as pd
+import requests
+from requests.api import request
 
 log = logging.getLogger(__name__)
 log.info("Importing and calculating data...")
+
+# Copied from Genshin Optimizer pipeline/index.ts
+# If you find this is out of date, feel free to copy and submit a pull request to update.
+characterIdMap = {
+    # 10000000: Kate
+    # 10000001: Kate
+    10000002: "kamisatoayaka",
+    10000003: "jean",
+    # 10000005: "traveler_geo",# travler_male
+    10000006: "lisa",
+    10000007: "traveler",  # traveler_female
+    10000014: "barbara",
+    10000015: "kaeya",
+    10000016: "diluc",
+    10000020: "razor",
+    10000021: "amber",
+    10000022: "venti",
+    10000023: "xiangling",
+    10000024: "beidou",
+    10000025: "xingqiu",
+    10000026: "xiao",
+    10000027: "ningguang",
+    10000029: "klee",
+    10000030: "zhongli",
+    10000031: "fischl",
+    10000032: "bennett",
+    10000033: "tartaglia",
+    10000034: "noelle",
+    10000035: "qiqi",
+    10000036: "chongyun",
+    10000037: "ganyu",
+    10000038: "albedo",
+    10000039: "diona",
+    10000041: "mona",
+    10000042: "keqing",
+    10000043: "sucrose",
+    10000044: "xinyan",
+    10000045: "rosaria",
+    10000046: "hutao",
+    10000047: "kaedeharakazuha",
+    10000048: "yanfei",
+    10000049: "yoimiya",
+    # 10000050: "TEMPLATE",
+    10000051: "eula",
+    # 10000052: "TEMPLATE",
+    10000053: "sayu",
+    # 10000054: "TEMPLATE",
+    # 11000008: "TEMPLATE",
+    # 11000009: "TEMPLATE",
+    # 11000010: "TEMPLATE",
+    # 11000011: "TEMPLATE",
+    # 11000025: "TEMPLATE", Akuliya
+    # 11000026: "TEMPLATE", Yaoyao
+    # 11000028: "TEMPLATE", Shiro Maiden
+    # 11000030: "TEMPLATE", Greatsword Maiden
+    # 11000035: "TEMPLATE", Lance Warrioress
+}
 
 
 def _get_character_stats():
@@ -18,11 +77,39 @@ def _get_character_stats():
     ExcelBinOutput\AvatarExcelConfigData.json
     """
 
-    # Read file
+    # Define file path
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    file_path = os.path.join(dir_path, "Data\character.json")
-    with open(file_path) as f:
-        character_stats = json.load(f)
+    file_path = os.path.join(dir_path, "Data\AvatarExcelConfigData.json")
+
+    # If file doesn't exist, download it
+    if not os.path.isfile(file_path):
+        log.info("Downloading character stats... (this is normal for first run)")
+        url = "https://raw.githubusercontent.com/Dimbreath/GenshinData/master/ExcelBinOutput/AvatarExcelConfigData.json"
+        request = requests.get(url, allow_redirects=True)
+        with open(file_path, "wb") as file_handle:
+            file_handle.write(request.content)
+        log.info("Character stats downloaded.")
+
+    # Read file
+    with open(file_path, "r") as file_handle:
+        character_stats_raw = json.load(file_handle)
+
+    # Convert data form
+    character_stats = {}
+    for character_stat in character_stats_raw:
+        if character_stat["FeatureTagGroupID"] in characterIdMap:
+            character_name = characterIdMap[character_stat["FeatureTagGroupID"]]
+            character_stats[character_name] = character_stat
+            # Modify from list to dict
+            character_stats[character_name]["PropGrowCurves"] = {
+                x["Type"]: x["GrowCurve"] for x in character_stats[character_name]["PropGrowCurves"]
+            }
+
+    # # Read file
+    # dir_path = os.path.dirname(os.path.realpath(__file__))
+    # file_path = os.path.join(dir_path, "Data\character.json")
+    # with open(file_path) as file_handle:
+    #     character_stats = json.load(file_handle)
 
     return character_stats
 
@@ -38,11 +125,22 @@ def _get_stat_curves():
     level: integer between 1 and 90 inclusive
     """
 
-    # Read file
+    # Define file path
     dir_path = os.path.dirname(os.path.realpath(__file__))
     file_path = os.path.join(dir_path, "Data\AvatarCurveExcelConfigData.json")
-    with open(file_path) as f:
-        stat_curves_data = json.load(f)
+
+    # If file doesn't exist, download it
+    if not os.path.isfile(file_path):
+        log.info("Downloading character scaling curves... (this is normal for first run)")
+        url = "https://raw.githubusercontent.com/Dimbreath/GenshinData/master/ExcelBinOutput/AvatarCurveExcelConfigData.json"
+        request = requests.get(url, allow_redirects=True)
+        with open(file_path, "wb") as file_handle:
+            file_handle.write(request.content)
+        log.info("Character scaling curves downloaded.")
+
+    # Read file
+    with open(file_path, "r") as file_handle:
+        stat_curves_data = json.load(file_handle)
 
     # Convert to dict of numpy arrays
     stat_curves = {}
@@ -67,11 +165,22 @@ def _get_promote_stats():
     promote_level: Number of times ascended
     """
 
-    # Read file
+    # Define file path
     dir_path = os.path.dirname(os.path.realpath(__file__))
     file_path = os.path.join(dir_path, "Data\AvatarPromoteExcelConfigData.json")
-    with open(file_path) as f:
-        promote_data = json.load(f)
+
+    # If file doesn't exist, download it
+    if not os.path.isfile(file_path):
+        log.info("Downloading character promotion stats... (this is normal for first run)")
+        url = "https://raw.githubusercontent.com/Dimbreath/GenshinData/master/ExcelBinOutput/AvatarPromoteExcelConfigData.json"
+        request = requests.get(url, allow_redirects=True)
+        with open(file_path, "wb") as file_handle:
+            file_handle.write(request.content)
+        log.info("Character promotion stats downloaded.")
+
+    # Read file
+    with open(file_path, "r") as file_handle:
+        promote_data = json.load(file_handle)
 
     # Convert data
     promote_stats = {}

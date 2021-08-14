@@ -77,8 +77,8 @@ class GenshinOptimizerData:
     def __init__(self, file_path: Union[str, Path]):
 
         # Read file path and save data
-        with open(file_path) as f:
-            self.data = json.load(f)
+        with open(file_path) as file_handle:
+            self.data = json.load(file_handle)
 
         if self.data["version"] != 6:
             log.warning(f"GO Database is Version {self.data['Version']}. This tool was designed for Version 6.")
