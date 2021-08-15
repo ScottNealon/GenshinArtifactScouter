@@ -4,7 +4,8 @@ import math
 import numpy as np
 import pandas as pd
 
-import genshindata as gd
+import genshindata
+from weapon import Weapon
 
 log = logging.getLogger(__name__)
 
@@ -17,13 +18,14 @@ class Character:
         ascension: int,
         passive: dict[str],
         dmg_type: str,
+        weapon: Weapon,
         scaling_stat: str = None,
         crits: str = None,
         amplifying_reaction: str = None,
         reaction_percentage: float = None,
     ):
 
-        if name.lower() not in gd.character_stats:
+        if name.lower() not in genshindata.character_stats:
             raise ValueError("Invalid character name.")
         self._name = name.lower()
 
@@ -34,6 +36,7 @@ class Character:
 
         self.passive = passive
         self.dmg_type = dmg_type
+        self.weapon = weapon
 
         # Defaulted inputs
         if scaling_stat is None:
@@ -103,38 +106,42 @@ class Character:
     def _get_stat_arrays(self):
 
         # Retrieve all stats from database
-        self._base_stats = gd.character_stats[self.name]
+        self._stats = genshindata.character_stats[self.name]
 
         # Retrieve base stat arrays
-        self._base_HP_scaling = gd.stat_curves[self._base_stats["PropGrowCurves"]["FIGHT_PROP_BASE_HP"]]
-        self._base_ATK_scaling = gd.stat_curves[self._base_stats["PropGrowCurves"]["FIGHT_PROP_BASE_ATTACK"]]
-        self._base_DEF_scaling = gd.stat_curves[self._base_stats["PropGrowCurves"]["FIGHT_PROP_BASE_DEFENSE"]]
+        self._base_HP_scaling = genshindata.character_stat_curves[self._stats["PropGrowCurves"]["FIGHT_PROP_BASE_HP"]]
+        self._base_ATK_scaling = genshindata.character_stat_curves[
+            self._stats["PropGrowCurves"]["FIGHT_PROP_BASE_ATTACK"]
+        ]
+        self._base_DEF_scaling = genshindata.character_stat_curves[
+            self._stats["PropGrowCurves"]["FIGHT_PROP_BASE_DEFENSE"]
+        ]
 
         # Retrieve base stat increases due to ascension
-        self._promote_stats = gd.promote_stats[self._base_stats["AvatarPromoteId"]]
+        self._promote_stats = genshindata.character_promote_stats[self._stats["AvatarPromoteId"]]
 
         # Retireve ascension stat increases
         self._ascension_stat_str = list(self._promote_stats.keys())[3]
         self._ascenion_stat_scaling = self._promote_stats[self._ascension_stat_str]
-        self._ascension_stat = gd.promote_stats_map[self._ascension_stat_str]
+        self._ascension_stat = genshindata.promote_stats_map[self._ascension_stat_str]
 
     @property
     def base_HP(self):
-        base_HP = self._base_stats["HpBase"]
+        base_HP = self._stats["HpBase"]
         ascension_HP = self._promote_stats["FIGHT_PROP_BASE_HP"][self.ascension]
         scaling_HP = self._base_HP_scaling[self.level]
         return base_HP * scaling_HP + ascension_HP
 
     @property
     def base_ATK(self):
-        base_ATK = self._base_stats["AttackBase"]
+        base_ATK = self._stats["AttackBase"]
         ascension_ATK = self._promote_stats["FIGHT_PROP_BASE_ATTACK"][self.ascension]
         scaling_ATK = self._base_ATK_scaling[self.level]
         return base_ATK * scaling_ATK + ascension_ATK
 
     @property
     def base_DEF(self):
-        base_DEF = self._base_stats["DefenseBase"]
+        base_DEF = self._stats["DefenseBase"]
         ascension_DEF = self._promote_stats["FIGHT_PROP_BASE_DEFENSE"][self.ascension]
         scaling_DEF = self._base_DEF_scaling[self.level]
         return base_DEF * scaling_DEF + ascension_DEF
@@ -150,12 +157,12 @@ class Character:
             ascension_value *= 100
         return ascension_value
 
-    @ascension_stat_value.setter
-    def ascension_stat_value(self, ascension_stat_value: float):
-        if ascension_stat_value < 0:
-            raise ValueError("Invalid ascension stat value.")
-        self._ascension_stat_value = ascension_stat_value
-        self._update_stats = True
+    # @ascension_stat_value.setter
+    # def ascension_stat_value(self, ascension_stat_value: float):
+    #     if ascension_stat_value < 0:
+    #         raise ValueError("Invalid ascension stat value.")
+    #     self._ascension_stat_value = ascension_stat_value
+    #     self._update_stats = True
 
     @property
     def passive(self):
@@ -163,20 +170,31 @@ class Character:
 
     @passive.setter
     def passive(self, passive: dict[str]):
-        for key, value in passive.items():
-            if key not in gd.stat_names:
+        for key in passive:
+            if key not in genshindata.stat_names:
                 raise ValueError("Invalid passive.")
         self._passive = passive
         self._update_stats = True
 
     @property
-    def base_stats(self):
+    def weapon(self):
+        return self._weapon
+
+    @weapon.setter
+    def weapon(self, weapon: Weapon):
+        if type(weapon) != Weapon:
+            raise ValueError("Weapon must be a weapon.")
+        self._weapon = weapon
+        self._update_stats = True
+
+    @property
+    def stats(self):
         if self._update_stats:
             self.update_stats()
         return self._baseStats
 
     def update_stats(self):
-        self._baseStats = pd.Series(0.0, index=gd.stat_names)
+        self._baseStats = pd.Series(0.0, index=genshindata.stat_names)
         self._baseStats["Base HP"] += self.base_HP
         self._baseStats["Base ATK"] += self.base_ATK
         self._baseStats["Base DEF"] += self.base_DEF
@@ -185,6 +203,7 @@ class Character:
         self._baseStats[self.ascension_stat] += self.ascension_stat_value
         for stat, value in self.passive.items():
             self._baseStats[stat] += value
+        self._baseStats += self.weapon.stats
         self._update_stats = False
 
     @property
@@ -222,13 +241,25 @@ class Character:
         return self._amplifying_reaction
 
     @amplifying_reaction.setter
-    def amplifying_reaction(self, amplifying_reaction):
+    def amplifying_reaction(self, amplifying_reaction: str):
         if amplifying_reaction is None:
             self._amplifying_reaction = amplifying_reaction
             self._amplification_factor = 0
+        elif type(amplifying_reaction) != str:
+            raise ValueError("Amplifying reaction must be provided as a string.")
         else:
+            # Convert to proper format if supplied normally
+            amplifying_reaction = amplifying_reaction.lower().replace(" ", "_")
+            # Convert "reverse" inputs
+            if "reverse" in amplifying_reaction:
+                if "vaporize" in amplifying_reaction:
+                    amplifying_reaction = "pyro_vaporize"
+                elif "melt" in amplifying_reaction:
+                    amplifying_reaction = "cryo_melt"
+            # Validate inputs
             if amplifying_reaction not in ["hydro_vaporize", "pyro_vaporize", "pyro_melt", "cryo_melt", "None"]:
                 raise ValueError("Invalid amplification reaction")
+            # Save results
             self._amplifying_reaction = amplifying_reaction
             self._amplification_factor = 2 if amplifying_reaction in ["hydro_vaporize", "pyro_melt"] else 1.5
 

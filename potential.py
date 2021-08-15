@@ -6,18 +6,16 @@ import math
 import numpy as np
 import pandas as pd
 
-import artifact as art
-import artifacts as arts
-import character as char
-import evaluate as eval
-import genshindata as gd
-import weapon as weap
+import evaluate
+import genshindata
+from artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
+from artifacts import Artifacts
+from character import Character
 
 
 def all_slots_substats_potentials(
-    character: char.Character,
-    weapon: weap.Weapon,
-    equipped_artifacts: arts.Artifacts,
+    character: Character,
+    equipped_artifacts: Artifacts,
     target_level: int = None,
     source: str = None,
     base_power: float = None,
@@ -27,11 +25,9 @@ def all_slots_substats_potentials(
 
     Parameters
     ----------
-    character : char.Character
+    character : Character
         Character to evaluate artifacts on
-    weapon : weap.Weapon
-        Weapon to equip character with
-    equipped_artifacts : arts.Artifacts
+    equipped_artifacts : Artifacts
         Source of set, stars, and main stat for evaluating slots. Will be equipped on character when evaluating other
         slots
     target_level : int, default=None,
@@ -60,7 +56,7 @@ def all_slots_substats_potentials(
 
     # Validate inputs
     # Source must be a valid source
-    if source is not None and source not in gd.extra_substat_probability:
+    if source is not None and source not in genshindata.extra_substat_probability:
         raise ValueError("Invalid domain name.")
     # Target level must be a valid target level
     if target_level is not None:
@@ -73,7 +69,6 @@ def all_slots_substats_potentials(
     log.info("-" * 120)
     log.info("Evaluating substat potential of all artifacts...")
     log.info(f"CHARACTER: {character.name.title()}")
-    log.info(f"WEAPON: {weapon.name.title()}")
     if character.amplifying_reaction is not None:
         log.info(
             f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
@@ -86,33 +81,34 @@ def all_slots_substats_potentials(
 
     # Iterate through artifacts
     substat_potentials = {}
-    for slot in [art.Flower, art.Plume, art.Sands, art.Goblet, art.Circlet]:
+    for slot in [Flower, Plume, Sands, Goblet, Circlet]:
         substat_potentials[slot] = {}
         base_artifact = equipped_artifacts.get_artifact(slot)
         if base_artifact is None:
-            log.warning(f"Artifacts does not contain a {art.type2str(slot)}")
+            log.warning(f"Artifacts does not contain a {slot.__name__}")
         else:
             # Default target_level
-            iter_target_level = gd.max_level_by_stars[base_artifact.stars] if target_level is None else target_level
+            iter_target_level = (
+                genshindata.max_level_by_stars[base_artifact.stars] if target_level is None else target_level
+            )
             # Default source
-            iter_source = gd.default_artifact_source[base_artifact.set] if source is None else source
+            iter_source = genshindata.default_artifact_source[base_artifact.set] if source is None else source
             # Log artifact
             log.info("-" * 10)
-            log.info(f"Evaluating {art.type2str[slot]} slot potential...")
+            log.info(f"Evaluating {slot.__name__} slot potential...")
             log.info("ARTIFACT:")
             log.info(
                 (
                     f"{slot._slot.capitalize():>7s} "
                     f"{base_artifact.stars:>d}* "
                     f"{base_artifact.set.capitalize():>14} "
-                    f"{iter_target_level:>2d}/{gd.max_level_by_stars[base_artifact.stars]:>2d} "
-                    f"{base_artifact.main_stat:>17s}: {gd.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][iter_target_level]:>4}"
+                    f"{iter_target_level:>2d}/{genshindata.max_level_by_stars[base_artifact.stars]:>2d} "
+                    f"{base_artifact.main_stat:>17s}: {genshindata.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][iter_target_level]:>4}"
                 )
             )
             # Calculate potential
             substat_potential_df = _individual_slot_potential(
                 character=character,
-                weapon=weapon,
                 equipped_artifacts=equipped_artifacts,
                 slot=slot,
                 set_str=base_artifact.set,
@@ -129,9 +125,8 @@ def all_slots_substats_potentials(
 
 
 def slot_substat_potentials(
-    character: char.Character,
-    weapon: weap.Weapon,
-    equipped_artifacts: arts.Artifacts,
+    character: Character,
+    equipped_artifacts: Artifacts,
     slot: type,
     set_str: str = None,
     stars: int = None,
@@ -145,11 +140,9 @@ def slot_substat_potentials(
 
     Parameters
     ----------
-    character : char.Character
+    character : Character
         Character to evaluate artifacts on
-    weapon : weap.Weapon
-        Weapon to equip character with
-    equipped_artifacts : arts.Artifacts
+    equipped_artifacts : Artifacts
         Artifacts to equip character with if not in slot
     slot : type
         Base artifact slot.
@@ -187,7 +180,7 @@ def slot_substat_potentials(
     if (set_str is None) or (stars is None) or (main_stat is None):
         if base_artifact is None:
             raise ValueError(
-                f"Either artifacts must contain a {art.type2str(slot)} or {art.type2str(slot)} parameters are provided to evaluate slot."
+                f"Either artifacts must contain a {slot.__name__} or {slot.__name__} parameters are provided to evaluate slot."
             )
         else:
             set_str = base_artifact.set if set_str is None else set_str
@@ -196,7 +189,7 @@ def slot_substat_potentials(
 
     # Validate inputs
     # Source must be a valid source
-    if source is not None and source not in gd.extra_substat_probability:
+    if source is not None and source not in genshindata.extra_substat_probability:
         raise ValueError("Invalid domain name.")
     # Target level must be a valid target level
     if target_level is not None:
@@ -206,16 +199,15 @@ def slot_substat_potentials(
             raise ValueError("Target level cannot be greater than 20.")
     else:
         # Default target level to maximum
-        target_level = gd.max_level_by_stars[stars]
+        target_level = genshindata.max_level_by_stars[stars]
     # Default source
     if source is None:
-        source = gd.default_artifact_source[set_str]
+        source = genshindata.default_artifact_source[set_str]
 
     # Log intro
     log.info("-" * 120)
-    log.info(f"Evaluating substat potential of {art.type2str[slot]} slot...")
+    log.info(f"Evaluating substat potential of {slot.__name__} slot...")
     log.info(f"CHARACTER: {character.name.title()}")
-    log.info(f"WEAPON: {weapon.name.title()}")
     if character.amplifying_reaction is not None:
         log.info(
             f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
@@ -226,8 +218,8 @@ def slot_substat_potentials(
             f"{slot._slot.capitalize():>7s} "
             f"{base_artifact.stars:>d}* "
             f"{base_artifact.set.capitalize():>14} "
-            f"{target_level:>2d}/{gd.max_level_by_stars[base_artifact.stars]:>2d} "
-            f"{base_artifact.main_stat:>17s}: {gd.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][target_level]:>4}"
+            f"{target_level:>2d}/{genshindata.max_level_by_stars[base_artifact.stars]:>2d} "
+            f"{base_artifact.main_stat:>17s}: {genshindata.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][target_level]:>4}"
         )
     )
     log.info(
@@ -240,7 +232,6 @@ def slot_substat_potentials(
     # Evaluate single slot
     substat_potential_df = _individual_slot_potential(
         character=character,
-        weapon=weapon,
         equipped_artifacts=equipped_artifacts,
         slot=slot,
         set_str=set_str,
@@ -257,9 +248,8 @@ def slot_substat_potentials(
 
 
 def artifacts_substat_potentials(
-    character: char.Character,
-    weapon: weap.Weapon,
-    equipped_artifacts: arts.Artifacts,
+    character: Character,
+    equipped_artifacts: Artifacts,
     evaluating_artifacts: dict[str],
     target_level: int = None,
     source: str = None,
@@ -271,11 +261,9 @@ def artifacts_substat_potentials(
 
     Parameters
     ----------
-    character : char.Character
+    character : Character
         Character to evaluate artifacts on
-    weapon : weap.Weapon
-        Weapon to equip character with
-    equipped_artifacts : arts.Artifacts
+    equipped_artifacts : Artifacts
         Artifacts to equip character with if not in slot
     evaluating_artifacts : dict[str]
         Dictionary of artifacts to evaluate substats for, keyed to "name" of artifact
@@ -309,7 +297,7 @@ def artifacts_substat_potentials(
 
     # Validate inputs
     # Source must be a valid source
-    if source is not None and source not in gd.extra_substat_probability:
+    if source is not None and source not in genshindata.extra_substat_probability:
         raise ValueError("Invalid domain name.")
     # Target level must be a valid target level
     if target_level is not None:
@@ -322,7 +310,6 @@ def artifacts_substat_potentials(
     log.info("-" * 120)
     log.info("Evaluating substat potential of artifacts...")
     log.info(f"CHARACTER: {character.name.title()}")
-    log.info(f"WEAPON: {weapon.name.title()}")
     if character.amplifying_reaction is not None:
         log.info(
             f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
@@ -337,9 +324,11 @@ def artifacts_substat_potentials(
     substat_potentials = {}
     for artifact_name, base_artifact in evaluating_artifacts.items():
         # Default target_level
-        iter_target_level = gd.max_level_by_stars[base_artifact.stars] if target_level is None else target_level
+        iter_target_level = (
+            genshindata.max_level_by_stars[base_artifact.stars] if target_level is None else target_level
+        )
         # Default source
-        iter_source = gd.default_artifact_source[base_artifact.set] if source is None else source
+        iter_source = genshindata.default_artifact_source[base_artifact.set] if source is None else source
         # Log artifact
         log.info("-" * 10)
         log.info(f"Evaluating {artifact_name} potential...")
@@ -350,7 +339,6 @@ def artifacts_substat_potentials(
         # Calculate potential
         substat_potential_df = _individual_slot_potential(
             character=character,
-            weapon=weapon,
             equipped_artifacts=equipped_artifacts,
             slot=type(base_artifact),
             set_str=base_artifact.set,
@@ -376,10 +364,9 @@ def artifacts_substat_potentials(
 
 
 def artifact_substat_potential(
-    character: char.Character,
-    weapon: weap.Weapon,
-    equipped_artifacts: arts.Artifacts,
-    evaluating_artifact: art.Artifact,
+    character: Character,
+    equipped_artifacts: Artifacts,
+    evaluating_artifact: Artifact,
     target_level: int = None,
     source: str = None,
     slot_substat_potentials: dict[type] = None,
@@ -390,13 +377,11 @@ def artifact_substat_potential(
 
     Parameters
     ----------
-    character : char.Character
+    character : Character
         Character to evaluate artifacts on
-    weapon : weap.Weapon
-        Weapon to equip character with
-    equipped_artifacts : arts.Artifacts
+    equipped_artifacts : Artifacts
         Artifacts to equip character with if not in slot
-    evaluating_artifact : art.Artifact
+    evaluating_artifact : Artifact
        Artifacts to evaluate substats for
     target_level : int, default=None,
         Artifact level to evaluate to. If not supplied, defaults to maximum give artifact stars.
@@ -426,7 +411,7 @@ def artifact_substat_potential(
 
     # Validate inputs
     # Source must be a valid source
-    if source is not None and source not in gd.extra_substat_probability:
+    if source is not None and source not in genshindata.extra_substat_probability:
         raise ValueError("Invalid domain name.")
     # Target level must be a valid target level
     if target_level is not None:
@@ -436,16 +421,15 @@ def artifact_substat_potential(
             raise ValueError("Target level cannot be greater than 20.")
     else:
         # Default target level to maximum
-        target_level = gd.max_level_by_stars[evaluating_artifact.stars]
+        target_level = genshindata.max_level_by_stars[evaluating_artifact.stars]
     # Default source
     if source is None:
-        source = gd.default_artifact_source[evaluating_artifact.set]
+        source = genshindata.default_artifact_source[evaluating_artifact.set]
 
     # Log intro
     log.info("-" * 120)
     log.info(f"Evaluating substat potential of single artifact...")
     log.info(f"CHARACTER: {character.name.title()}")
-    log.info(f"WEAPON: {weapon.name.title()}")
     if character.amplifying_reaction is not None:
         log.info(
             f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
@@ -462,7 +446,6 @@ def artifact_substat_potential(
     # Evaluate single slot
     substat_potential_df = _individual_slot_potential(
         character=character,
-        weapon=weapon,
         equipped_artifacts=equipped_artifacts,
         slot=type(evaluating_artifact),
         set_str=evaluating_artifact.set,
@@ -488,9 +471,8 @@ def artifact_substat_potential(
 
 
 def _individual_slot_potential(
-    character: char.Character,
-    weapon: weap.Weapon,
-    equipped_artifacts: arts.Artifacts,
+    character: Character,
+    equipped_artifacts: Artifacts,
     slot: type,
     set_str: str,
     stars: int,
@@ -503,11 +485,9 @@ def _individual_slot_potential(
 
     Parameters
     ----------
-    character : char.Character
+    character : Character
         Character to evaluate artifacts on
-    weapon : weap.Weapon
-        Weapon to equip character with
-    equipped_artifacts : arts.Artifacts
+    equipped_artifacts : Artifacts
         Artifacts to equip character with if not in slot
     slot : type
         Base artifact slot
@@ -538,7 +518,7 @@ def _individual_slot_potential(
             seed_pseudo_artifact["substats"][substat] = 0
             seed_pseudo_artifact_rolls["substats"][substat] = [0, 0, 0, 0]
             for roll in rolls:
-                roll_level = gd.substat_roll_values[substat][stars].index(roll)
+                roll_level = genshindata.substat_roll_values[substat][stars].index(roll)
                 seed_pseudo_artifact_rolls["substats"][substat][roll_level] += 1
 
     # Calculate number of unlocks and increases
@@ -551,7 +531,7 @@ def _individual_slot_potential(
     remaining_increases = (
         max(0, stars - 2) + math.floor(target_level / 4) - existing_unlocks - remaining_unlocks - existing_increases
     )
-    total_rolls_high_chance = gd.extra_substat_probability[source][stars]
+    total_rolls_high_chance = genshindata.extra_substat_probability[source][stars]
 
     # Identify roll combinations
     substat_values_df, slot_potential_df = _make_children(
@@ -566,7 +546,7 @@ def _individual_slot_potential(
     )
 
     # Format output
-    for stat in gd.stat_names:
+    for stat in genshindata.stat_names:
         if stat not in substat_values_df:
             substat_values_df[stat] = 0
     substat_values_df = substat_values_df.fillna(0)
@@ -577,13 +557,11 @@ def _individual_slot_potential(
     # Create artifact list, replacing previous artifact
     other_artifacts_list = [other_artifact for other_artifact in equipped_artifacts if type(other_artifact) != slot]
     other_artifacts_list.append(artifact)
-    other_artifacts = arts.Artifacts(other_artifacts_list, use_set_bonus=equipped_artifacts.use_set_bonus)
+    other_artifacts = Artifacts(other_artifacts_list, use_set_bonus=equipped_artifacts.use_set_bonus)
 
     # Calculate stats and power
-    stats = eval.evaluate_stats(character=character, weapon=weapon, artifacts=other_artifacts)
-    power = eval.evaluate_power(
-        character=character, weapon=weapon, stats=stats, probability=slot_potential_df["probability"]
-    )
+    stats = evaluate.evaluate_stats(character=character, artifacts=other_artifacts)
+    power = evaluate.evaluate_power(character=character, stats=stats, probability=slot_potential_df["probability"])
 
     # Return results
     slot_potential_df["power"] = power
@@ -591,7 +569,7 @@ def _individual_slot_potential(
 
 
 def _make_children(
-    character: char.Character,
+    character: Character,
     stars: int,
     main_stat: str,
     remaining_unlocks: int,
@@ -604,7 +582,7 @@ def _make_children(
 
     Parameters
     ----------
-    character : char.Character
+    character : Character
         Character to evaluate artifacts on
     stars : int
         Base artifact number of stars
@@ -684,23 +662,26 @@ def _make_children(
 
 
 def _add_substats(
-    pseudo_artifacts: list[dict], remaining_unlocks: int, character: char.Character, main_stat: str
+    pseudo_artifacts: list[dict], remaining_unlocks: int, character: Character, main_stat: str
 ) -> list[dict]:
     """Creates pseudo artifacts with every possible combination of revealed substats"""
 
     # Generate list of possible substats
-    valid_substats = set(gd.substat_rarity[main_stat].keys())
+    valid_substats = set(genshindata.substat_rarity[main_stat].keys())
     for substat in pseudo_artifacts[0]["substats"]:
         valid_substats.remove(substat)
 
     # Consolodate similar substats (don't need DEF vs DEF% or low roll DEF vs high roll DEF on an ATK scaling character)
     condensable_substats = _condensable_substats(character=character)
-    base_probability = sum([gd.substat_rarity[main_stat][substat] for substat in valid_substats])
+    base_probability = sum([genshindata.substat_rarity[main_stat][substat] for substat in valid_substats])
 
     # Create list of possible substats
     possibilities = []
     for substat in valid_substats:
-        possibility = {"substat": substat, "probability": gd.substat_rarity[main_stat][substat] / base_probability}
+        possibility = {
+            "substat": substat,
+            "probability": genshindata.substat_rarity[main_stat][substat] / base_probability,
+        }
         possibilities.append(possibility)
 
     # Verify probability math (sum of probabilities is almost 1)
@@ -761,7 +742,7 @@ def _add_substats(
 
 
 def _add_substat_rolls(
-    pseudo_artifacts: list[dict], remaining_increases: int, extra_increase_chance: float, character: char.Character
+    pseudo_artifacts: list[dict], remaining_increases: int, extra_increase_chance: float, character: Character
 ) -> list[dict]:
     """Creates pseudo artifacts with every possible combination of number of rolls for each substat"""
 
@@ -848,7 +829,7 @@ def _add_substat_rolls(
 
 
 def _calculate_substats(
-    pseudo_artifacts: list[dict], character: char.Character, stars: int, seed_pseudo_artifact_rolls: dict[str]
+    pseudo_artifacts: list[dict], character: Character, stars: int, seed_pseudo_artifact_rolls: dict[str]
 ) -> pd.DataFrame:
     """Creates every possible artifact from the given number of substat rolls"""
 
@@ -904,7 +885,7 @@ def _calculate_substats(
             if substat_list[0] is np.nan:
                 substat_list[0] = (0, 0, 0, 0)
             rolls_split = pd.DataFrame(substat_list, columns=column_names)
-            substat_value = rolls_split.dot(gd.substat_roll_values[substat][stars])
+            substat_value = rolls_split.dot(genshindata.substat_roll_values[substat][stars])
             substats_values[substat] = substat_value
         else:
             substats_values[substat] = pd.Series(pseudo_artifacts_df[substat].tolist())
@@ -920,7 +901,7 @@ def _calculate_substats(
     return substat_values_df, pseudo_artifacts_df
 
 
-def _condensable_substats(character: char.Character):
+def _condensable_substats(character: Character):
 
     # TODO Include this on a character by character basis
 
@@ -1027,7 +1008,7 @@ def _substat_rolls_probabillities(seed_pseudo_artifact_rolls: dict[str]) -> dict
 
     # Complicated method for adding in pre-existing substat rolls from the seed artifact
     substat_rolls_probabillities_map = {}
-    for substat in gd.substat_roll_values:
+    for substat in genshindata.substat_roll_values:
         substat_rolls_probabillities_map[substat] = copy.deepcopy(substat_rolls_probabillities)
         if substat in seed_pseudo_artifact_rolls["substats"]:
             for num_rolls in substat_rolls_probabillities_map[substat]:

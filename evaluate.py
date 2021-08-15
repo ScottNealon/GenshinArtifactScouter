@@ -1,21 +1,19 @@
 import logging
 import logging.config
-import os
 
 import pandas as pd
 
-import artifacts as arts
-import character as char
-import genshindata as gd
-import weapon as weap
+import genshindata
+from artifacts import Artifacts
+from character import Character
+from weapon import Weapon
 
 log = logging.getLogger(__name__)
 
 
-def evaluate_stats(character: char.Character, weapon: weap.Weapon, artifacts: arts.Artifacts, *args):
-    stats = pd.Series(0.0, index=gd.stat_names)
-    stats = stats + character.base_stats
-    stats = stats + weapon.stats
+def evaluate_stats(character: Character, artifacts: Artifacts, *args):
+    stats = pd.Series(0.0, index=genshindata.stat_names)
+    stats = stats + character.stats
     stats = stats + artifacts.stats
     for arg in args:
         stats = stats + arg
@@ -23,10 +21,9 @@ def evaluate_stats(character: char.Character, weapon: weap.Weapon, artifacts: ar
 
 
 def evaluate_power(
-    character: char.Character,
+    character: Character,
     stats: pd.DataFrame = None,
-    weapon: weap.Weapon = None,
-    artifacts: arts.Artifacts = None,
+    artifacts: Artifacts = None,
     probability: pd.Series = None,
     verbose: bool = False,
 ):
@@ -40,8 +37,7 @@ def evaluate_power(
     log.info("-" * 120)
     log.info("Evaluating power...")
     log.info(f"CHARACTER: {character.name.title()}")
-    if weapon is not None:
-        log.info(f"WEAPON: {weapon.name.title()}")
+    log.info(f"WEAPON: {character.weapon.name_formated}")
     if character.amplifying_reaction is not None:
         log.info(
             f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)"
@@ -49,7 +45,7 @@ def evaluate_power(
 
     # Calculate overall stats if not provided
     if stats is None:
-        stats = evaluate_stats(character=character, weapon=weapon, artifacts=artifacts)
+        stats = evaluate_stats(character=character, artifacts=artifacts)
 
     # ATK, DEF, or HP scaling
     scaling_stat_base = stats["Base " + character.scaling_stat]
@@ -99,16 +95,14 @@ def evaluate_power(
 if __name__ == "__main__":
 
     # Example setup
-    character = char.Character(name="klee", level=90, ascension=6, passive={}, dmg_type="Elemental")
-    weapon = weap.Weapon(
+    character = Character(name="klee", level=90, ascension=6, passive={}, dmg_type="Elemental")
+    weapon = Weapon(
         name="Dodoco Tales",
         level=90,
-        baseATK=454,
-        ascension_stat="ATK%",
-        ascension_stat_value=55.1,
+        ascension=6,
         passive={"DMG%": 32.0, "ATK%": 16.0},
     )
-    artifacts = arts.Artifacts([None, None, None, None, None])
+    artifacts = Artifacts([None, None, None, None, None])
 
     # Evaluate stats
     stats = evaluate_stats(character=character, weapon=weapon, artifacts=artifacts)

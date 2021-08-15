@@ -1,3 +1,41 @@
+"""Genshin Data
+
+This script contains some of the backend data required to calculate
+character, weapon, and artifact performance. Data has been scraped from
+the Genshin Impact Wiki (https://genshin-impact.fandom.com/) and 
+Dimbreath's repository (https://github.com/Dimbreath/GenshinData).
+
+This script will automatically download and save files from Dimbreath's
+repository to the ./Data folder. If you are getting errors because a
+you are trying to use a new character, you will have to wait for
+Dimbreath to update the repository. Then, you will either have to 
+delete the files and have the script redownload them or download them
+yourself.
+
+This module contains the following data structures:
+
+    * character_id_map - maps characterIDs to character names
+    * character_stats - raw Genshin data on characters
+    * character_stat_curves - calculate character stats from level
+    * character_promote_stats - calculate character tats from ascension
+    * weapon_id_map - maps weaponIDs to weapon names
+    * weapon_stats - raw Genshin data on weapons
+    * weapon_stat_curves - calculate weapon stats from level
+    * weapon_promote_stats - calculate weapon tats from ascension
+    * promote_stats_map - maps Genshin data terms to our terms
+    * stat_names - List of names of stats tracked
+    * main_stat_scaling - Artifact main stat value by stars and level
+    * substat_roll_values - Possible substat rolls by substat and stars
+    * value2rolls - Lists possible ways to roll aggregate substat values
+    * substat_rarity - Chance of rolling substat by main stat
+    * max_level_by_stars - Maximum artifact level by stars
+    * valid_sets - List of valid artifact sets
+    * set_stats - 2-piece and 4-piece artifact set bonuses
+    * extra_substat_probability - Chance of rolling +1 substat by source
+    * default_artifact_source - Default artifact source if not provided
+"""
+
+
 import itertools
 import json
 import logging
@@ -7,14 +45,13 @@ import os
 import numpy as np
 import pandas as pd
 import requests
-from requests.api import request
 
 log = logging.getLogger(__name__)
 log.info("Importing and calculating data...")
 
 # Copied from Genshin Optimizer pipeline/index.ts
 # If you find this is out of date, feel free to copy and submit a pull request to update.
-characterIdMap = {
+character_id_map = {
     # 10000000: Kate
     # 10000001: Kate
     10000002: "kamisatoayaka",
@@ -71,11 +108,7 @@ characterIdMap = {
 
 
 def _get_character_stats():
-    """
-    Contains the base stats and scaling reference for each character
-    Sourced and modified from https://github.com/Dimbreath/GenshinData
-    ExcelBinOutput\AvatarExcelConfigData.json
-    """
+    """Contains the base stats and scaling reference for each character"""
 
     # Define file path
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -83,7 +116,7 @@ def _get_character_stats():
 
     # If file doesn't exist, download it
     if not os.path.isfile(file_path):
-        log.info("Downloading character stats... (this is normal for first run)")
+        log.info("Downloading character stats...")
         url = "https://raw.githubusercontent.com/Dimbreath/GenshinData/master/ExcelBinOutput/AvatarExcelConfigData.json"
         request = requests.get(url, allow_redirects=True)
         with open(file_path, "wb") as file_handle:
@@ -97,19 +130,13 @@ def _get_character_stats():
     # Convert data form
     character_stats = {}
     for character_stat in character_stats_raw:
-        if character_stat["FeatureTagGroupID"] in characterIdMap:
-            character_name = characterIdMap[character_stat["FeatureTagGroupID"]]
+        if character_stat["FeatureTagGroupID"] in character_id_map:
+            character_name = character_id_map[character_stat["FeatureTagGroupID"]]
             character_stats[character_name] = character_stat
             # Modify from list to dict
             character_stats[character_name]["PropGrowCurves"] = {
                 x["Type"]: x["GrowCurve"] for x in character_stats[character_name]["PropGrowCurves"]
             }
-
-    # # Read file
-    # dir_path = os.path.dirname(os.path.realpath(__file__))
-    # file_path = os.path.join(dir_path, "Data\character.json")
-    # with open(file_path) as file_handle:
-    #     character_stats = json.load(file_handle)
 
     return character_stats
 
@@ -117,9 +144,9 @@ def _get_character_stats():
 character_stats = _get_character_stats()
 
 
-def _get_stat_curves():
+def _get_character_stat_curves():
     """
-    Contains the scaling multiplier for each level
+    Contains the scaling multiplier for each character level
     stat_curves[curve_name][level]
     curve_name: GROW_CURVE_{HP}{ATTACK}_S{4}{5}
     level: integer between 1 and 90 inclusive
@@ -131,7 +158,7 @@ def _get_stat_curves():
 
     # If file doesn't exist, download it
     if not os.path.isfile(file_path):
-        log.info("Downloading character scaling curves... (this is normal for first run)")
+        log.info("Downloading character scaling curves...")
         url = "https://raw.githubusercontent.com/Dimbreath/GenshinData/master/ExcelBinOutput/AvatarCurveExcelConfigData.json"
         request = requests.get(url, allow_redirects=True)
         with open(file_path, "wb") as file_handle:
@@ -140,23 +167,23 @@ def _get_stat_curves():
 
     # Read file
     with open(file_path, "r") as file_handle:
-        stat_curves_data = json.load(file_handle)
+        character_stat_curves_data = json.load(file_handle)
 
     # Convert to dict of numpy arrays
-    stat_curves = {}
+    character_stat_curves = {}
     for curve in range(4):
-        curve_name = stat_curves_data[0]["CurveInfos"][curve]["Type"]
-        stat_curves[curve_name] = np.array(
-            [np.NaN] + [level["CurveInfos"][curve]["Value"] for level in stat_curves_data]
+        curve_name = character_stat_curves_data[0]["CurveInfos"][curve]["Type"]
+        character_stat_curves[curve_name] = np.array(
+            [np.NaN] + [level["CurveInfos"][curve]["Value"] for level in character_stat_curves_data]
         )
 
-    return stat_curves
+    return character_stat_curves
 
 
-stat_curves = _get_stat_curves()
+character_stat_curves = _get_character_stat_curves()
 
 
-def _get_promote_stats():
+def _get_character_promote_stats():
     """
     Contains the base stat increases for ascending characters
     promote_stats[promote_id][property_type][promote_level]
@@ -171,7 +198,7 @@ def _get_promote_stats():
 
     # If file doesn't exist, download it
     if not os.path.isfile(file_path):
-        log.info("Downloading character promotion stats... (this is normal for first run)")
+        log.info("Downloading character promotion stats...")
         url = "https://raw.githubusercontent.com/Dimbreath/GenshinData/master/ExcelBinOutput/AvatarPromoteExcelConfigData.json"
         request = requests.get(url, allow_redirects=True)
         with open(file_path, "wb") as file_handle:
@@ -183,7 +210,7 @@ def _get_promote_stats():
         promote_data = json.load(file_handle)
 
     # Convert data
-    promote_stats = {}
+    character_promote_stats = {}
     for data in promote_data:
         promote_id = data["AvatarPromoteId"]
 
@@ -195,12 +222,287 @@ def _get_promote_stats():
         for property in data["AddProps"]:
             property_type = property["PropType"]
             value = property.get("Value", 0)
-            promote_stats.setdefault(promote_id, {}).setdefault(property_type, {})[promote_level] = value
+            character_promote_stats.setdefault(promote_id, {}).setdefault(property_type, {})[promote_level] = value
 
-    return promote_stats
+    return character_promote_stats
 
 
-promote_stats = _get_promote_stats()
+character_promote_stats = _get_character_promote_stats()
+
+# Copied from Genshin Optimizer pipeline/index.ts
+# If you find this is out of date, feel free to copy and submit a pull request to update.
+weapon_id_map = {
+    # swords
+    11101: "DullBlade",
+    11201: "SilverSword",
+    11301: "CoolSteel",
+    11302: "HarbingerOfDawn",
+    11303: "TravelersHandySword",
+    11304: "DarkIronSword",
+    11305: "FilletBlade",
+    11306: "SkyriderSword",
+    11401: "FavoniusSword",
+    11402: "TheFlute",
+    11403: "SacrificialSword",
+    11404: "RoyalLongsword",
+    11405: "LionsRoar",
+    11406: "PrototypeRancour",
+    11407: "IronSting",
+    11408: "BlackcliffLongsword",
+    11409: "TheBlackSword",
+    11410: "TheAlleyFlash",
+    # 11411: "",
+    11412: "SwordOfDescension",
+    11413: "FesteringDesire",
+    11414: "AmenomaKageuchi",
+    11501: "AquilaFavonia",
+    11502: "SkywardBlade",
+    11503: "FreedomSworn",
+    11504: "SummitShaper",
+    11505: "PrimordialJadeCutter",
+    # 11506: "PrimordialJadeCutter",
+    # 11507: "One Side",//new weapon?
+    # 11508: "",
+    11509: "MistsplitterReforged",
+    # claymore
+    12101: "WasterGreatsword",
+    12201: "OldMercsPal",
+    12301: "FerrousShadow",
+    12302: "BloodtaintedGreatsword",
+    12303: "WhiteIronGreatsword",
+    12304: "Quartz",
+    12305: "DebateClub",
+    12306: "SkyriderGreatsword",
+    12401: "FavoniusGreatsword",
+    12402: "TheBell",
+    12403: "SacrificialGreatsword",
+    12404: "RoyalGreatsword",
+    12405: "Rainslasher",
+    12406: "PrototypeAminus",
+    12407: "Whiteblind",
+    12408: "BlackcliffSlasher",
+    12409: "SerpentSpine",
+    12410: "LithicBlade",
+    12411: "SnowTombedStarsilver",
+    12414: "KatsuragikiriNagamasa",
+    12501: "SkywardPride",
+    12502: "WolfsGravestone",
+    12503: "SongOfBrokenPines",
+    12504: "TheUnforged",
+    # 12505: "Primordial Jade Greatsword",
+    # 12506: "The Other Side",
+    # 12508: "",
+    # polearm
+    13101: "BeginnersProtector",
+    13201: "IronPoint",
+    13301: "WhiteTassel",
+    13302: "Halberd",
+    13303: "BlackTassel",
+    # 13304: "The Flagstaff",
+    13401: "DragonsBane",
+    13402: "PrototypeGrudge",
+    13403: "CrescentPike",
+    13404: "BlackcliffPole",
+    13405: "Deathmatch",
+    13406: "LithicSpear",
+    13407: "FavoniusLance",
+    13408: "RoyalSpear",
+    13409: "DragonspineSpear",
+    13414: "KitainCrossSpear",
+    13501: "StaffOfHoma",
+    13502: "SkywardSpine",
+    # 13503: "",
+    13504: "VortexVanquisher",
+    13505: "PrimordialJadeWingedSpear",
+    # 13506: "Deicide",
+    # 13507: "",
+    # catalyst
+    14101: "ApprenticesNotes",
+    14201: "PocketGrimoire",
+    14301: "MagicGuide",
+    14302: "ThrillingTalesOfDragonSlayers",
+    14303: "OtherworldlyStory",
+    14304: "EmeraldOrb",
+    14305: "TwinNephrite",
+    # 14306: "Amber Bead",
+    14401: "FavoniusCodex",
+    14402: "TheWidsith",
+    14403: "SacrificialFragments",
+    14404: "RoyalGrimoire",
+    14405: "SolarPearl",
+    14406: "PrototypeMalice",
+    14407: "MappaMare",
+    14408: "BlackcliffAgate",
+    14409: "EyeOfPerception",
+    14410: "WineAndSong",
+    # 14411: "",
+    14412: "Frostbearer",
+    14413: "DodocoTales",
+    14414: "HakushinRing",
+    14501: "SkywardAtlas",
+    14502: "LostPrayerToTheSacredWinds",
+    # 14503: "Lost Ballade",
+    14504: "MemoryOfDust",
+    # 14505: "Primordial Jade Regalia",
+    # 14506: "Diamond Visage",
+    # 14508: "",
+    # bow
+    15101: "HuntersBow",
+    15201: "SeasonedHuntersBow",
+    15301: "RavenBow",
+    15302: "SharpshootersOath",
+    15303: "RecurveBow",
+    15304: "Slingshot",
+    15305: "Messenger",
+    15306: "EbonyBow",
+    15401: "FavoniusWarbow",
+    15402: "TheStringless",
+    15403: "SacrificialBow",
+    15404: "RoyalBow",
+    15405: "Rust",
+    15406: "PrototypeCrescent",
+    15407: "CompoundBow",
+    15408: "BlackcliffWarbow",
+    15409: "TheViridescentHunt",
+    15410: "AlleyHunter",
+    # 15411: "",
+    15412: "MitternachtsWaltz",
+    15413: "WindblumeOde",
+    15414: "Hamayumi",
+    15501: "SkywardHarp",
+    15502: "AmosBow",
+    15503: "ElegyForTheEnd",
+    # 15504: "Kunwu's Wyrmbane",
+    # 15505: "Primordial Jade Vista",
+    # 15506: "Mirror Breaker",
+    # 15508: "",
+    15509: "ThunderingPulse",
+}
+
+
+def _get_weapon_stats():
+    """Contains the base stats and scaling reference for each weapon"""
+
+    # Define file path
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    file_path = os.path.join(dir_path, "Data\WeaponExcelConfigData.json")
+
+    # If file doesn't exist, download it
+    if not os.path.isfile(file_path):
+        log.info("Downloading character stats...")
+        url = "https://raw.githubusercontent.com/Dimbreath/GenshinData/master/ExcelBinOutput/WeaponExcelConfigData.json"
+        request = requests.get(url, allow_redirects=True)
+        with open(file_path, "wb") as file_handle:
+            file_handle.write(request.content)
+        log.info("Character stats downloaded.")
+
+    # Read file
+    with open(file_path, "r") as file_handle:
+        weapon_stats_raw = json.load(file_handle)
+
+    # Convert data form
+    weapon_stats = {}
+    for weapon_stat in weapon_stats_raw:
+        if weapon_stat["Id"] in weapon_id_map:
+            weapon_name = weapon_id_map[weapon_stat["Id"]]
+            weapon_stats[weapon_name] = weapon_stat
+            props = {}
+            for prop in weapon_stats[weapon_name]["WeaponProp"]:
+                if "InitValue" in prop:
+                    props[prop["PropType"]] = {"InitValue": prop["InitValue"], "Type": prop["Type"]}
+            weapon_stats[weapon_name]["WeaponProp"] = props
+
+    return weapon_stats
+
+
+weapon_stats = _get_weapon_stats()
+
+
+def _get_weapon_stat_curves():
+    """
+    Contains the scaling multiplier for each weapon level
+    stat_curves[curve_name][level]
+    curve_name: GROW_CURVE_{HP}{ATTACK}_S{4}{5}
+    level: integer between 1 and 90 inclusive
+    """
+
+    # Define file path
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    file_path = os.path.join(dir_path, "Data\WeaponCurveExcelConfigData.json")
+
+    # If file doesn't exist, download it
+    if not os.path.isfile(file_path):
+        log.info("Downloading weapon scaling curves...")
+        url = "https://raw.githubusercontent.com/Dimbreath/GenshinData/master/ExcelBinOutput/WeaponCurveExcelConfigData.json"
+        request = requests.get(url, allow_redirects=True)
+        with open(file_path, "wb") as file_handle:
+            file_handle.write(request.content)
+        log.info("Weapon scaling curves downloaded.")
+
+    # Read file
+    with open(file_path, "r") as file_handle:
+        weapon_stat_curves_data = json.load(file_handle)
+
+    # Convert to dict of numpy arrays
+    weapon_stat_curves = {}
+    for curve in range(18):
+        curve_name = weapon_stat_curves_data[0]["CurveInfos"][curve]["Type"]
+        weapon_stat_curves[curve_name] = np.array(
+            [np.NaN] + [level["CurveInfos"][curve]["Value"] for level in weapon_stat_curves_data]
+        )
+
+    return weapon_stat_curves
+
+
+weapon_stat_curves = _get_weapon_stat_curves()
+
+
+def _get_weapon_promote_stats():
+    """
+    Contains the base stat increases for ascending weapons
+    promote_stats[promote_id][property_type][promote_level]
+    promote_id: Integer representing weapons, found in __________
+    property_type: FIGHT_PROP_BASE_{HP}/{DEFENSE}/{ATTACK}
+    promote_level: Number of times ascended
+    """
+
+    # Define file path
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    file_path = os.path.join(dir_path, "Data\WeaponPromoteExcelConfigData.json")
+
+    # If file doesn't exist, download it
+    if not os.path.isfile(file_path):
+        log.info("Downloading weapons promotion stats...")
+        url = "https://raw.githubusercontent.com/Dimbreath/GenshinData/master/ExcelBinOutput/WeaponPromoteExcelConfigData.json"
+        request = requests.get(url, allow_redirects=True)
+        with open(file_path, "wb") as file_handle:
+            file_handle.write(request.content)
+        log.info("Weapon promotion stats downloaded.")
+
+    # Read file
+    with open(file_path, "r") as file_handle:
+        promote_data = json.load(file_handle)
+
+    # Convert data
+    weapon_promote_stats = {}
+    for data in promote_data:
+        promote_id = data["WeaponPromoteId"]
+
+        if "PromoteLevel" not in data:
+            promote_level = 0
+        else:
+            promote_level = data["PromoteLevel"]
+
+        for property in data["AddProps"]:
+            property_type = property["PropType"]
+            value = property.get("Value", 0)
+            weapon_promote_stats.setdefault(promote_id, {}).setdefault(property_type, {})[promote_level] = value
+
+    return weapon_promote_stats
+
+
+weapon_promote_stats = _get_weapon_promote_stats()
+
 
 # fmt: off
 promote_stats_map = {
@@ -536,17 +838,6 @@ substat_rarity = {
     'Healing Bonus%': _unrelated_substat_rarity,
 }
 
-    
-# Source: https://genshin-impact.fandom.com/wiki/Loot_System/Artifact_Drop_Distribution
-extra_substat_probability = {
-    'domain':        [np.nan, 0.0, 0.2, 0.2, 0.2, 0.2],
-    'world boss':    [np.nan, 0.0, 1/3, 1/3, 1/3, 1/3],
-    'weekly boss':   [np.nan, 0/3, 1/3, 1/3, 1/3, 1/3],
-    'elite enemies': [np.nan, 0.0, 0.1, 0.1, 0.03, 0.03],
-    'never':         [np.nan, 0.0, 0.0, 0.0, 0.0, 0.0],
-    'always':        [np.nan, 1.0, 1.0, 1.0, 1.0, 1.0]
-}
-
 max_level_by_stars = [np.nan, 4, 4, 12, 16, 20]
 
 valid_sets = [
@@ -593,6 +884,16 @@ set_stats = {
     'pale':           [{'Physical DMG%': 25.0}, {'ATK%': 18.0, 'Physical DMG%': 15.0}],
     'emblem':         [{'Energy Recharge%': 20.0}, {}],
     'reminiscence':   [{'ATK%': 18.0}, {'DMG%': 50.0}]
+}
+
+# Source: https://genshin-impact.fandom.com/wiki/Loot_System/Artifact_Drop_Distribution
+extra_substat_probability = {
+    'domain':        [np.nan, 0.0, 0.2, 0.2, 0.2, 0.2],
+    'world boss':    [np.nan, 0.0, 1/3, 1/3, 1/3, 1/3],
+    'weekly boss':   [np.nan, 0/3, 1/3, 1/3, 1/3, 1/3],
+    'elite enemies': [np.nan, 0.0, 0.1, 0.1, 0.03, 0.03],
+    'never':         [np.nan, 0.0, 0.0, 0.0, 0.0, 0.0],
+    'always':        [np.nan, 1.0, 1.0, 1.0, 1.0, 1.0]
 }
 
 default_artifact_source = {

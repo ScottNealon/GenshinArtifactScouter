@@ -1,13 +1,17 @@
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Union
 
 import numpy as np
 
-import artifact as art
-import artifacts as arts
-import character as char
+import evaluate
+import genshindata
+from artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
+from artifacts import Artifacts
+from character import Character
+from weapon import Weapon
 
 # fmt: off
 go_set_map = {
@@ -68,6 +72,8 @@ go_stat_map = {
     'critDMG_':      'Crit DMG%',
     'heal_':         'Healing Bonus%'
 }
+
+slotStr2type = {"flower": Flower, "plume": Plume, "sands": Sands, "goblet": Goblet, "circlet": Circlet}
 # fmt: on
 
 log = logging.getLogger(__name__)
@@ -99,16 +105,16 @@ class GenshinOptimizerData:
         self._data = data
 
     @property
-    def characters(self) -> list[char.Character]:
+    def characters(self) -> list[Character]:
         return self._characters
 
-    def get_character(self, character_name: str) -> char.Character:
+    def get_character(self, character_name: str) -> Character:
         character_name = character_name.lower()
         if character_name not in self.characters:
             raise ValueError(f"Character {character_name} not found in import.")
         return self.characters[character_name]
 
-    def get_characters_artifacts(self, character_name: str) -> arts.Artifacts:
+    def get_characters_artifacts(self, character_name: str) -> Artifacts:
         character_name = character_name.lower()
         if character_name not in self.characters:
             raise ValueError(f"Character {character_name} not found in import.")
@@ -198,6 +204,14 @@ class GenshinOptimizerData:
         # Iterate across characters
         self._characters = {}
         for character_name, character_data in self.data["characterDatabase"].items():
+            # Create weapon
+            weapon_data = {
+                "name": character_data["weapon"]["key"],
+                "level": character_data["weapon"]["level"],
+                "ascension": character_data["weapon"]["ascension"],
+                "passive": {},  # TODO fix this assumption
+            }
+            weapon = Weapon(**weapon_data)
             # Read data
             data = {
                 "name": character_name,
@@ -205,13 +219,15 @@ class GenshinOptimizerData:
                 "ascension": character_data["ascension"],
                 "passive": {},  # TODO fix this assumption
                 "dmg_type": "Elemental",  # TODO fix this assumption
+                "weapon": weapon,
                 "scaling_stat": "ATK",  # TODO fix this assumption
                 "crits": character_data["hitMode"],
                 "amplifying_reaction": character_data["reactionMode"],
                 "reaction_percentage": 1 if character_data["reactionMode"] is not None else 0,
             }
+
             # Create character
-            character = char.Character(**data)
+            character = Character(**data)
             self._characters[character_name] = character
 
     def _import_artifacts(self):
@@ -219,14 +235,14 @@ class GenshinOptimizerData:
         # Prepare character artifacts objects
         self._artifacts_on_characters = {}
         for character_name in self.characters:
-            artifacts = arts.Artifacts([])
+            artifacts = Artifacts([])
             self._artifacts_on_characters[character_name] = artifacts
 
         # Iterate across artifacts
         self._artifacts = {}
         for artifact_name, artifact_data in self.data["artifactDatabase"].items():
             # Read data
-            slot = art.str2type[artifact_data["slotKey"]]
+            slot = slotStr2type[artifact_data["slotKey"]]
             data = {
                 "set_str": go_set_map[artifact_data["setKey"]],
                 "main_stat": go_stat_map[artifact_data["mainStatKey"]],
@@ -244,7 +260,7 @@ class GenshinOptimizerData:
             self._artifacts[artifact_name] = artifact
 
             # Add to character artifacts
-            if artifact_data["location"] is not "":
+            if artifact_data["location"] != "":
                 self._artifacts_on_characters[artifact_data["location"]].set_artifact(artifact)
 
     # def get_character_weapon(self, character_name: str):
@@ -267,4 +283,26 @@ class GenshinOptimizerData:
 
 
 if __name__ == "__main__":
-    data = GenshinOptimizerData("data.json")
+
+    # Setup Logging (ignore this step)
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    config_path = os.path.join(dir_path, "logging.conf")
+    logging.config.fileConfig(config_path)
+    logging.info("Logging initialized.")
+
+    ### HOW TO IMPORT CHARACTERS AND ARTIFACTS FROM GENSHIN OPTIMIZER ###
+
+    # Import data from Genshin Optimizer
+    go_data = GenshinOptimizerData("Data/go_data.json")
+
+    # Import Fischl and her artifacts
+    fischl = go_data.get_character(character_name="fischl")
+    fischl_artifacts = go_data.get_characters_artifacts(character_name="fischl")
+
+    # Update Fischl and Fischl's weapon's (in my case, Stringless) passives
+    # Passives are not automatically imported from Genshin Optimzer. Only base stats and ascension stats.
+    fischl.passive = {}
+    fischl.weapon.passive = {"DMG%": 24.0}
+
+    # Evaluate Fischl's power
+    base_power = evaluate.evaluate_power(character=fischl, artifacts=fischl_artifacts, verbose=True)

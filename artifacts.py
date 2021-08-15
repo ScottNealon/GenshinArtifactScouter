@@ -2,12 +2,12 @@ from typing import Union
 
 import pandas as pd
 
-import artifact as art
-import genshindata as gd
+import genshindata
+from artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
 
 
 class Artifacts:
-    def __init__(self, artifacts: list[art.Artifact], use_set_bonus: bool = True):
+    def __init__(self, artifacts: list[Artifact], use_set_bonus: bool = True):
 
         self.flower = None
         self.plume = None
@@ -23,7 +23,7 @@ class Artifacts:
         return self._flower
 
     @flower.setter
-    def flower(self, flower: art.Flower):
+    def flower(self, flower: Flower):
         self._flower = flower
 
     @property
@@ -31,7 +31,7 @@ class Artifacts:
         return self._plume
 
     @plume.setter
-    def plume(self, plume: art.Plume):
+    def plume(self, plume: Plume):
         self._plume = plume
 
     @property
@@ -39,7 +39,7 @@ class Artifacts:
         return self._sands
 
     @sands.setter
-    def sands(self, sands: art.Sands):
+    def sands(self, sands: Sands):
         self._sands = sands
 
     @property
@@ -47,7 +47,7 @@ class Artifacts:
         return self._goblet
 
     @goblet.setter
-    def goblet(self, goblet: art.Goblet):
+    def goblet(self, goblet: Goblet):
         self._goblet = goblet
 
     @property
@@ -55,78 +55,45 @@ class Artifacts:
         return self._circlet
 
     @circlet.setter
-    def circlet(self, circlet: art.Circlet):
+    def circlet(self, circlet: Circlet):
         self._circlet = circlet
 
     @property
     def artifact_list(self):
         return [self.flower, self.plume, self.sands, self.goblet, self.circlet]
 
-    def get_artifact(self, slot: Union[art.Artifact, str, type]):
+    def get_artifact(self, slot: Union[Artifact, str, type]):
 
         if type(slot) is str:
             return getattr(self, slot)  # self.flower / self.plume / ...
+        elif type(slot) is type:
+            return getattr(self, slot.__name__.lower())
+        elif type(slot) is Artifact:
+            return getattr(self, type(slot).__name__.lower())
+        else:
+            raise ValueError("Invalid input type.")
 
-        if slot is art.Flower or slot == "flower":
-            return self.flower
-        elif slot is art.Plume or slot == "plume":
-            return self.plume
-        elif slot is art.Sands or slot == "sands":
-            return self.sands
-        elif slot is art.Goblet or slot == "goblet":
-            return self.goblet
-        elif slot is art.Circlet or slot == "circlet":
-            return self.circlet
-
-    def set_artifact(self, artifact: art.Artifact, override: bool = False):
+    def set_artifact(self, artifact: Artifact, override: bool = False):
         if artifact is None:
             return
         slot = type(artifact)
+        if slot not in [Flower, Plume, Sands, Goblet, Circlet]:
+            raise ValueError("Invalid artifact type.")
         if not override:
             if self.has_artifact(slot):
                 raise ValueError("Artifact already exists. Override flag not provided.")
-        if slot is art.Flower:
-            self.flower = artifact
-        elif slot is art.Plume:
-            self.plume = artifact
-        elif slot is art.Sands:
-            self.sands = artifact
-        elif slot is art.Goblet:
-            self.goblet = artifact
-        elif slot is art.Circlet:
-            self.circlet = artifact
-        else:
-            raise ValueError("Invalid slot type")
+        setattr(self, slot.__name__.lower(), artifact)
 
     def has_artifact(self, slot: type):
-        if not issubclass(slot, art.Artifact):
+        if not issubclass(slot, Artifact):
             raise ValueError("Invalid slot type.")
-        if slot is art.Flower:
-            if not hasattr(self, "_flower"):
-                return False
-            return self.flower is not None
-        elif slot is art.Plume:
-            if not hasattr(self, "_plume"):
-                return False
-            return self.plume is not None
-        elif slot is art.Sands:
-            if not hasattr(self, "_sands"):
-                return False
-            return self.sands is not None
-        elif slot is art.Goblet:
-            if not hasattr(self, "_goblet"):
-                return False
-            return self.goblet is not None
-        elif slot is art.Circlet:
-            if not hasattr(self, "_circlet"):
-                return False
-            return self.circlet is not None
-        else:
-            raise ValueError("Invalid slot type")
+        if not hasattr(self, "_" + slot.__name__.lower()):
+            return False
+        return getattr(self, slot.__name__.lower()) is not None
 
     @property
     def stats(self):
-        self._stats = pd.Series(0.0, index=gd.stat_names)
+        self._stats = pd.Series(0.0, index=genshindata.stat_names)
         sets = {}
         # Artifact stats
         for artifact in self.artifact_list:
@@ -139,11 +106,11 @@ class Artifacts:
         if self.use_set_bonus:
             for set, count in sets.items():
                 if count >= 2:
-                    for stat, value in gd.set_stats[set][0].items():
+                    for stat, value in genshindata.set_stats[set][0].items():
                         self._stats[stat] += value
                 if count >= 4:
-                    for stat, value in gd.set_stats[set][1].items():
-                        self._stas[stat] += value
+                    for stat, value in genshindata.set_stats[set][1].items():
+                        self._stats[stat] += value
 
         return self._stats
 
