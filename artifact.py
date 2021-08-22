@@ -13,7 +13,6 @@ class Artifact:
 
     # To be overwritten by inherited types
     _main_stats = []
-    _slot = ""
 
     def __init__(
         self,

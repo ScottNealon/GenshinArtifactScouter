@@ -5,6 +5,7 @@ commands run in this script are duplicated in the different scripts, #TODO Actua
 which can be run individual to gain a greater understanding of how the
 commands function."""
 
+import copy
 import logging
 import logging.config
 import os
@@ -25,6 +26,11 @@ from character import Character
 
 if __name__ == "__main__":
 
+    ### IMPORT CHARACTER FROM GENSHIN OPTIMIZER AND PROVIDE EXTRA DATA ###
+    logging.info("")
+    logging.info("-" * 120)
+    logging.info("IMPORT CHARACTER FROM GENSHIN OPTIMIZER AND PROVIDE EXTRA DATA")
+
     # Import data from Genshin Optimizer
     go_data = gop.GenshinOptimizerData("Data/go_data.json")
 
@@ -39,63 +45,94 @@ if __name__ == "__main__":
     # Evaluate Klee's power
     base_power = evaluate.evaluate_power(character=klee, artifacts=klee_artifacts, verbose=True)
 
+    ### EVALUATE SLOT POTENTIALS ###
+    logging.info("")
+    logging.info("-" * 120)
+    logging.info("EVALUATE SLOT POTENTIALS")
+
     # Evaluate the potential of every slot
-    slots_substat_potentials = pot.all_slots_substats_potentials(
-        character=klee, equipped_artifacts=klee_artifacts, base_power=base_power, verbose=True
-    )
+    slot_potentials = pot.all_slots_potentials(character=klee, equipped_artifacts=klee_artifacts, verbose=True)
 
     # Evalute the potential of a single slot using properties in equipped_artifacts
-    slot_substat_potentials = pot.slot_substat_potentials(
+    sands_potential = pot.slot_potential(
         character=klee,
         equipped_artifacts=klee_artifacts,
         slot=Sands,
-        base_power=base_power,
         verbose=True,
     )
 
-    # Evaluate the potential of a single slot using explicit properties
-    slot_substat_potentials_explicit = pot.slot_substat_potentials(
-        character=klee,
-        equipped_artifacts=klee_artifacts,
-        slot=Sands,
-        set_str="gladiators",
-        stars=5,
-        main_stat="ATK%",
-        base_power=base_power,
-        verbose=True,
-    )
+    ### EVALUATE ARTIFACT POTENTIALS ###
+    logging.info("")
+    logging.info("-" * 120)
+    logging.info("EVALUATE ARTIFACT POTENTIALS")
 
     # Collect all noblesse ATK% sands from Genshin Optimizer
     sands = go_data.get_artifacts(sets="noblesse", slot=[Sands], main_stat="ATK%")
 
     # Evaluate the potential of all noblesse ATK% sands I own
-    artifacts_substat_potentials = pot.artifacts_substat_potentials(
+    artifacts_potentials = pot.artifacts_potentials(
         character=klee,
         equipped_artifacts=klee_artifacts,
         evaluating_artifacts=sands,
-        slot_substat_potentials=slot_substat_potentials,
+        slot_potentials=slot_potentials,
         verbose=True,
     )
 
-    # Evaluate the potential of a single noblesse ATK% sands I own
+    # Evaluate the potential of the first noblesse ATK% sands I own
     sands_singular = sands[list(sands.keys())[0]]
-    artifact_substat_potentials = pot.artifact_substat_potential(
+    artifact_potentials = pot.artifact_potential(
         character=klee,
         equipped_artifacts=klee_artifacts,
         evaluating_artifact=sands_singular,
-        slot_substat_potentials=slot_substat_potentials,
+        slot_potentials=slot_potentials,
         verbose=True,
     )
 
-    # Collect all gladiators ATK% sands from Genshin Optimizer and evaluate potential of one.
-    # This should raise a warning due to using a different slot potentials
+    ### CALCULATING POTENTIAL WITH OFF-SETS ARTIFACTS
+    logging.info("")
+    logging.info("-" * 120)
+    logging.info("CALCULATING POTENTIAL WITH OFF-SETS ARTIFACTS")
+
+    # Collect all gladiator ATK% sands from Genshin Optimizer
     gladiators_sands = go_data.get_artifacts(sets="gladiators", slot=[Sands], main_stat="ATK%")
-    gladiators_sand_singular = gladiators_sands[list(gladiators_sands.keys())[0]]
-    artifact_substat_potentials = pot.artifact_substat_potential(
+
+    # Evaluate the potential of all gladiator ATK% sands I own
+    #   This should raise a warning due to using different slot potentials and due to different set from equippped
+    #   artifacts.
+    artifact_potentials = pot.artifacts_potentials(
         character=klee,
         equipped_artifacts=klee_artifacts,
-        evaluating_artifact=gladiators_sand_singular,
-        slot_substat_potentials=slot_substat_potentials,
+        evaluating_artifacts=gladiators_sands,
+        slot_potentials=slot_potentials,
+        verbose=True,
+    )
+
+    ### CALCULATING POTENTIAL WITH USE_SET_BONUS = FALSE
+    logging.info("")
+    logging.info("-" * 120)
+    logging.info("CALCULATING POTENTIAL WITH USE_SET_BONUS = FALSE")
+
+    # Create a copy of klee artifacts to evaluate without sets
+    klee_artifacts_no_set = copy.deepcopy(klee_artifacts)
+    klee_artifacts_no_set.use_set_bonus = False
+
+    # Evaluate the potential of a single slot using explicit properties
+    sands_potential_no_set = pot.slot_potential(
+        character=klee,
+        equipped_artifacts=klee_artifacts_no_set,
+        slot=Sands,
+        set_str="gladiators",
+        stars=5,
+        main_stat="ATK%",
+        verbose=True,
+    )
+
+    # Evaluate the potential of all gladiator ATK% sands I own without throwing a warning
+    artifact_potentials = pot.artifacts_potentials(
+        character=klee,
+        equipped_artifacts=klee_artifacts_no_set,
+        evaluating_artifacts=gladiators_sands,
+        slot_potentials=sands_potential_no_set,
         verbose=True,
     )
 

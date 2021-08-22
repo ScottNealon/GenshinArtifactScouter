@@ -11,7 +11,6 @@ log = logging.getLogger(__name__)
 
 class Weapon:
     def __init__(
-        # self, name: str, level: int, baseATK: int, ascension_stat: str, ascension_stat_value: float, passive: dict[str]
         self,
         name: str,
         level: int,

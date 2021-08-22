@@ -16,7 +16,7 @@ class Artifacts:
         self.circlet = None
         for artifact in artifacts:
             self.set_artifact(artifact, override=False)
-        self.use_set_bonus = use_set_bonus
+        self._use_set_bonus = use_set_bonus
 
     @property
     def flower(self):
@@ -62,7 +62,7 @@ class Artifacts:
     def artifact_list(self):
         return [self.flower, self.plume, self.sands, self.goblet, self.circlet]
 
-    def get_artifact(self, slot: Union[Artifact, str, type]):
+    def get_artifact(self, slot: Union[Artifact, str, type]) -> Artifact:
 
         if type(slot) is str:
             return getattr(self, slot)  # self.flower / self.plume / ...
@@ -90,6 +90,14 @@ class Artifacts:
         if not hasattr(self, "_" + slot.__name__.lower()):
             return False
         return getattr(self, slot.__name__.lower()) is not None
+
+    @property
+    def use_set_bonus(self) -> bool:
+        return self._use_set_bonus
+
+    @use_set_bonus.setter
+    def use_set_bonus(self, use_set_bonus: bool):
+        self._use_set_bonus = use_set_bonus
 
     @property
     def stats(self):
