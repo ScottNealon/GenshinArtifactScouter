@@ -60,7 +60,11 @@ class Artifacts:
 
     @property
     def artifact_list(self):
-        return [self.flower, self.plume, self.sands, self.goblet, self.circlet]
+        return [
+            artifact
+            for artifact in [self.flower, self.plume, self.sands, self.goblet, self.circlet]
+            if artifact is not None
+        ]
 
     def get_artifact(self, slot: Union[Artifact, str, type]) -> Artifact:
 
@@ -109,7 +113,8 @@ class Artifacts:
                 if (type(artifact.stats) is pd.DataFrame) and (type(self._stats) is pd.DataFrame):
                     raise ValueError("Cannot have two probablistic artifacts.")  # TODO
                 self._stats = self._stats + artifact.stats
-                sets[artifact.set] = sets.get(artifact.set, 0) + 1
+                if artifact.set is not None:
+                    sets[artifact.set] = sets.get(artifact.set, 0) + 1
         # Set stats
         if self.use_set_bonus:
             for set, count in sets.items():
@@ -124,3 +129,14 @@ class Artifacts:
 
     def __iter__(self):
         return iter(self.artifact_list)
+
+
+def generate_empty_artifacts(stars: int, level: int, main_stats: list[str]) -> Artifacts:
+    """Generates an Artifacs object with empty artifacts (no set, no substats)"""
+    empty_flower = Flower(main_stat=main_stats[0], stars=stars, level=level)
+    empty_plume = Plume(main_stat=main_stats[1], stars=stars, level=level)
+    empty_sands = Sands(main_stat=main_stats[2], stars=stars, level=level)
+    empty_goblet = Goblet(main_stat=main_stats[3], stars=stars, level=level)
+    empty_circlet = Circlet(main_stat=main_stats[4], stars=stars, level=level)
+    empty_artifacts = Artifacts([empty_flower, empty_plume, empty_sands, empty_goblet, empty_circlet])
+    return empty_artifacts

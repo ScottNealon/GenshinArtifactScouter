@@ -199,6 +199,20 @@ class GenshinOptimizerData:
 
         return output_artifacts
 
+    def get_artifacts_like(self, artifact_like: Artifact):
+        """Returns all artifacts with same stars, slot, main stat, and set as artifact_like"""
+        return self.get_artifacts(
+            stars=artifact_like.stars,
+            slot=type(artifact_like),
+            main_stat=artifact_like.main_stat,
+            sets=artifact_like.set,
+        )
+
+    def get_potential_replacements(self, artifacts: Artifacts, slot: type):
+        """Return all artifacts that could replace the artifact in slot without changing set bonus"""
+        # TODO
+        a = 1
+
     def _import_characters(self):
 
         # Iterate across characters

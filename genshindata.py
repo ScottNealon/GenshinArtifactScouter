@@ -883,7 +883,8 @@ set_stats = {
     'millelith':      [{'HP%': 20.0}, {'ATK%': 20.0}],
     'pale':           [{'Physical DMG%': 25.0}, {'ATK%': 18.0, 'Physical DMG%': 15.0}],
     'emblem':         [{'Energy Recharge%': 20.0}, {}],
-    'reminiscence':   [{'ATK%': 18.0}, {'DMG%': 50.0}]
+    'reminiscence':   [{'ATK%': 18.0}, {'DMG%': 50.0}],
+    '':               [{}, {}],
 }
 
 # Source: https://genshin-impact.fandom.com/wiki/Loot_System/Artifact_Drop_Distribution
@@ -932,7 +933,8 @@ default_artifact_source = {
     'millelith':      'domain',
     'pale':           'domain',
     'emblem':         'domain',
-    'reminiscence':   'domain'
+    'reminiscence':   'domain',
+    '':               'domain',
 }
 # fmt: on
 

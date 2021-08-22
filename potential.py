@@ -11,6 +11,7 @@ import pandas as pd
 
 import evaluate
 import genshindata
+import graphing
 from artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
 from artifacts import Artifacts
 from character import Character
@@ -266,7 +267,9 @@ def all_slots_potentials(
     equipped_artifacts: Artifacts,
     target_level: int = None,
     source: str = None,
-    verbose: bool = False,
+    verbose: bool = True,
+    plot: bool = False,
+    smooth: bool = True,
 ) -> list[SlotPotential]:
     """Calculates the slot potential for all slots
 
@@ -282,8 +285,10 @@ def all_slots_potentials(
     source : str, default=None,
         Source of artifacts. Different sources have different low vs high substat drop rates. Default defined by set in
         genshindata.py.
-    verbose : bool, default=False
+    verbose : bool, default=True
         Booleon whether to output updates to console
+    TODO
+    plot : bool, default=False
 
     Returns
     ----------
@@ -329,7 +334,7 @@ def all_slots_potentials(
     # fmt: on
 
     # Iterate through artifacts
-    substat_potentials = []
+    slot_potentials = list[SlotPotential]()
     for slot in [Flower, Plume, Sands, Goblet, Circlet]:
         base_artifact = equipped_artifacts.get_artifact(slot)
         if base_artifact is None:
@@ -347,9 +352,9 @@ def all_slots_potentials(
             log.info("ARTIFACT:")
             log.info(
                 (
-                    f"{slot.__name__.capitalize():>7s} "
+                    f"{slot.__name__.title():>7s} "
                     f"{base_artifact.stars:>d}* "
-                    f"{base_artifact.set.capitalize():>14} "
+                    f"{base_artifact.set.title():>14} "
                     f"{iter_target_level:>2d}/{genshindata.max_level_by_stars[base_artifact.stars]:>2d} "
                     f"{base_artifact.main_stat:>17s}: {genshindata.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][iter_target_level]:>4}"
                 )
@@ -379,8 +384,21 @@ def all_slots_potentials(
             # Report on potential
             slot_potential.log_report(base_power=base_power, log=log)
             # Append to return
-            substat_potentials.append(slot_potential)
-    return substat_potentials
+            slot_potentials.append(slot_potential)
+    if plot:
+        log.info("-" * 10)
+        log.info("Plotting slots...")
+        legend_label = ["Flower", "Plume", "Sands", "Goblet", "Circlet"]
+        title = f"Slot Potentials on {character.name.title()}"
+        graphing.graph_slot_potentials(
+            slot_potentials=slot_potentials,
+            legend_labels=legend_label,
+            base_power=base_power,
+            title=title,
+            smooth=smooth,
+        )
+        log.info("Slots plotted.")
+    return slot_potentials
 
 
 def slot_potential(
@@ -392,7 +410,9 @@ def slot_potential(
     main_stat: str = None,
     target_level: int = None,
     source: str = None,
-    verbose: bool = False,
+    verbose: bool = True,
+    plot: bool = False,
+    smooth: bool = True,
 ) -> list[SlotPotential]:
     """Calculates the probabillity and power of all possible substats for a single slots
 
@@ -415,8 +435,10 @@ def slot_potential(
     source : str, default=None,
         Source of artifacts. Different sources have different low vs high substat drop rates. Default defined by set in
         genshindata.py.
-    verbose : bool, default=False
+    verbose : bool, default=True
         Booleon whether to output updates to console
+    TODO
+    plot : bool, default=False
 
     Returns
     ----------
@@ -472,9 +494,9 @@ def slot_potential(
         log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)")
     log.info("ARTIFACT:")
     log.info((
-            f"{slot.__name__.capitalize():>7s} "
+            f"{slot.__name__.title():>7s} "
             f"{stars:>d}* "
-            f"{set_str.capitalize():>14} "
+            f"{set_str.title():>14} "
             f"{target_level:>2d}/{genshindata.max_level_by_stars[stars]:>2d} "
             f"{main_stat:>17s}: {genshindata.main_stat_scaling[stars][main_stat][target_level]:>4}"
     ))
@@ -498,21 +520,36 @@ def slot_potential(
         target_level=target_level,
         source=source,
     )
-    slot_potential = SlotPotential(
-        character=character,
-        equipped_artifacts=equipped_artifacts,
-        slot=slot,
-        set_str=set_str,
-        stars=stars,
-        main_stat=main_stat,
-        target_level=target_level,
-        source=source,
-        potential_df=potential_df,
-    )
+    slot_potentials = [
+        SlotPotential(
+            character=character,
+            equipped_artifacts=equipped_artifacts,
+            slot=slot,
+            set_str=set_str,
+            stars=stars,
+            main_stat=main_stat,
+            target_level=target_level,
+            source=source,
+            potential_df=potential_df,
+        )
+    ]
     # Report potential
-    slot_potential.log_report(base_power=base_power, log=log)
+    slot_potentials[0].log_report(base_power=base_power, log=log)
+    if plot:
+        log.info("-" * 10)
+        log.info("Plotting slot...")
+        legend_label = [slot.__name__]
+        title = f"{stars}* {set_str.title()} {main_stat} {slot.__name__} Slot Potential on {character.name.title()}"
+        graphing.graph_slot_potentials(
+            slot_potentials=slot_potentials,
+            legend_labels=legend_label,
+            base_power=base_power,
+            title=title,
+            smooth=smooth,
+        )
+        log.info("Slot plotted.")
     # Return results
-    return [slot_potential]
+    return slot_potentials
 
 
 ### PUBLIC METHODS TO CREATE ARTIFACT POTENTIAL OBJECTS ###
@@ -525,7 +562,9 @@ def artifacts_potentials(
     target_level: int = None,
     source: str = None,
     slot_potentials: list[SlotPotential] = None,
-    verbose: bool = False,
+    verbose: bool = True,
+    plot: bool = False,
+    smooth: bool = True,
 ) -> list[ArtifactPotential]:
     """Calculates the probabillity and power of all possible substats for the artifacts
 
@@ -544,7 +583,7 @@ def artifacts_potentials(
         genshindata.py.
     slot_potentials : list[SlotPotential], default=None
         List of slot potentials that MAY contain a match for current parameters
-    verbose : bool, default=False
+    verbose : bool, default=True
         Booleon whether to output updates to console
 
     Returns
@@ -635,6 +674,18 @@ def artifacts_potentials(
         artifact_potential.log_report(base_power=base_power, log=log)
         # Append to return
         artifact_potentials.append(artifact_potential)
+
+    if plot:
+        log.info("-" * 10)
+        log.info("Plotting artifacts...")
+        artifact_labels = list(evaluating_artifacts.keys())
+        graphing.graph_artifact_potentials(
+            artifact_potentials=artifact_potentials,
+            artifact_labels=artifact_labels,
+            base_power=base_power,
+            smooth=smooth,
+        )
+        log.info("Slot plotted.")
     return artifact_potentials
 
 
@@ -645,7 +696,10 @@ def artifact_potential(
     target_level: int = None,
     source: str = None,
     slot_potentials: list[SlotPotential] = None,
-    verbose: bool = False,
+    verbose: bool = True,
+    plot: bool = False,
+    artifact_name: str = None,
+    smooth: bool = True,
 ) -> list[ArtifactPotential]:
     """Calculates the probabillity and power of all possible substats rolls for a given artifact
 
@@ -664,7 +718,7 @@ def artifact_potential(
         genshindata.py.
     slot_potentials : list[SlotPotential], default=None
         List of slot potentials that MAY contain a match for current parameters
-    verbose : bool, default=False
+    verbose : bool, default=True
         Booleon whether to output updates to console
 
     Returns
@@ -732,21 +786,37 @@ def artifact_potential(
         source=source,
     )
     # Create and report artifact potential
-    artifact_potential = ArtifactPotential(
-        character=character,
-        equipped_artifacts=equipped_artifacts,
-        slot=type(evaluating_artifact),
-        set_str=evaluating_artifact.set,
-        stars=evaluating_artifact.stars,
-        main_stat=evaluating_artifact.main_stat,
-        target_level=target_level,
-        substat_rolls=evaluating_artifact.substat_rolls,
-        source=source,
-        potential_df=potential_df,
-    )
-    artifact_potential.find_matching_slot_potential(slot_potentials=slot_potentials)
-    artifact_potential.log_report(base_power=base_power, log=log)
-    return artifact_potential
+    artifact_potentials = [
+        ArtifactPotential(
+            character=character,
+            equipped_artifacts=equipped_artifacts,
+            slot=type(evaluating_artifact),
+            set_str=evaluating_artifact.set,
+            stars=evaluating_artifact.stars,
+            main_stat=evaluating_artifact.main_stat,
+            target_level=target_level,
+            substat_rolls=evaluating_artifact.substat_rolls,
+            source=source,
+            potential_df=potential_df,
+        )
+    ]
+    artifact_potentials[0].find_matching_slot_potential(slot_potentials=slot_potentials)
+    artifact_potentials[0].log_report(base_power=base_power, log=log)
+    if plot:
+        log.info("-" * 10)
+        log.info("Plotting artifact...")
+        if artifact_name is not None:
+            artifact_labels = [artifact_name]
+        else:
+            artifact_labels = [type(evaluating_artifact).__name__]
+        graphing.graph_artifact_potentials(
+            artifact_potentials=artifact_potentials,
+            artifact_labels=artifact_labels,
+            base_power=base_power,
+            smooth=smooth,
+        )
+        log.info("Slot plotted.")
+    return artifact_potentials
 
 
 ### PRIVATE METHODS CALLED BY METHODS ABOVE ###

@@ -1,6 +1,7 @@
 import copy
 import itertools
 import math
+from logging import raiseExceptions
 from typing import Union
 
 import numpy as np
@@ -16,10 +17,10 @@ class Artifact:
 
     def __init__(
         self,
-        set_str: str,
         main_stat: str,
         stars: int,
         level: int,
+        set_str: str = "",
         substats: dict[str] = None,
         substat_rolls: dict[str] = None,
     ):
@@ -28,22 +29,34 @@ class Artifact:
         if (substats is not None) and (substat_rolls is not None):
             raise ValueError("substats and substat_rolls are mutually exclusive. Only one can be provided.")
 
-        # Validated inputs
-        self._set = set_str
+        # Validate inputs
+        if main_stat not in self._main_stats:
+            raise ValueError(f"Invalid artifact main stat for {type(self).__name__}")
+        if stars < 0:
+            raise ValueError("Stars must be greater than 0.")
+        if stars > 5:
+            raise ValueError("Stars must be less than 5.")
+        if level < 0:
+            raise ValueError("Level must be greater than 0.")
+        if level > genshindata.max_level_by_stars[stars]:
+            raise ValueError(f"Level for {stars}* artifact must be less than {genshindata.max_level_by_stars[stars]}.")
+        if set_str is not None:
+            if set_str not in genshindata.set_stats:
+                raise ValueError("Invalid set.")
+
         self._stars = stars
         self._main_stat = main_stat
         self._level = level
+        self._set = set_str
 
+        if (substats is None) and (substat_rolls is None):
+            substats = {}
         if substats is not None:
             self._substats = substats
             self.calculate_substat_rolls()
         else:
             self._substat_rolls = substat_rolls
             self.calculate_substats()
-
-    @property
-    def set(self):
-        return self._set
 
     @property
     def stars(self):
@@ -56,6 +69,10 @@ class Artifact:
     @property
     def level(self):
         return self._level
+
+    @property
+    def set(self):
+        return self._set
 
     @property
     def substats(self):
@@ -122,7 +139,7 @@ class Artifact:
         return_str = (
             f"{type(self).__name__:>7s} "
             f"{self.stars:>d}* "
-            f"{self.set.capitalize():>14} "
+            f"{self.set.title():>14} "
             f"{self.level:>2d}/{genshindata.max_level_by_stars[self.stars]:>2d} "
             f"{self.main_stat:>17s}: {genshindata.main_stat_scaling[self._stars][self._main_stat][self._level]:>4}"
         )

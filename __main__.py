@@ -10,18 +10,19 @@ import logging
 import logging.config
 import os
 
-import matplotlib.pyplot as plt
-
 # Setup Logging
 dir_path = os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(dir_path, "logging.conf")
 logging.config.fileConfig(config_path)
 logging.info("Logging initialized.")
 
+import matplotlib.pyplot as plt
+
 import evaluate
 import go_parser as gop
 import potential as pot
 from artifact import Circlet, Flower, Goblet, Plume, Sands
+from artifacts import Artifacts, generate_empty_artifacts
 from character import Character
 
 if __name__ == "__main__":
@@ -51,41 +52,70 @@ if __name__ == "__main__":
     logging.info("EVALUATE SLOT POTENTIALS")
 
     # Evaluate the potential of every slot
-    slot_potentials = pot.all_slots_potentials(character=klee, equipped_artifacts=klee_artifacts, verbose=True)
+    slot_potentials = pot.all_slots_potentials(character=klee, equipped_artifacts=klee_artifacts, plot=True)
 
     # Evalute the potential of a single slot using properties in equipped_artifacts
-    sands_potential = pot.slot_potential(
-        character=klee,
-        equipped_artifacts=klee_artifacts,
-        slot=Sands,
-        verbose=True,
-    )
+    sands_potential = pot.slot_potential(character=klee, equipped_artifacts=klee_artifacts, slot=Sands, plot=True)
 
     ### EVALUATE ARTIFACT POTENTIALS ###
     logging.info("")
     logging.info("-" * 120)
     logging.info("EVALUATE ARTIFACT POTENTIALS")
 
-    # Collect all noblesse ATK% sands from Genshin Optimizer
-    sands = go_data.get_artifacts(sets="noblesse", slot=[Sands], main_stat="ATK%")
+    # Collect all matching slot/main stat artifacts from Genshin Optimizer
+    flowers = go_data.get_artifacts_like(klee_artifacts.get_artifact(Flower))
+    plumes = go_data.get_artifacts_like(klee_artifacts.get_artifact(Plume))
+    sands = go_data.get_artifacts_like(klee_artifacts.get_artifact(Sands))
+    goblets = go_data.get_artifacts_like(klee_artifacts.get_artifact(Goblet))
+    circlets = go_data.get_artifacts_like(klee_artifacts.get_artifact(Circlet))
 
-    # Evaluate the potential of all noblesse ATK% sands I own
+    # Evaluate the potential of matching artifacts I own
+    artifacts_potentials = pot.artifacts_potentials(
+        character=klee,
+        equipped_artifacts=klee_artifacts,
+        evaluating_artifacts=flowers,
+        slot_potentials=slot_potentials,
+        plot=True,
+    )
+    artifacts_potentials = pot.artifacts_potentials(
+        character=klee,
+        equipped_artifacts=klee_artifacts,
+        evaluating_artifacts=plumes,
+        slot_potentials=slot_potentials,
+        plot=True,
+    )
     artifacts_potentials = pot.artifacts_potentials(
         character=klee,
         equipped_artifacts=klee_artifacts,
         evaluating_artifacts=sands,
         slot_potentials=slot_potentials,
-        verbose=True,
+        plot=True,
+    )
+    artifacts_potentials = pot.artifacts_potentials(
+        character=klee,
+        equipped_artifacts=klee_artifacts,
+        evaluating_artifacts=goblets,
+        slot_potentials=slot_potentials,
+        plot=True,
+    )
+    artifacts_potentials = pot.artifacts_potentials(
+        character=klee,
+        equipped_artifacts=klee_artifacts,
+        evaluating_artifacts=circlets,
+        slot_potentials=slot_potentials,
+        plot=True,
     )
 
     # Evaluate the potential of the first noblesse ATK% sands I own
-    sands_singular = sands[list(sands.keys())[0]]
+    artifact_name = list(sands.keys())[0]
+    sands_singular = sands[artifact_name]
     artifact_potentials = pot.artifact_potential(
         character=klee,
         equipped_artifacts=klee_artifacts,
         evaluating_artifact=sands_singular,
         slot_potentials=slot_potentials,
-        verbose=True,
+        plot=True,
+        artifact_name=artifact_name,
     )
 
     ### CALCULATING POTENTIAL WITH OFF-SETS ARTIFACTS
@@ -98,13 +128,13 @@ if __name__ == "__main__":
 
     # Evaluate the potential of all gladiator ATK% sands I own
     #   This should raise a warning due to using different slot potentials and due to different set from equippped
-    #   artifacts.
+    #   artifacts. It should also fail to plot.
     artifact_potentials = pot.artifacts_potentials(
         character=klee,
         equipped_artifacts=klee_artifacts,
         evaluating_artifacts=gladiators_sands,
         slot_potentials=slot_potentials,
-        verbose=True,
+        plot=True,
     )
 
     ### CALCULATING POTENTIAL WITH USE_SET_BONUS = FALSE
@@ -124,7 +154,7 @@ if __name__ == "__main__":
         set_str="gladiators",
         stars=5,
         main_stat="ATK%",
-        verbose=True,
+        plot=True,
     )
 
     # Evaluate the potential of all gladiator ATK% sands I own without throwing a warning
@@ -133,12 +163,43 @@ if __name__ == "__main__":
         equipped_artifacts=klee_artifacts_no_set,
         evaluating_artifacts=gladiators_sands,
         slot_potentials=sands_potential_no_set,
-        verbose=True,
+        plot=True,
     )
 
-    # Compare potentials
-    # artifact_potentials = [flower_potentials_df, plume_potentials_df, sands_potentials_df, goblet_potentials_df, circlet_potentials_df]
-    # legend_labels = ['Flower', 'Plume', 'Sands', 'Goblet', 'Circlet']
-    # pot.graph_potentials(artifact_potentials, base_power=base_power, title='Potential of Artifacts on Klee', legend_labels=legend_labels, smooth=True)
+    ### CALCULATING POTENTIAL WITH NO ARTIFACTS EQUIPPED
+    logging.info("")
+    logging.info("-" * 120)
+    logging.info("CALCULATING POTENTIAL WITH NO ARTIFACTS EQUIPPED")
+
+    # Get new Klee and have no reactions
+    klee_no_reaction = copy.deepcopy(klee)
+    klee_no_reaction.amplifying_reaction = None
+    klee_no_reaction.reaction_percentage = 0
+
+    # Create artifacts with no artifacts
+    no_artifacts = generate_empty_artifacts(
+        stars=5, level=20, main_stats=["HP", "ATK", "ATK%", "Elemental DMG%", "Crit Rate%"]
+    )
+
+    # Calculate slot potential
+    slot_potentials_no_artifacts = pot.all_slots_potentials(
+        character=klee_no_reaction, equipped_artifacts=no_artifacts, plot=True
+    )
+
+    # Calculate artifact potential
+    sands_singular = Sands(
+        main_stat="ATK%",
+        stars=5,
+        level=0,
+        set_str="",
+        substats={},
+    )
+    artifact_potentials = pot.artifact_potential(
+        character=klee_no_reaction,
+        equipped_artifacts=no_artifacts,
+        evaluating_artifact=sands_singular,
+        slot_potentials=slot_potentials_no_artifacts,
+        plot=True,
+    )
 
     plt.show()
