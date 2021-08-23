@@ -1,2 +1,3 @@
-# Ignore json data files in this directory
+# Ignore json data files in this directory except for sample
 *.json
+!sample_go_data.json
