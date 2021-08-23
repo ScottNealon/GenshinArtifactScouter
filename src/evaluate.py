@@ -1,18 +1,20 @@
+from __future__ import annotations
+
 import logging
 import logging.config
 
 import pandas as pd
 
-import genshindata
-from artifacts import Artifacts
-from character import Character
-from weapon import Weapon
+from . import genshin_data
+from .artifacts import Artifacts
+from .character import Character
+from .weapon import Weapon
 
 log = logging.getLogger(__name__)
 
 
 def evaluate_stats(character: Character, artifacts: Artifacts, *args):
-    stats = pd.Series(0.0, index=genshindata.stat_names)
+    stats = pd.Series(0.0, index=genshin_data.stat_names)
     stats = stats + character.stats
     stats = stats + artifacts.stats
     for arg in args:

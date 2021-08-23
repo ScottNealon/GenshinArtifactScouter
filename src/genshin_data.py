@@ -35,6 +35,7 @@ This module contains the following data structures:
     * default_artifact_source - Default artifact source if not provided
 """
 
+from __future__ import annotations
 
 import itertools
 import json
@@ -112,7 +113,7 @@ def _get_character_stats():
 
     # Define file path
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    file_path = os.path.join(dir_path, "Data\AvatarExcelConfigData.json")
+    file_path = os.path.join(dir_path, "..\data\AvatarExcelConfigData.json")
 
     # If file doesn't exist, download it
     if not os.path.isfile(file_path):
@@ -154,7 +155,7 @@ def _get_character_stat_curves():
 
     # Define file path
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    file_path = os.path.join(dir_path, "Data\AvatarCurveExcelConfigData.json")
+    file_path = os.path.join(dir_path, "..\data\AvatarCurveExcelConfigData.json")
 
     # If file doesn't exist, download it
     if not os.path.isfile(file_path):
@@ -194,7 +195,7 @@ def _get_character_promote_stats():
 
     # Define file path
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    file_path = os.path.join(dir_path, "Data\AvatarPromoteExcelConfigData.json")
+    file_path = os.path.join(dir_path, "..\data\AvatarPromoteExcelConfigData.json")
 
     # If file doesn't exist, download it
     if not os.path.isfile(file_path):
@@ -385,7 +386,7 @@ def _get_weapon_stats():
 
     # Define file path
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    file_path = os.path.join(dir_path, "Data\WeaponExcelConfigData.json")
+    file_path = os.path.join(dir_path, "..\data\WeaponExcelConfigData.json")
 
     # If file doesn't exist, download it
     if not os.path.isfile(file_path):
@@ -428,7 +429,7 @@ def _get_weapon_stat_curves():
 
     # Define file path
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    file_path = os.path.join(dir_path, "Data\WeaponCurveExcelConfigData.json")
+    file_path = os.path.join(dir_path, "..\data\WeaponCurveExcelConfigData.json")
 
     # If file doesn't exist, download it
     if not os.path.isfile(file_path):
@@ -468,7 +469,7 @@ def _get_weapon_promote_stats():
 
     # Define file path
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    file_path = os.path.join(dir_path, "Data\WeaponPromoteExcelConfigData.json")
+    file_path = os.path.join(dir_path, "..\data\WeaponPromoteExcelConfigData.json")
 
     # If file doesn't exist, download it
     if not os.path.isfile(file_path):

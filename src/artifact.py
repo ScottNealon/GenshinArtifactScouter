@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import itertools
 import math
@@ -7,7 +9,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-import genshindata
+from . import genshin_data
 
 
 class Artifact:
@@ -38,10 +40,10 @@ class Artifact:
             raise ValueError("Stars must be less than 5.")
         if level < 0:
             raise ValueError("Level must be greater than 0.")
-        if level > genshindata.max_level_by_stars[stars]:
-            raise ValueError(f"Level for {stars}* artifact must be less than {genshindata.max_level_by_stars[stars]}.")
+        if level > genshin_data.max_level_by_stars[stars]:
+            raise ValueError(f"Level for {stars}* artifact must be less than {genshin_data.max_level_by_stars[stars]}.")
         if set_str is not None:
-            if set_str not in genshindata.set_stats:
+            if set_str not in genshin_data.set_stats:
                 raise ValueError("Invalid set.")
 
         self._stars = stars
@@ -99,10 +101,10 @@ class Artifact:
         possible_substat_rolls = []
         for substat_name, substat_value in self.substats.items():
             # Find the closest substat value
-            value_array = np.asarray(list(genshindata.value2rolls[substat_name][self.stars].keys()))
+            value_array = np.asarray(list(genshin_data.value2rolls[substat_name][self.stars].keys()))
             closest_value_index = (np.abs(value_array - substat_value)).argmin()
             closest_value = value_array[closest_value_index]
-            possible_substat_rolls.append(genshindata.value2rolls[substat_name][self.stars][closest_value])
+            possible_substat_rolls.append(genshin_data.value2rolls[substat_name][self.stars][closest_value])
 
         # Iterate through combinations until some combination is valid ( = total_possible_rolls or +1)
         total_possible_rolls = max(0, self.stars - 2) + math.floor(self.level / 4)
@@ -128,11 +130,11 @@ class Artifact:
         if type(self.substats) is pd.DataFrame:
             self._stats = copy.copy(self.substats)
         elif type(self.substats) is dict:
-            self._stats = pd.Series(0.0, index=genshindata.stat_names)
+            self._stats = pd.Series(0.0, index=genshin_data.stat_names)
             for substat, value in self.substats.items():
                 self._stats[substat] += value
         # Main stat
-        self._stats[self._main_stat] += genshindata.main_stat_scaling[self._stars][self._main_stat][self._level]
+        self._stats[self._main_stat] += genshin_data.main_stat_scaling[self._stars][self._main_stat][self._level]
         return self._stats
 
     def to_string_table(self):
@@ -140,10 +142,10 @@ class Artifact:
             f"{type(self).__name__:>7s} "
             f"{self.stars:>d}* "
             f"{self.set.title():>14} "
-            f"{self.level:>2d}/{genshindata.max_level_by_stars[self.stars]:>2d} "
-            f"{self.main_stat:>17s}: {genshindata.main_stat_scaling[self._stars][self._main_stat][self._level]:>4}"
+            f"{self.level:>2d}/{genshin_data.max_level_by_stars[self.stars]:>2d} "
+            f"{self.main_stat:>17s}: {genshin_data.main_stat_scaling[self._stars][self._main_stat][self._level]:>4}"
         )
-        for possible_substat in genshindata.substat_roll_values:
+        for possible_substat in genshin_data.substat_roll_values:
             if possible_substat in self.substats:
                 if "%" in possible_substat:
                     return_str += f" {self.substats[possible_substat]:>4.1f}"
@@ -153,6 +155,16 @@ class Artifact:
                 return_str += "     "
 
         return return_str
+
+    # TODO
+    def add_substat(self, substat: str, roll_num: int) -> Artifact:
+        """Create a new artifact and add substat with given roll"""
+        return 1
+
+    # TODO
+    def roll_substat(self, substat: str, roll_num: int) -> Artifact:
+        """Create a new artifact and add substat roll"""
+        return 1
 
 
 class Flower(Artifact):

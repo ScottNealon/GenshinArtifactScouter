@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import logging
 import math
 
 import numpy as np
 import pandas as pd
 
-import genshindata
-from weapon import Weapon
+from . import genshin_data
+from .weapon import Weapon
 
 log = logging.getLogger(__name__)
 
@@ -16,16 +18,16 @@ class Character:
         name: str,
         level: int,
         ascension: int,
-        passive: dict[str],
         dmg_type: str,
-        weapon: Weapon,
+        passive: dict[str] = {},
+        weapon: Weapon = None,
         scaling_stat: str = None,
         crits: str = None,
         amplifying_reaction: str = None,
         reaction_percentage: float = None,
     ):
 
-        if name.lower() not in genshindata.character_stats:
+        if name.lower() not in genshin_data.character_stats:
             raise ValueError("Invalid character name.")
         self._name = name.lower()
 
@@ -106,24 +108,24 @@ class Character:
     def _get_stat_arrays(self):
 
         # Retrieve all stats from database
-        self._stats = genshindata.character_stats[self.name]
+        self._stats = genshin_data.character_stats[self.name]
 
         # Retrieve base stat arrays
-        self._base_HP_scaling = genshindata.character_stat_curves[self._stats["PropGrowCurves"]["FIGHT_PROP_BASE_HP"]]
-        self._base_ATK_scaling = genshindata.character_stat_curves[
+        self._base_HP_scaling = genshin_data.character_stat_curves[self._stats["PropGrowCurves"]["FIGHT_PROP_BASE_HP"]]
+        self._base_ATK_scaling = genshin_data.character_stat_curves[
             self._stats["PropGrowCurves"]["FIGHT_PROP_BASE_ATTACK"]
         ]
-        self._base_DEF_scaling = genshindata.character_stat_curves[
+        self._base_DEF_scaling = genshin_data.character_stat_curves[
             self._stats["PropGrowCurves"]["FIGHT_PROP_BASE_DEFENSE"]
         ]
 
         # Retrieve base stat increases due to ascension
-        self._promote_stats = genshindata.character_promote_stats[self._stats["AvatarPromoteId"]]
+        self._promote_stats = genshin_data.character_promote_stats[self._stats["AvatarPromoteId"]]
 
         # Retireve ascension stat increases
         self._ascension_stat_str = list(self._promote_stats.keys())[3]
         self._ascenion_stat_scaling = self._promote_stats[self._ascension_stat_str]
-        self._ascension_stat = genshindata.promote_stats_map[self._ascension_stat_str]
+        self._ascension_stat = genshin_data.promote_stats_map[self._ascension_stat_str]
 
     @property
     def base_HP(self):
@@ -171,7 +173,7 @@ class Character:
     @passive.setter
     def passive(self, passive: dict[str]):
         for key in passive:
-            if key not in genshindata.stat_names:
+            if key not in genshin_data.stat_names:
                 raise ValueError("Invalid passive.")
         self._passive = passive
         self._update_stats = True
@@ -182,8 +184,9 @@ class Character:
 
     @weapon.setter
     def weapon(self, weapon: Weapon):
-        if type(weapon) != Weapon:
-            raise ValueError("Weapon must be a weapon.")
+        if weapon is not None:
+            if type(weapon) != Weapon:
+                raise ValueError("Weapon must be a weapon.")
         self._weapon = weapon
         self._update_stats = True
 
@@ -194,7 +197,7 @@ class Character:
         return self._baseStats
 
     def update_stats(self):
-        self._baseStats = pd.Series(0.0, index=genshindata.stat_names)
+        self._baseStats = pd.Series(0.0, index=genshin_data.stat_names)
         self._baseStats["Base HP"] += self.base_HP
         self._baseStats["Base ATK"] += self.base_ATK
         self._baseStats["Base DEF"] += self.base_DEF

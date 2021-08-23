@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from typing import Union
 
 import pandas as pd
 
-import genshindata
-from artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
+from . import genshin_data
+from .artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
 
 
 class Artifacts:
@@ -105,7 +107,7 @@ class Artifacts:
 
     @property
     def stats(self):
-        self._stats = pd.Series(0.0, index=genshindata.stat_names)
+        self._stats = pd.Series(0.0, index=genshin_data.stat_names)
         sets = {}
         # Artifact stats
         for artifact in self.artifact_list:
@@ -119,10 +121,10 @@ class Artifacts:
         if self.use_set_bonus:
             for set, count in sets.items():
                 if count >= 2:
-                    for stat, value in genshindata.set_stats[set][0].items():
+                    for stat, value in genshin_data.set_stats[set][0].items():
                         self._stats[stat] += value
                 if count >= 4:
-                    for stat, value in genshindata.set_stats[set][1].items():
+                    for stat, value in genshin_data.set_stats[set][1].items():
                         self._stats[stat] += value
 
         return self._stats

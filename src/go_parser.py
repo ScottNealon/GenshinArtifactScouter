@@ -1,17 +1,14 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
-from pathlib import Path
-from typing import Union
 
-import numpy as np
-
-import evaluate
-import genshindata
-from artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
-from artifacts import Artifacts
-from character import Character
-from weapon import Weapon
+from . import evaluate
+from .artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
+from .artifacts import Artifacts
+from .character import Character
+from .weapon import Weapon
 
 # fmt: off
 go_set_map = {
@@ -80,7 +77,7 @@ log = logging.getLogger(__name__)
 
 
 class GenshinOptimizerData:
-    def __init__(self, file_path: Union[str, Path]):
+    def __init__(self, file_path: os.PathLike):
 
         # Read file path and save data
         with open(file_path) as file_handle:

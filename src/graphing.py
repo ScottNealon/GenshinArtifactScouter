@@ -5,15 +5,15 @@ import logging
 import math
 from typing import TYPE_CHECKING
 
-log = logging.getLogger(__name__)
-
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from potential import ArtifactPotential, SlotPotential
+    from .potential import ArtifactPotential, SlotPotential
+
+log = logging.getLogger(__name__)
 
 # Source: https://colorbrewer2.org/#type=qualitative&scheme=Pastel1&n=5
 plot_colors = [

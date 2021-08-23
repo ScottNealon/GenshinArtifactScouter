@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import logging
 import re
 
 import numpy as np
 import pandas as pd
 
-import genshindata
+from . import genshin_data
 
 log = logging.getLogger(__name__)
 
@@ -15,13 +17,13 @@ class Weapon:
         name: str,
         level: int,
         ascension: int,
-        passive: dict[str],
+        passive: dict[str] = {},
     ):
 
         # Validated inputs
         # Capitalize words, leave existing capitals, then remove spaces
         name = " ".join(s[:1].upper() + s[1:] for s in name.split(" ")).replace(" ", "")
-        if name not in genshindata.weapon_stats:
+        if name not in genshin_data.weapon_stats:
             raise ValueError("Invalid weapon name.")
         self._name = name
 
@@ -80,25 +82,25 @@ class Weapon:
     def _get_stat_arrays(self):
 
         # Retrieve all stats from database
-        self._base_stats = genshindata.weapon_stats[self.name]
+        self._base_stats = genshin_data.weapon_stats[self.name]
 
         # Retrieve base stat arrays
-        self._base_ATK_scaling = genshindata.weapon_stat_curves[
+        self._base_ATK_scaling = genshin_data.weapon_stat_curves[
             self._base_stats["WeaponProp"]["FIGHT_PROP_BASE_ATTACK"]["Type"]
         ]
 
         # Retrieve base stat increases due to ascension
-        self._promote_stats = genshindata.weapon_promote_stats[self._base_stats["WeaponPromoteId"]]
+        self._promote_stats = genshin_data.weapon_promote_stats[self._base_stats["WeaponPromoteId"]]
 
         # Retireve ascension stat increases
         if len(self._base_stats["WeaponProp"]) > 1:
             self._ascension_stat_str = list(self._base_stats["WeaponProp"])[1]
-            self._ascension_stat = genshindata.promote_stats_map[self._ascension_stat_str]
+            self._ascension_stat = genshin_data.promote_stats_map[self._ascension_stat_str]
             self._ascension_stat_dict = self._base_stats["WeaponProp"][self._ascension_stat_str]
             self._ascension_stat_initial_value = self._ascension_stat_dict["InitValue"]
 
             ascension_stat_scaling_str = self._ascension_stat_dict["Type"]
-            self._ascension_stat_scaling = genshindata.weapon_stat_curves[ascension_stat_scaling_str]
+            self._ascension_stat_scaling = genshin_data.weapon_stat_curves[ascension_stat_scaling_str]
         else:
             self._ascension_stat = "ATK"
             self._ascension_stat_initial_value = 0
@@ -129,7 +131,7 @@ class Weapon:
     @passive.setter
     def passive(self, passive: dict[str]):
         for key, value in passive.items():
-            if key not in genshindata.stat_names:
+            if key not in genshin_data.stat_names:
                 raise ValueError("Invalid passive stat.")
             elif value < 0:
                 raise ValueError("Invalid passive stat value.")
@@ -137,7 +139,7 @@ class Weapon:
 
     @property
     def stats(self):
-        self._stats = pd.Series(0.0, index=genshindata.stat_names)
+        self._stats = pd.Series(0.0, index=genshin_data.stat_names)
         self._stats["Base ATK"] += self.base_ATK
         self._stats[self.ascension_stat] += self.ascension_stat_value
         for key, value in self.passive.items():

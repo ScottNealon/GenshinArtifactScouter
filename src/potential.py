@@ -9,12 +9,10 @@ import re
 import numpy as np
 import pandas as pd
 
-import evaluate
-import genshindata
-import graphing
-from artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
-from artifacts import Artifacts
-from character import Character
+from . import evaluate, genshin_data, graphing
+from .artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
+from .artifacts import Artifacts
+from .character import Character
 
 ### CLASSES GENERATED THROUGH PUBLIC METHODS ###
 
@@ -284,7 +282,7 @@ def all_slots_potentials(
         Artifact level to evaluate to. If not supplied, defaults to max level.
     source : str, default=None,
         Source of artifacts. Different sources have different low vs high substat drop rates. Default defined by set in
-        genshindata.py.
+        genshin_data.py.
     verbose : bool, default=True
         Booleon whether to output updates to console
     TODO
@@ -305,7 +303,7 @@ def all_slots_potentials(
 
     # Validate inputs
     # Source must be a valid source
-    if source is not None and source not in genshindata.extra_substat_probability:
+    if source is not None and source not in genshin_data.extra_substat_probability:
         raise ValueError("Invalid domain name.")
     # Target level must be a valid target level
     if target_level is not None:
@@ -342,10 +340,10 @@ def all_slots_potentials(
         else:
             # Default target_level
             iter_target_level = (
-                genshindata.max_level_by_stars[base_artifact.stars] if target_level is None else target_level
+                genshin_data.max_level_by_stars[base_artifact.stars] if target_level is None else target_level
             )
             # Default source
-            iter_source = genshindata.default_artifact_source[base_artifact.set] if source is None else source
+            iter_source = genshin_data.default_artifact_source[base_artifact.set] if source is None else source
             # Log artifact
             log.info("-" * 10)
             log.info(f"Evaluating {slot.__name__} slot potential...")
@@ -355,8 +353,8 @@ def all_slots_potentials(
                     f"{slot.__name__.title():>7s} "
                     f"{base_artifact.stars:>d}* "
                     f"{base_artifact.set.title():>14} "
-                    f"{iter_target_level:>2d}/{genshindata.max_level_by_stars[base_artifact.stars]:>2d} "
-                    f"{base_artifact.main_stat:>17s}: {genshindata.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][iter_target_level]:>4}"
+                    f"{iter_target_level:>2d}/{genshin_data.max_level_by_stars[base_artifact.stars]:>2d} "
+                    f"{base_artifact.main_stat:>17s}: {genshin_data.main_stat_scaling[base_artifact.stars][base_artifact.main_stat][iter_target_level]:>4}"
                 )
             )
             # Calculate potential
@@ -434,7 +432,7 @@ def slot_potential(
         Artifact level to evaluate to. If not supplied, defaults to maximum give artifact stars.
     source : str, default=None,
         Source of artifacts. Different sources have different low vs high substat drop rates. Default defined by set in
-        genshindata.py.
+        genshin_data.py.
     verbose : bool, default=True
         Booleon whether to output updates to console
     TODO
@@ -466,7 +464,7 @@ def slot_potential(
 
     # Validate inputs
     # Source must be a valid source
-    if source is not None and source not in genshindata.extra_substat_probability:
+    if source is not None and source not in genshin_data.extra_substat_probability:
         raise ValueError("Invalid domain name.")
     # Target level must be a valid target level
     if target_level is not None:
@@ -476,10 +474,10 @@ def slot_potential(
             raise ValueError("Target level cannot be greater than 20.")
     else:
         # Default target level to maximum
-        target_level = genshindata.max_level_by_stars[stars]
+        target_level = genshin_data.max_level_by_stars[stars]
     # Default source
     if source is None:
-        source = genshindata.default_artifact_source[set_str]
+        source = genshin_data.default_artifact_source[set_str]
 
     # Calculate base power
     base_power = evaluate.evaluate_power(character=character, artifacts=equipped_artifacts)
@@ -497,8 +495,8 @@ def slot_potential(
             f"{slot.__name__.title():>7s} "
             f"{stars:>d}* "
             f"{set_str.title():>14} "
-            f"{target_level:>2d}/{genshindata.max_level_by_stars[stars]:>2d} "
-            f"{main_stat:>17s}: {genshindata.main_stat_scaling[stars][main_stat][target_level]:>4}"
+            f"{target_level:>2d}/{genshin_data.max_level_by_stars[stars]:>2d} "
+            f"{main_stat:>17s}: {genshin_data.main_stat_scaling[stars][main_stat][target_level]:>4}"
     ))
     log.info(f"EQUIPPED ARTIFACTS:                                       HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%")
     for equipped_artifact in equipped_artifacts:
@@ -580,7 +578,7 @@ def artifacts_potentials(
         Artifact level to evaluate to. If not supplied, defaults to maximum give artifact stars.
     source : str, default=None,
         Source of artifacts. Different sources have different low vs high substat drop rates. Default defined by set in
-        genshindata.py.
+        genshin_data.py.
     slot_potentials : list[SlotPotential], default=None
         List of slot potentials that MAY contain a match for current parameters
     verbose : bool, default=True
@@ -601,7 +599,7 @@ def artifacts_potentials(
 
     # Validate inputs
     # Source must be a valid source
-    if source is not None and source not in genshindata.extra_substat_probability:
+    if source is not None and source not in genshin_data.extra_substat_probability:
         raise ValueError("Invalid domain name.")
     # Target level must be a valid target level
     if target_level is not None:
@@ -634,10 +632,10 @@ def artifacts_potentials(
     for artifact_name, base_artifact in evaluating_artifacts.items():
         # Default target_level
         iter_target_level = (
-            genshindata.max_level_by_stars[base_artifact.stars] if target_level is None else target_level
+            genshin_data.max_level_by_stars[base_artifact.stars] if target_level is None else target_level
         )
         # Default source
-        iter_source = genshindata.default_artifact_source[base_artifact.set] if source is None else source
+        iter_source = genshin_data.default_artifact_source[base_artifact.set] if source is None else source
         # Log artifact
         log.info("-" * 10)
         log.info(f"Evaluating {artifact_name} potential...")
@@ -715,7 +713,7 @@ def artifact_potential(
         Artifact level to evaluate to. If not supplied, defaults to maximum give artifact stars.
     source : str, default=None,
         Source of artifacts. Different sources have different low vs high substat drop rates. Default defined by set in
-        genshindata.py.
+        genshin_data.py.
     slot_potentials : list[SlotPotential], default=None
         List of slot potentials that MAY contain a match for current parameters
     verbose : bool, default=True
@@ -736,7 +734,7 @@ def artifact_potential(
 
     # Validate inputs
     # Source must be a valid source
-    if source is not None and source not in genshindata.extra_substat_probability:
+    if source is not None and source not in genshin_data.extra_substat_probability:
         raise ValueError("Invalid domain name.")
     # Target level must be a valid target level
     if target_level is not None:
@@ -746,10 +744,10 @@ def artifact_potential(
             raise ValueError("Target level cannot be greater than 20.")
     else:
         # Default target level to maximum
-        target_level = genshindata.max_level_by_stars[evaluating_artifact.stars]
+        target_level = genshin_data.max_level_by_stars[evaluating_artifact.stars]
     # Default source
     if source is None:
-        source = genshindata.default_artifact_source[evaluating_artifact.set]
+        source = genshin_data.default_artifact_source[evaluating_artifact.set]
 
     # Calculate base power
     base_power = evaluate.evaluate_power(character=character, artifacts=equipped_artifacts)
@@ -870,7 +868,7 @@ def _individual_potential(
             seed_pseudo_artifact["substats"][substat] = 0
             seed_pseudo_artifact_rolls["substats"][substat] = [0, 0, 0, 0]
             for roll in rolls:
-                roll_level = genshindata.substat_roll_values[substat][stars].index(roll)
+                roll_level = genshin_data.substat_roll_values[substat][stars].index(roll)
                 seed_pseudo_artifact_rolls["substats"][substat][roll_level] += 1
 
     # Calculate number of unlocks and increases
@@ -883,7 +881,7 @@ def _individual_potential(
     remaining_increases = (
         max(0, stars - 2) + math.floor(target_level / 4) - existing_unlocks - remaining_unlocks - existing_increases
     )
-    total_rolls_high_chance = genshindata.extra_substat_probability[source][stars]
+    total_rolls_high_chance = genshin_data.extra_substat_probability[source][stars]
 
     # Identify roll combinations
     substat_values_df, slot_potential_df = _make_children(
@@ -898,7 +896,7 @@ def _individual_potential(
     )
 
     # Format output
-    for stat in genshindata.stat_names:
+    for stat in genshin_data.stat_names:
         if stat not in substat_values_df:
             substat_values_df[stat] = 0
     substat_values_df = substat_values_df.fillna(0)
@@ -1019,20 +1017,20 @@ def _add_substats(
     """Creates pseudo artifacts with every possible combination of revealed substats"""
 
     # Generate list of possible substats
-    valid_substats = set(genshindata.substat_rarity[main_stat].keys())
+    valid_substats = set(genshin_data.substat_rarity[main_stat].keys())
     for substat in pseudo_artifacts[0]["substats"]:
         valid_substats.remove(substat)
 
     # Consolodate similar substats (don't need DEF vs DEF% or low roll DEF vs high roll DEF on an ATK scaling character)
     condensable_substats = _condensable_substats(character=character)
-    base_probability = sum([genshindata.substat_rarity[main_stat][substat] for substat in valid_substats])
+    base_probability = sum([genshin_data.substat_rarity[main_stat][substat] for substat in valid_substats])
 
     # Create list of possible substats
     possibilities = []
     for substat in valid_substats:
         possibility = {
             "substat": substat,
-            "probability": genshindata.substat_rarity[main_stat][substat] / base_probability,
+            "probability": genshin_data.substat_rarity[main_stat][substat] / base_probability,
         }
         possibilities.append(possibility)
 
@@ -1237,7 +1235,7 @@ def _calculate_substats(
             if substat_list[0] is np.nan:
                 substat_list[0] = (0, 0, 0, 0)
             rolls_split = pd.DataFrame(substat_list, columns=column_names)
-            substat_value = rolls_split.dot(genshindata.substat_roll_values[substat][stars])
+            substat_value = rolls_split.dot(genshin_data.substat_roll_values[substat][stars])
             substats_values[substat] = substat_value
         else:
             substats_values[substat] = pd.Series(pseudo_artifacts_df[substat].tolist())
@@ -1305,7 +1303,7 @@ def _substat_rolls_probabillities(seed_pseudo_artifact_rolls: dict[str]) -> dict
 
     # Complicated method for adding in pre-existing substat rolls from the seed artifact
     substat_rolls_probabillities_map = {}
-    for substat in genshindata.substat_roll_values:
+    for substat in genshin_data.substat_roll_values:
         substat_rolls_probabillities_map[substat] = copy.deepcopy(substat_rolls_probabillities)
         if substat in seed_pseudo_artifact_rolls["substats"]:
             for num_rolls in substat_rolls_probabillities_map[substat]:
