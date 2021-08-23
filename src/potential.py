@@ -317,12 +317,12 @@ def all_slots_potentials(
 
     # Log intro
     # fmt: off
-    log.info("-" * 120)
+    log.info("-" * 110)
     log.info("Evaluating potential of all artifacts...")
     log.info(f"CHARACTER: {character.name.title()}, {character.level}/{[20, 40, 50, 60, 70, 80, 90][character.ascension]}")
     log.info(f"WEAPON: {character.weapon.name_formated.title()}, {character.weapon.level}/{[20, 40, 50, 60, 70, 80, 90][character.weapon.ascension]}")
     if character.amplifying_reaction is not None:
-        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)")
+        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({character.reaction_percentage::>.0f}%)")
     log.info(f"EQUIPPED ARTIFACTS:                                       HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%")
     for artifact in equipped_artifacts:
         log.info(f"{artifact.to_string_table()}")
@@ -484,12 +484,12 @@ def slot_potential(
 
     # Log intro
     # fmt: off
-    log.info("-" * 120)
+    log.info("-" * 110)
     log.info(f"Evaluating potential of {slot.__name__} slot...")
     log.info(f"CHARACTER: {character.name.title()}, {character.level}/{[20, 40, 50, 60, 70, 80, 90][character.ascension]}")
     log.info(f"WEAPON: {character.weapon.name_formated.title()}, {character.weapon.level}/{[20, 40, 50, 60, 70, 80, 90][character.weapon.ascension]}")
     if character.amplifying_reaction is not None:
-        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)")
+        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({character.reaction_percentage::>.0f}%)")
     log.info("ARTIFACT:")
     log.info((
             f"{slot.__name__.title():>7s} "
@@ -613,12 +613,12 @@ def artifacts_potentials(
 
     # Log intro
     # fmt: off
-    log.info("-" * 120)
+    log.info("-" * 110)
     log.info("Evaluating potential of artifacts...")
     log.info(f"CHARACTER: {character.name.title()}, {character.level}/{[20, 40, 50, 60, 70, 80, 90][character.ascension]}")
     log.info(f"WEAPON: {character.weapon.name.title()}, {character.weapon.level}/{[20, 40, 50, 60, 70, 80, 90][character.weapon.ascension]}")
     if character.amplifying_reaction is not None:
-        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)")
+        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({character.reaction_percentage::>.0f}%)")
     log.info(f"EQUIPPED ARTIFACTS:                                       HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%")
     for artifact in equipped_artifacts:
         log.info(f"{artifact.to_string_table()}")
@@ -754,12 +754,12 @@ def artifact_potential(
 
     # Log intro
     # fmt: off
-    log.info("-" * 120)
+    log.info("-" * 110)
     log.info(f"Evaluating potential of single artifact...")
     log.info(f"CHARACTER: {character.name.title()}, {character.level}/{[20, 40, 50, 60, 70, 80, 90][character.ascension]}")
     log.info(f"WEAPON: {character.weapon.name_formated.title()}, {character.weapon.level}/{[20, 40, 50, 60, 70, 80, 90][character.weapon.ascension]}")
     if character.amplifying_reaction is not None:
-        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)")
+        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({character.reaction_percentage::>.0f}%)")
     log.info(f"ARTIFACT:                                                 HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%")
     log.info(f"{evaluating_artifact.to_string_table()}")
     log.info(f"EQUIPPED ARTIFACTS:")

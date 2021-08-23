@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     ### IMPORT CHARACTER FROM GENSHIN OPTIMIZER AND PROVIDE EXTRA DATA ###
     logging.info("")
-    logging.info("-" * 120)
+    logging.info("-" * 110)
     logging.info("IMPORT CHARACTER FROM GENSHIN OPTIMIZER AND PROVIDE EXTRA DATA")
 
     # Import data from Genshin Optimizer
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     ### EVALUATE SLOT POTENTIALS ###
     logging.info("")
-    logging.info("-" * 120)
+    logging.info("-" * 110)
     logging.info("EVALUATE SLOT POTENTIALS")
 
     # Evaluate the potential of every slot
@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     ### EVALUATE ARTIFACT POTENTIALS ###
     logging.info("")
-    logging.info("-" * 120)
+    logging.info("-" * 110)
     logging.info("EVALUATE ARTIFACT POTENTIALS")
 
     # Collect all matching slot/main stat artifacts from Genshin Optimizer
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
     ### CALCULATING POTENTIAL WITH OFF-SETS ARTIFACTS
     logging.info("")
-    logging.info("-" * 120)
+    logging.info("-" * 110)
     logging.info("CALCULATING POTENTIAL WITH OFF-SETS ARTIFACTS")
 
     # Collect all gladiator ATK% sands from Genshin Optimizer
@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
     ### CALCULATING POTENTIAL WITH USE_SET_BONUS = FALSE
     logging.info("")
-    logging.info("-" * 120)
+    logging.info("-" * 110)
     logging.info("CALCULATING POTENTIAL WITH USE_SET_BONUS = FALSE")
 
     # Create a copy of klee artifacts to evaluate without sets
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     ### CALCULATING POTENTIAL WITH NO ARTIFACTS EQUIPPED
     logging.info("")
-    logging.info("-" * 120)
+    logging.info("-" * 110)
     logging.info("CALCULATING POTENTIAL WITH NO ARTIFACTS EQUIPPED")
 
     # Get new Klee and have no reactions

@@ -23,8 +23,8 @@ class Artifact:
         stars: int,
         level: int,
         set_str: str = "",
-        substats: dict[str] = None,
-        substat_rolls: dict[str] = None,
+        substats: dict[str, float] = None,
+        substat_rolls: dict[str, list[float]] = None,
     ):
 
         # Mutually exclusive inputs

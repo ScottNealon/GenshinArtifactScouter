@@ -25,6 +25,10 @@ plot_colors = [
 ]
 # plot_colors = [(127/255, 201/255, 127/255), (190/255, 174/255, 212/255), (253/255, 192/255, 134/255), (255/255, 255/255, 153/255), (56/255, 108/255, 176/255)]
 
+# Set plot size preemptively
+plt.rcParams["figure.figsize"] = (12, 6)
+plt.rcParams["figure.dpi"] = 125
+
 
 def graph_slot_potentials(
     slot_potentials: list[SlotPotential],
@@ -33,6 +37,7 @@ def graph_slot_potentials(
     title: str = None,
     nbins: int = None,
     smooth: bool = True,
+    truncate_large_power: bool = True,
 ):
 
     # Calculate number of bins
@@ -40,9 +45,19 @@ def graph_slot_potentials(
         biggest_df = max([slot_potential.potential_df.size for slot_potential in slot_potentials])
         nbins = min(250, biggest_df / 100)
 
-    # Prepare histogram
+    # Calculate min and 4-sigma max power (99.9th percentile) (if truncating)
     min_power = min([slot_potential.potential_df["power"].min() for slot_potential in slot_potentials])
-    max_power = max([slot_potential.potential_df["power"].max() for slot_potential in slot_potentials])
+    if truncate_large_power:
+        max_power = -np.Infinity
+        for slot_potential in slot_potentials:
+            sorted_slot_potential = slot_potential.potential_df.sort_values("power")
+            cumsum = sorted_slot_potential["probability"].cumsum()
+            slot_six_sigma = sorted_slot_potential["power"].loc[(cumsum >= 0.997).idxmax()]
+            max_power = max(max_power, slot_six_sigma)
+    else:
+        max_power = max([slot_potential.potential_df["power"].max() for slot_potential in slot_potentials])
+
+    # Prepare histogram
     bin_size = (max_power - min_power) / nbins
     bins = pd.DataFrame(
         [
@@ -106,14 +121,17 @@ def graph_slot_potentials(
         percentiles = sorted(percentiles, key=lambda x: x[0], reverse=True)
         ax2.scatter([base_power] * len(percentiles), [percentile for (percentile, _) in percentiles], c="k")
         # Determine positions of labels. If far enough fro right hand side, alternate between left and right.
-        if (base_power - min_power) / (max_power - min_power) < 0.85:
+        if 0.15 < (base_power - min_power) / (max_power - min_power) < 0.85:
             x_location = itertools.cycle(
-                [base_power - (max_power - min_power) * 0.02, base_power + (max_power - min_power) * 0.02]
+                [base_power - (max_power - min_power) * 0.015, base_power + (max_power - min_power) * 0.015]
             )
             horizontal_allignment = itertools.cycle(["right", "left"])
-        else:
-            x_location = itertools.cycle([base_power - (max_power - min_power) * 0.02])
+        elif (base_power - min_power) / (max_power - min_power) >= 0.85:
+            x_location = itertools.cycle([base_power - (max_power - min_power) * 0.015])
             horizontal_allignment = itertools.cycle(["left"])
+        else:
+            x_location = itertools.cycle([base_power + (max_power - min_power) * 0.015])
+            horizontal_allignment = itertools.cycle(["right"])
         max_height = 1
         for (percentile, ind) in percentiles:
             if ind < len(legend_labels):
@@ -123,20 +141,21 @@ def graph_slot_potentials(
                     y_location = percentile + 0.05
                     max_height = y_location
                 else:
-                    y_location = min(max_height - 0.0375, percentile - 0.05)
+                    y_location = min(max_height - 0.0375, percentile)
                     max_height = y_location
                 # Plot labels
                 ax2.annotate(
                     f"{label}: ({100*percentile:.1f}% / {100*delta_power:+.1f}%)",
                     (next(x_location), y_location),
                     horizontalalignment=next(horizontal_allignment),
+                    verticalalignment="center",
                     bbox=dict(facecolor="white", alpha=0.5),
+                    size=10,
                 )
-
     # Legend
     fills = [fill[0] for fill in fills]
     if len(fills) == len(legend_labels):
-        ax3.legend(handles=fills, labels=legend_labels, loc="lower right", framealpha=0.9)
+        ax3.legend(handles=fills, labels=legend_labels, loc="center right", framealpha=0.9)
 
     ax1.set_xlabel("Power")
     ax1.set_ylabel("Probability")
@@ -152,18 +171,22 @@ def graph_slot_potentials(
     ax2.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
     ax2.grid(axis="both")
 
-    num_x_ticks = math.floor((max_power - min_power) / min_power / 0.05) + 1
-    x_tick_locations = min_power + 0.05 * min_power * np.array(list(range(num_x_ticks)))
+    tick_label_count = 5 if (max_power - min_power) / min_power > 0.2 else 2
+    num_x_ticks = math.floor((max_power - min_power) / min_power / 0.01) + 1
+    x_tick_locations = min_power + 0.01 * min_power * np.array(list(range(num_x_ticks)))
+    tick_labels = []
+    for num in range(num_x_ticks):
+        if num % tick_label_count == 0:
+            tick_labels.append(f"{num:.0f}%")
+        else:
+            tick_labels.append("")
     ax3.set_xlabel("ΔPower")
     ax3.set_xlim(ax1.get_xlim())
     ax3.set_xticks(x_tick_locations)
-    ax3.set_xticklabels([f"{5*num}%" for num in range(num_x_ticks)])
+    ax3.set_xticklabels(tick_labels)
 
     plt.subplots_adjust(top=0.85)
     plt.subplots_adjust(right=0.85)
-
-    plt.draw()
-    plt.pause(0.001)
 
     return fig, ax1, ax2, ax3, bins
 
@@ -175,12 +198,6 @@ def graph_artifact_potentials(
     nbins: int = None,
     smooth: bool = True,
 ):
-
-    # Ensure all artifact potentials share the same slot potential
-    # slot_potential = artifact_potentials[0].slot_potential
-    # for artifact_potential in artifact_potentials:
-    #     if slot_potential != artifact_potential.slot_potential:
-    #         raise ValueError("Artifact potentials have different slot potentials. You are comparing apples to oranges.")
 
     # Group artifact potentials by slot potentials
     slot_potential_groups = dict[object, list]()
@@ -286,9 +303,6 @@ def graph_artifact_potentials(
             ax2.plot(
                 [label_x_location, label_x_location], [y_location[ind], label_y_location + 0.05], "k--", linewidth=1
             )
-
-    plt.draw()
-    plt.pause(0.001)
 
 
 def _adjust_lightness(color, amount=0.5):

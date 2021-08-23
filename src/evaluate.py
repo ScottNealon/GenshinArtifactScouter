@@ -38,12 +38,12 @@ def evaluate_power(
 
     # Log intro
     # fmt: off
-    log.info("-" * 120)
+    log.info("-" * 110)
     log.info("Evaluating power...")
     log.info(f"CHARACTER: {character.name.title()}, {character.level}/{[20, 40, 50, 60, 70, 80, 90][character.ascension]}")
     log.info(f"WEAPON: {character.weapon.name_formated.title()}, {character.weapon.level}/{[20, 40, 50, 60, 70, 80, 90][character.weapon.ascension]}")
     if character.amplifying_reaction is not None:
-        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({100 * character.reaction_percentage::>.0f}%)")
+        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({character.reaction_percentage::>.0f}%)")
     # fmt: on
 
     # Calculate overall stats if not provided
@@ -75,8 +75,8 @@ def evaluate_power(
 
     # Elemental Mastery scaling
     em_scaling_factor = 2.78 * stats["Elemental Mastery"] / (stats["Elemental Mastery"] + 1400)
-    em_stat_value = character.reaction_percentage * character.amplification_factor * (1 + em_scaling_factor) + (
-        1 - character.reaction_percentage
+    em_stat_value = (character.reaction_percentage / 100) * character.amplification_factor * (1 + em_scaling_factor) + (
+        1 - (character.reaction_percentage / 100)
     )
 
     # Power

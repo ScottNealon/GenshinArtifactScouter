@@ -29,7 +29,6 @@ This module contains the following data structures:
     * value2rolls - Lists possible ways to roll aggregate substat values
     * substat_rarity - Chance of rolling substat by main stat
     * max_level_by_stars - Maximum artifact level by stars
-    * valid_sets - List of valid artifact sets
     * set_stats - 2-piece and 4-piece artifact set bonuses
     * extra_substat_probability - Chance of rolling +1 substat by source
     * default_artifact_source - Default artifact source if not provided
@@ -840,13 +839,6 @@ substat_rarity = {
 }
 
 max_level_by_stars = [np.nan, 4, 4, 12, 16, 20]
-
-valid_sets = [
-    'initiate', 'adventurer', 'lucky', 'doctor', 'resolution', 'miracle', 'berserker', 'instructor', 'exile',
-    'defenders', 'brave', 'martial', 'gambler', 'scholar', 'illumination', 'destiny', 'wisdom', 'springtime',
-    'gladiators', 'wanderers', 'thundersoother', 'thundering', 'maiden', 'viridescent', 'witch', 'lavawalker',
-    'noblesse', 'chivalry', 'petra', 'bolide', 'blizard', 'depth', 'millelith', 'pale', 'emblem', 'reminiscence'
-]
 
 set_stats = {
     'initiate':       [{}, {}],

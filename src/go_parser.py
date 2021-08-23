@@ -77,7 +77,14 @@ log = logging.getLogger(__name__)
 
 
 class GenshinOptimizerData:
-    def __init__(self, file_path: os.PathLike):
+    def __init__(self, file_path: os.PathLike, verbose: bool = True):
+
+        if verbose:
+            log.setLevel(logging.INFO)
+        else:
+            log.setLevel(logging.WARNING)
+
+        log.info(f"Reading Genshin Optimizer data from {file_path}...")
 
         # Read file path and save data
         with open(file_path) as file_handle:
@@ -89,9 +96,11 @@ class GenshinOptimizerData:
 
         # Import characters
         self._import_characters()
+        log.info(f"Characters imported successfully.")
 
         # Import artifacts
         self._import_artifacts()
+        log.info(f"Artifacts imported successfully.")
 
     @property
     def data(self) -> dict:
@@ -220,7 +229,7 @@ class GenshinOptimizerData:
                 "name": character_data["weapon"]["key"],
                 "level": character_data["weapon"]["level"],
                 "ascension": character_data["weapon"]["ascension"],
-                "passive": {},  # TODO fix this assumption
+                "passive": {},
             }
             weapon = Weapon(**weapon_data)
             # Read data
@@ -228,13 +237,13 @@ class GenshinOptimizerData:
                 "name": character_name,
                 "level": character_data["level"],
                 "ascension": character_data["ascension"],
-                "passive": {},  # TODO fix this assumption
+                "passive": {},
                 "dmg_type": "Elemental",  # TODO fix this assumption
                 "weapon": weapon,
                 "scaling_stat": "ATK",  # TODO fix this assumption
                 "crits": character_data["hitMode"],
                 "amplifying_reaction": character_data["reactionMode"],
-                "reaction_percentage": 1 if character_data["reactionMode"] is not None else 0,
+                "reaction_percentage": 100.0 if character_data["reactionMode"] is not None else 0.0,
             }
 
             # Create character

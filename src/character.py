@@ -57,7 +57,7 @@ class Character:
             if self.amplifying_reaction is None:
                 self.reaction_percentage = 0
             else:
-                self.reaction_percentage = 1
+                self.reaction_percentage = 100
         else:
             self.reaction_percentage = reaction_percentage
 
@@ -206,6 +206,8 @@ class Character:
         self._baseStats[self.ascension_stat] += self.ascension_stat_value
         for stat, value in self.passive.items():
             self._baseStats[stat] += value
+        if self.weapon is None:
+            raise ValueError("Character does not have a weapon.")
         self._baseStats += self.weapon.stats
         self._update_stats = False
 
@@ -235,9 +237,9 @@ class Character:
 
     @dmg_type.setter
     def dmg_type(self, dmg_type: str):
-        if dmg_type not in ["Physical", "Elemental", "Healing"]:
+        if dmg_type.capitalize() not in ["Physical", "Elemental", "Healing"]:
             raise ValueError("Invalid damage type.")
-        self._dmg_type = dmg_type
+        self._dmg_type = dmg_type.capitalize()
 
     @property
     def amplifying_reaction(self):
@@ -260,7 +262,7 @@ class Character:
                 elif "melt" in amplifying_reaction:
                     amplifying_reaction = "cryo_melt"
             # Validate inputs
-            if amplifying_reaction not in ["hydro_vaporize", "pyro_vaporize", "pyro_melt", "cryo_melt", "None"]:
+            if amplifying_reaction not in ["hydro_vaporize", "pyro_vaporize", "pyro_melt", "cryo_melt", "none"]:
                 raise ValueError("Invalid amplification reaction")
             # Save results
             self._amplifying_reaction = amplifying_reaction
@@ -276,7 +278,7 @@ class Character:
 
     @reaction_percentage.setter
     def reaction_percentage(self, reaction_percentage):
-        if reaction_percentage < 0 or reaction_percentage > 1:
+        if reaction_percentage < 0.0 or reaction_percentage > 100.0:
             raise ValueError("Invalid reaction percentage.")
         self._reaction_percentage = reaction_percentage
 
