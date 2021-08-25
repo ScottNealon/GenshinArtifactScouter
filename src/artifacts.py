@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Union
+from typing import Iterable, Union
 
 import pandas as pd
 
@@ -9,7 +9,7 @@ from .artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
 
 
 class Artifacts:
-    def __init__(self, artifacts: list[Artifact], use_set_bonus: bool = True):
+    def __init__(self, artifacts: list[Artifact]):
 
         self.flower = None
         self.plume = None
@@ -18,7 +18,6 @@ class Artifacts:
         self.circlet = None
         for artifact in artifacts:
             self.set_artifact(artifact, override=False)
-        self._use_set_bonus = use_set_bonus
 
     @property
     def flower(self):
@@ -98,14 +97,6 @@ class Artifacts:
         return getattr(self, slot.__name__.lower()) is not None
 
     @property
-    def use_set_bonus(self) -> bool:
-        return self._use_set_bonus
-
-    @use_set_bonus.setter
-    def use_set_bonus(self, use_set_bonus: bool):
-        self._use_set_bonus = use_set_bonus
-
-    @property
     def stats(self):
         self._stats = pd.Series(0.0, index=genshin_data.stat_names)
         sets = {}
@@ -118,27 +109,40 @@ class Artifacts:
                 if artifact.set is not None:
                     sets[artifact.set] = sets.get(artifact.set, 0) + 1
         # Set stats
-        if self.use_set_bonus:
-            for set, count in sets.items():
-                if count >= 2:
-                    for stat, value in genshin_data.set_stats[set][0].items():
-                        self._stats[stat] += value
-                if count >= 4:
-                    for stat, value in genshin_data.set_stats[set][1].items():
-                        self._stats[stat] += value
+        for set, count in sets.items():
+            if count >= 2:
+                for stat, value in genshin_data.set_stats[set][0].items():
+                    self._stats[stat] += value
+            if count >= 4:
+                for stat, value in genshin_data.set_stats[set][1].items():
+                    self._stats[stat] += value
 
         return self._stats
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[type]:
         return iter(self.artifact_list)
 
+    def generate_empty_artifacts(stars: int, level: int, main_stats: list[str]) -> Artifacts:
+        """Generates an Artifacs object with empty artifacts (no set, no substats)"""
+        empty_flower = Flower(main_stat=main_stats[0], stars=stars, level=level)
+        empty_plume = Plume(main_stat=main_stats[1], stars=stars, level=level)
+        empty_sands = Sands(main_stat=main_stats[2], stars=stars, level=level)
+        empty_goblet = Goblet(main_stat=main_stats[3], stars=stars, level=level)
+        empty_circlet = Circlet(main_stat=main_stats[4], stars=stars, level=level)
+        empty_artifacts = Artifacts([empty_flower, empty_plume, empty_sands, empty_goblet, empty_circlet])
+        return empty_artifacts
 
-def generate_empty_artifacts(stars: int, level: int, main_stats: list[str]) -> Artifacts:
-    """Generates an Artifacs object with empty artifacts (no set, no substats)"""
-    empty_flower = Flower(main_stat=main_stats[0], stars=stars, level=level)
-    empty_plume = Plume(main_stat=main_stats[1], stars=stars, level=level)
-    empty_sands = Sands(main_stat=main_stats[2], stars=stars, level=level)
-    empty_goblet = Goblet(main_stat=main_stats[3], stars=stars, level=level)
-    empty_circlet = Circlet(main_stat=main_stats[4], stars=stars, level=level)
-    empty_artifacts = Artifacts([empty_flower, empty_plume, empty_sands, empty_goblet, empty_circlet])
-    return empty_artifacts
+    def find_flex_slots(self) -> list[type]:
+        """Determine which slots could be changed without affecting set bonus"""
+        # Determine number for each set
+        sets = {}
+        for artifact in self.artifact_list:
+            if artifact is not None:
+                sets[artifact.set] = sets.get(artifact.set, 0) + 1
+        # Append artifact slots that aren't forming a multiple of two set
+        flex_slots = []
+        for artifact in self.artifact_list:
+            if artifact is not None:
+                if sets[artifact.set] % 2 != 0:
+                    flex_slots.append(artifact.slot)
+        return flex_slots

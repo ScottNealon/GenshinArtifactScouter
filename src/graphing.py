@@ -36,7 +36,7 @@ def graph_slot_potentials(
     base_power: float = None,
     title: str = None,
     nbins: int = None,
-    smooth: bool = True,
+    smooth_plot: bool = True,
     truncate_large_power: bool = True,
 ):
 
@@ -78,7 +78,7 @@ def graph_slot_potentials(
         # Calculate percentiles
         bins[f"per_{input_ind}"] = bins[f"pop_{input_ind}"].cumsum()
         # Apply smoothing after percentiles
-        if smooth:
+        if smooth_plot:
             smoothing_period = math.floor(nbins / 30)
             bins[f"pop_{input_ind}"] = (
                 bins[f"pop_{input_ind}"].rolling(window=smoothing_period, min_periods=1).sum() / smoothing_period
@@ -193,10 +193,9 @@ def graph_slot_potentials(
 
 def graph_artifact_potentials(
     artifact_potentials: list[ArtifactPotential],
-    artifact_labels: list(str),
     base_power: float = None,
     nbins: int = None,
-    smooth: bool = True,
+    smooth_plot: bool = True,
 ):
 
     # Group artifact potentials by slot potentials
@@ -221,17 +220,11 @@ def graph_artifact_potentials(
             title=title,
             base_power=base_power,
             nbins=nbins,
-            smooth=smooth,
+            smooth_plot=smooth_plot,
         )
 
         # Sort artifacts by average power, and also sort artifact labels
-        # artifact_potentials_grouped.sort(key=lambda x: x.potential_df["power"].dot(x.potential_df["probability"]).sum())
-        zipped_lists = zip(artifact_labels, artifact_potentials_grouped)
-        sorted_pairs = sorted(
-            zipped_lists, key=lambda x: x[1].potential_df["power"].dot(x[1].potential_df["probability"]).sum()
-        )
-        tuples = zip(*sorted_pairs)
-        artifact_labels, artifact_potentials_grouped = [list(x) for x in tuples]
+        artifact_potentials_grouped.sort(key=lambda x: x.potential_df["power"].dot(x.potential_df["probability"]).sum())
 
         # Determine statistics
         x_location = []
@@ -295,7 +288,7 @@ def graph_artifact_potentials(
             y_last = label_y_location
             horizontal_allignment = "right" if x_location[ind] >= mid_point else "left"
             ax2.annotate(
-                f"{artifact_labels[ind]}: ({percentile:.1f}% / {delta_power:+.1f}%)",
+                f"{artifact_potential.name}: ({percentile:.1f}% / {delta_power:+.1f}%)",
                 (label_x_location, label_y_location),
                 horizontalalignment=horizontal_allignment,
                 bbox=dict(facecolor="white", alpha=0.5),

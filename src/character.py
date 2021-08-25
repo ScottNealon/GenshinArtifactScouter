@@ -1,7 +1,8 @@
-from __future__ import annotations
+from __future__ import absolute_import, annotations
 
 import logging
 import math
+import random
 
 import numpy as np
 import pandas as pd
@@ -18,58 +19,45 @@ class Character:
         name: str,
         level: int,
         ascension: int,
+        weapon: Weapon,
         dmg_type: str,
-        passive: dict[str] = {},
-        weapon: Weapon = None,
-        scaling_stat: str = None,
-        crits: str = None,
+        passive: dict[str],
+        scaling_stat: str = "ATK",
+        crits: str = "avgHit",
         amplifying_reaction: str = None,
-        reaction_percentage: float = None,
+        reaction_percentage: float = 0.0,
+        stat_transfer: dict[str, dict[str, float]] = {},
     ):
 
-        if name.lower() not in genshin_data.character_stats:
+        # Validate inputs
+        name = name.lower()
+        if name not in genshin_data.character_stats:
             raise ValueError("Invalid character name.")
-        self._name = name.lower()
 
+        # Save inputs
+        self._name = name
         self.level = level
         self.ascension = ascension
-
-        self._get_stat_arrays()
-
-        self.passive = passive
-        self.dmg_type = dmg_type
         self.weapon = weapon
-
-        # Defaulted inputs
-        if scaling_stat is None:
-            self.scaling_stat = "ATK"
-        else:
-            self.scaling_stat = scaling_stat
-
-        if crits is None:
-            self.crits = "avgHit"
-        else:
-            self.crits = crits
-
+        self.dmg_type = dmg_type
+        self.passive = passive
+        self.scaling_stat = scaling_stat
+        self.crits = crits
         self.amplifying_reaction = amplifying_reaction
+        self.reaction_percentage = reaction_percentage
+        self.stat_transfer = stat_transfer
 
-        if reaction_percentage is None:
-            if self.amplifying_reaction is None:
-                self.reaction_percentage = 0
-            else:
-                self.reaction_percentage = 100
-        else:
-            self.reaction_percentage = reaction_percentage
-
-        # Updated
+        # Get stats
+        self._get_stat_arrays()
         self._update_stats = True
 
     @property
-    def name(self):
+    def name(self) -> str:
+        """Return name of character. Name does not have a setter as this should not change after initialization."""
         return self._name
 
     @property
-    def level(self):
+    def level(self) -> int:
         return self._level
 
     @level.setter
@@ -89,7 +77,7 @@ class Character:
         self._update_stats = True
 
     @property
-    def ascension(self):
+    def ascension(self) -> int:
         return self._ascension
 
     @ascension.setter
@@ -104,6 +92,141 @@ class Character:
             self.level = int((min_level + max_level) / 2)
             log.warning(f"Character {self.name.title()} set to Ascension {ascension}. Level defaulted to {self.level}.")
         self._update_stats = True
+
+    @property
+    def weapon(self) -> Weapon:
+        return self._weapon
+
+    @weapon.setter
+    def weapon(self, weapon: Weapon):
+        if weapon is not None:
+            if type(weapon) != Weapon:
+                raise ValueError("Weapon must be a weapon.")
+        self._weapon = weapon
+        self._update_stats = True
+
+    @property
+    def dmg_type(self) -> str:
+        return self._dmg_type
+
+    @dmg_type.setter
+    def dmg_type(self, dmg_type: str):
+        dmg_type = dmg_type.lower()
+        if dmg_type not in ["physical", "pyro", "hydro", "cryo", "electro", "anemo", "geo", "healing"]:
+            raise ValueError("Invalid damage type.")
+        self._dmg_type = dmg_type
+
+    @property
+    def passive(self) -> dict[str, float]:
+        return self._passive
+
+    @passive.setter
+    def passive(self, passive: dict[str]):
+        for key in passive:
+            if key not in genshin_data.stat_names:
+                raise ValueError("Invalid passive.")
+        self._passive = passive
+        self._update_stats = True
+
+    @property
+    def crits(self) -> str:
+        return self._crits
+
+    @crits.setter
+    def crits(self, crits: str):
+        if crits not in ["avgHit", "hit", "critHit"]:
+            raise ValueError("Invalid crit type.")
+        self._crits = crits
+
+    @property
+    def scaling_stat(self) -> str:
+        return self._scaling_stat
+
+    @scaling_stat.setter
+    def scaling_stat(self, scaling_stat: str):
+        if scaling_stat not in ["ATK", "DEF", "HP"]:
+            raise ValueError("Invalid scaling stat.")
+        self._scaling_stat = scaling_stat
+
+    @property
+    def amplifying_reaction(self) -> str:
+        return self._amplifying_reaction
+
+    @amplifying_reaction.setter
+    def amplifying_reaction(self, amplifying_reaction: str):
+        if amplifying_reaction is None:
+            self._amplifying_reaction = None
+        elif type(amplifying_reaction) != str:
+            raise ValueError("Amplifying reaction must be provided as a string.")
+        else:
+            # Convert to proper format if supplied normally
+            amplifying_reaction = amplifying_reaction.lower().replace(" ", "_")
+            # Convert "reverse" inputs
+            if "reverse" in amplifying_reaction:
+                if "vaporize" in amplifying_reaction:
+                    amplifying_reaction = "pyro_vaporize"
+                elif "melt" in amplifying_reaction:
+                    amplifying_reaction = "cryo_melt"
+            # Validate inputs
+            if amplifying_reaction not in ["hydro_vaporize", "pyro_vaporize", "pyro_melt", "cryo_melt"]:
+                raise ValueError("Invalid amplification reaction")
+            # Save results
+            self._amplifying_reaction = amplifying_reaction
+
+    @property
+    def amplification_factor(self) -> float:
+        if self.amplifying_reaction in ["hydro_vaporize", "pyro_melt"]:
+            return 2
+        elif self.amplifying_reaction in ["pyro_vaporize", "cryo_melt"]:
+            return 1.5
+        else:
+            return 0.0
+
+    @property
+    def reaction_percentage(self) -> float:
+        return self._reaction_percentage
+
+    @reaction_percentage.setter
+    def reaction_percentage(self, reaction_percentage):
+        if reaction_percentage < 0.0 or reaction_percentage > 100.0:
+            raise ValueError("Invalid reaction percentage.")
+        self._reaction_percentage = reaction_percentage
+
+    @property
+    def stat_transfer(self) -> dict[str, dict[str, float]]:
+        """Dictionary of dictionaries for dealing with dual scaling characters.
+
+        First set of string keys is the destination stat
+        Second set of string keys is the source stat
+        Float values represent what percent of the source stat gets transfered to the destination stat
+
+        For example:
+        Mona: {
+            "Hydro DMG%": {
+                "Energy Recharge%": 20.0
+            }
+        }
+
+        TODO: Actually make this work
+        Noelle C6 Ult at Talent 10: {
+            "Total ATK": {
+                "Total DEF": 140.0
+            }
+        }
+        """
+        return self._stat_transfer
+
+    @stat_transfer.setter
+    def stat_transfer(self, stat_transfer: dict[str, dict[str, float]]):
+        # Validate input
+        for destination_stat, source_stats in stat_transfer.items():
+            if destination_stat not in genshin_data.stat_names:
+                raise ValueError("Invalid stat name")
+            for source_stat in source_stats:
+                if source_stat not in genshin_data.stat_names:
+                    raise ValueError("Invalid stat name")
+        # Save data
+        self._stat_transfer = stat_transfer
 
     def _get_stat_arrays(self):
 
@@ -159,37 +282,6 @@ class Character:
             ascension_value *= 100
         return ascension_value
 
-    # @ascension_stat_value.setter
-    # def ascension_stat_value(self, ascension_stat_value: float):
-    #     if ascension_stat_value < 0:
-    #         raise ValueError("Invalid ascension stat value.")
-    #     self._ascension_stat_value = ascension_stat_value
-    #     self._update_stats = True
-
-    @property
-    def passive(self):
-        return self._passive
-
-    @passive.setter
-    def passive(self, passive: dict[str]):
-        for key in passive:
-            if key not in genshin_data.stat_names:
-                raise ValueError("Invalid passive.")
-        self._passive = passive
-        self._update_stats = True
-
-    @property
-    def weapon(self):
-        return self._weapon
-
-    @weapon.setter
-    def weapon(self, weapon: Weapon):
-        if weapon is not None:
-            if type(weapon) != Weapon:
-                raise ValueError("Weapon must be a weapon.")
-        self._weapon = weapon
-        self._update_stats = True
-
     @property
     def stats(self):
         if self._update_stats:
@@ -203,6 +295,7 @@ class Character:
         self._baseStats["Base DEF"] += self.base_DEF
         self._baseStats["Crit Rate%"] += 5
         self._baseStats["Crit DMG%"] += 50
+        self._baseStats["Energy Recharge%"] += 100
         self._baseStats[self.ascension_stat] += self.ascension_stat_value
         for stat, value in self.passive.items():
             self._baseStats[stat] += value
@@ -212,75 +305,32 @@ class Character:
         self._update_stats = False
 
     @property
-    def crits(self):
-        return self._crits
+    def condensable_substats(self) -> list[str]:
+        """Return a list of substats that can be 'condensed' when evaluating potential"""
 
-    @crits.setter
-    def crits(self, crits: str):
-        if crits not in ["avgHit", "hit", "critHit"]:
-            raise ValueError("Invalid crit type.")
-        self._crits = crits
+        # Scaling stat
+        if self.scaling_stat == "ATK":
+            condensable_substats = ["DEF", "DEF%", "HP", "HP%", "Energy Recharge%"]
+        elif self.scaling_stat == "DEF":
+            condensable_substats = ["ATK", "ATK%", "HP", "HP%", "Energy Recharge%"]
+        elif self.scaling_stat == "HP":
+            condensable_substats = ["ATK", "ATK%", "DEF", "DEF%", "Energy Recharge%"]
+        # Elemental Mastery
+        if self.amplifying_reaction is None:
+            condensable_substats.append("Elemental Mastery")
+        # Crits
+        if self.crits == "always":
+            condensable_substats.append("Crit Rate%")
+        elif self.crits == "never":
+            condensable_substats.append("Crit Rate%")
+            condensable_substats.append("Crit DMG%")
+        # Transforming stats
+        for destination_stat, source_stats in self.stat_transfer.items():
+            for source_stat in source_stats:
+                if source_stat in condensable_substats:
+                    condensable_substats.remove(source_stat)
 
-    @property
-    def scaling_stat(self):
-        return self._scaling_stat
-
-    @scaling_stat.setter
-    def scaling_stat(self, scaling_stat: str):
-        if scaling_stat not in ["ATK", "DEF", "HP"]:
-            raise ValueError("Invalid scaling stat.")
-        self._scaling_stat = scaling_stat
-
-    @property
-    def dmg_type(self):
-        return self._dmg_type
-
-    @dmg_type.setter
-    def dmg_type(self, dmg_type: str):
-        if dmg_type.capitalize() not in ["Physical", "Elemental", "Healing"]:
-            raise ValueError("Invalid damage type.")
-        self._dmg_type = dmg_type.capitalize()
-
-    @property
-    def amplifying_reaction(self):
-        return self._amplifying_reaction
-
-    @amplifying_reaction.setter
-    def amplifying_reaction(self, amplifying_reaction: str):
-        if amplifying_reaction is None:
-            self._amplifying_reaction = amplifying_reaction
-            self._amplification_factor = 0
-        elif type(amplifying_reaction) != str:
-            raise ValueError("Amplifying reaction must be provided as a string.")
-        else:
-            # Convert to proper format if supplied normally
-            amplifying_reaction = amplifying_reaction.lower().replace(" ", "_")
-            # Convert "reverse" inputs
-            if "reverse" in amplifying_reaction:
-                if "vaporize" in amplifying_reaction:
-                    amplifying_reaction = "pyro_vaporize"
-                elif "melt" in amplifying_reaction:
-                    amplifying_reaction = "cryo_melt"
-            # Validate inputs
-            if amplifying_reaction not in ["hydro_vaporize", "pyro_vaporize", "pyro_melt", "cryo_melt", "none"]:
-                raise ValueError("Invalid amplification reaction")
-            # Save results
-            self._amplifying_reaction = amplifying_reaction
-            self._amplification_factor = 2 if amplifying_reaction in ["hydro_vaporize", "pyro_melt"] else 1.5
-
-    @property
-    def amplification_factor(self):
-        return self._amplification_factor
-
-    @property
-    def reaction_percentage(self):
-        return self._reaction_percentage
-
-    @reaction_percentage.setter
-    def reaction_percentage(self, reaction_percentage):
-        if reaction_percentage < 0.0 or reaction_percentage > 100.0:
-            raise ValueError("Invalid reaction percentage.")
-        self._reaction_percentage = reaction_percentage
+        return condensable_substats
 
     def __str__(self):
         return f"{self.name}, Level: {self.level}"

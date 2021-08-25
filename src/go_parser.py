@@ -3,52 +3,17 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 
-from . import evaluate
+from src import artifacts
+
+from . import genshin_data, power_calculator
 from .artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
 from .artifacts import Artifacts
 from .character import Character
 from .weapon import Weapon
 
 # fmt: off
-go_set_map = {
-    'Adventurer':             'adventurer',
-    'ArchaicPetra':           'petra',
-    'Berserker':              'berserker',
-    'BlizzardStrayer':        'blizard',
-    'BloodstainedChivalry':   'chivalry',
-    'BraveHeart':             'brave',
-    'CrimsonWitchOfFlames':   'witch',
-    'DefendersWill':          'defenders',
-    'EmblemOfSeveredFate':    'emblem',
-    'Gambler':                'gambler',
-    'GladiatorsFinale':       'gladiators',
-    'HeartOfDepth':           'depth',
-    'Instructor':             'instructor',
-    'Lavawalker':             'lavawalker',
-    'LuckyDog':               'lucky',
-    'MaidenBeloved':          'maiden',
-    'MartialArtist':          'martial',
-    'NoblesseOblige':         'noblesse',
-    'PaleFlame':              'pale',
-    'PrayersForDestiny':      'destiny',
-    'PrayersForIllumination': 'illumination',
-    'PrayersForWisdom':       'wisdom',
-    'PrayersToSpringtime':    'springtime',
-    'ResolutionOfSojourner':  'sonjourner',
-    'RetracingBolide':        'bolide',
-    'Scholar':                'scholar',
-    'ShimenawasReminiscence': 'reminiscence',
-    'TenacityOfTheMillelith': 'millelith',
-    'TheExile':               'exile',
-    'ThunderingFury':         'thundering',
-    'Thundersoother':         'thundersoother',
-    'TinyMiracle':            'miracle',
-    'TravelingDoctor':        'doctor',
-    'ViridescentVenerer':     'viridescent',
-    'WanderersTroupe':        'wanderers'
-}
-
 go_stat_map = {
     'hp':            'HP',
     'atk':           'ATK',
@@ -57,12 +22,12 @@ go_stat_map = {
     'atk_':          'ATK%',
     'def_':          'DEF%',
     'physical_dmg_': 'Physical DMG%',
-    'pyro_dmg_':     'Elemental DMG%',
-    'hydro_dmg_':    'Elemental DMG%',
-    'cryo_dmg_':     'Elemental DMG%',
-    'electro_dmg_':  'Elemental DMG%',
-    'geo_dmg_':      'Elemental DMG%',
-    'anemo_dmg_':    'Elemental DMG%',
+    'pyro_dmg_':     'Pyro DMG%',
+    'hydro_dmg_':    'Hydro DMG%',
+    'cryo_dmg_':     'Cryo DMG%',
+    'electro_dmg_':  'Electro DMG%',
+    'geo_dmg_':      'Geo DMG%',
+    'anemo_dmg_':    'Anemo DMG%',
     'eleMas':        'Elemental Mastery',
     'enerRech_':     'Energy Recharge%',
     'critRate_':     'Crit Rate%',
@@ -77,14 +42,9 @@ log = logging.getLogger(__name__)
 
 
 class GenshinOptimizerData:
-    def __init__(self, file_path: os.PathLike, verbose: bool = True):
-
-        if verbose:
-            log.setLevel(logging.INFO)
-        else:
-            log.setLevel(logging.WARNING)
-
-        log.info(f"Reading Genshin Optimizer data from {file_path}...")
+    def __init__(self, file_path: os.PathLike):
+        log.info("-" * 110)
+        log.info(f"READING GENSHIN OPTIMIZER DATA FROM {file_path}...")
 
         # Read file path and save data
         with open(file_path) as file_handle:
@@ -101,6 +61,7 @@ class GenshinOptimizerData:
         # Import artifacts
         self._import_artifacts()
         log.info(f"Artifacts imported successfully.")
+        log.info("")
 
     @property
     def data(self) -> dict:
@@ -126,98 +87,38 @@ class GenshinOptimizerData:
             raise ValueError(f"Character {character_name} not found in import.")
         return self._artifacts_on_characters[character_name]
 
-    def get_artifacts(
-        self,
-        sets: list[str] = None,
-        stars: list[int] = None,
-        min_level: int = None,
-        max_level: int = None,
-        slot: list[type] = None,
-        main_stat: list[str] = None,
-        min_substats: dict[str] = None,
-        equipped: bool = None,
-        location: list[str] = None,
-        locked: bool = None,
-    ):
+    def get_alternative_artifacts(self, equipped_artifacts: Artifacts) -> dict[type, list[Artifact]]:
 
-        # Turn erroneous singleton inputs into lists
-        if type(sets) is str:
-            sets = [sets]
-        if type(stars) is int:
-            stars = [stars]
-        if type(slot) is type:
-            slot = [slot]
-        if type(main_stat) is str:
-            main_stat = [main_stat]
-        if type(location) is str:
-            location = [location]
+        # Determine which artifacts can be from other sets
+        flex_slots = equipped_artifacts.find_flex_slots()
+        main_stat_restrictions: dict[type, str] = {}
+        set_restrictions: dict[type, str] = {}
+        for artifact in equipped_artifacts:
+            if artifact is not None:
+                main_stat_restrictions[artifact.slot] = artifact.main_stat
+                if artifact.slot not in flex_slots:
+                    set_restrictions[artifact.slot] = artifact.set
+            else:
+                main_stat_restrictions[artifact.slot] = ""
+                set_restrictions[artifact.slot] = ""
 
-        # Iterate through artifacts
-        output_artifacts = {}
-        for artifact_name, artifact in self._artifacts.items():
+        # Iterate through artifacts, adding those that fit requirements
+        replacement_artifacts: dict[type, list[Artifact]] = {Flower: [], Plume: [], Sands: [], Goblet: [], Circlet: []}
+        for artifact in self._artifacts:
+            # Eliminate invalid artifacts
+            if artifact.main_stat != main_stat_restrictions[artifact.slot]:
+                continue
+            if artifact.slot in set_restrictions:
+                if artifact.set != set_restrictions[artifact.slot]:
+                    continue
+            # Ignore locked artifacts unless they are already equipped
+            if artifact.locked:
+                if artifact is not equipped_artifacts.get_artifact(artifact.slot):
+                    continue
+            # Add artifacts to dict
+            replacement_artifacts[artifact.slot].append(artifact)
 
-            # Perform filters
-            go_artifact = self.data["artifactDatabase"][artifact_name]
-            # Check sets
-            if sets is not None:
-                if artifact.set not in sets:
-                    continue
-            # Check stars
-            if stars is not None:
-                if artifact.stars not in stars:
-                    continue
-            # Check minimum level
-            if min_level is not None:
-                if artifact.level < min_level:
-                    continue
-            # Check maximum level
-            if max_level is not None:
-                if artifact.level > max_level:
-                    continue
-            # Check slot
-            if slot is not None:
-                if type(artifact) not in slot:
-                    continue
-            # Check main slot
-            if main_stat is not None:
-                if artifact.main_stat not in main_stat:
-                    continue
-            # Check substats
-            if min_substats is not None:
-                for substat, value in min_substats.items():
-                    if artifact.substats.get(substat, -1) < value:
-                        continue
-            # Check eqiupped
-            if equipped is not None:
-                if bool(go_artifact["location"] != "") != equipped:
-                    continue
-            # Check location
-            if location is not None:
-                if go_artifact["location"] not in location:
-                    continue
-            # Check locked
-            if locked is not None:
-                if go_artifact["locked"] != locked:
-                    continue
-
-            # Passed filters
-            output_artifacts[artifact_name] = artifact
-
-        return output_artifacts
-
-    def get_artifacts_like(self, artifact_like: Artifact):
-        """Returns all artifacts with same stars, slot, main stat, and set as artifact_like"""
-        return self.get_artifacts(
-            stars=artifact_like.stars,
-            slot=type(artifact_like),
-            main_stat=artifact_like.main_stat,
-            sets=artifact_like.set,
-        )
-
-    def get_potential_replacements(self, artifacts: Artifacts, slot: type):
-        """Return all artifacts that could replace the artifact in slot without changing set bonus"""
-        # TODO
-        a = 1
+        return replacement_artifacts
 
     def _import_characters(self):
 
@@ -238,14 +139,13 @@ class GenshinOptimizerData:
                 "level": character_data["level"],
                 "ascension": character_data["ascension"],
                 "passive": {},
-                "dmg_type": "Elemental",  # TODO fix this assumption
+                "dmg_type": "physical",
                 "weapon": weapon,
-                "scaling_stat": "ATK",  # TODO fix this assumption
+                "scaling_stat": "ATK",
                 "crits": character_data["hitMode"],
                 "amplifying_reaction": character_data["reactionMode"],
                 "reaction_percentage": 100.0 if character_data["reactionMode"] is not None else 0.0,
             }
-
             # Create character
             character = Character(**data)
             self._characters[character_name] = character
@@ -259,12 +159,13 @@ class GenshinOptimizerData:
             self._artifacts_on_characters[character_name] = artifacts
 
         # Iterate across artifacts
-        self._artifacts = {}
+        self._artifacts = []
         for artifact_name, artifact_data in self.data["artifactDatabase"].items():
             # Read data
             slot = slotStr2type[artifact_data["slotKey"]]
             data = {
-                "set_str": go_set_map[artifact_data["setKey"]],
+                "name": artifact_name.replace("artifact_", ""),
+                "set_str": artifact_data["setKey"],
                 "main_stat": go_stat_map[artifact_data["mainStatKey"]],
                 "stars": artifact_data["numStars"],
                 "level": artifact_data["level"],
@@ -273,56 +174,13 @@ class GenshinOptimizerData:
                     for substat in artifact_data["substats"]
                     if substat["key"] != ""
                 },
+                "locked": artifact_data["lock"],
             }
 
             # Create artifact
             artifact = slot(**data)
-            self._artifacts[artifact_name] = artifact
+            self._artifacts.append(artifact)
 
             # Add to character artifacts
             if artifact_data["location"] != "":
                 self._artifacts_on_characters[artifact_data["location"]].set_artifact(artifact)
-
-    # def get_character_weapon(self, character_name: str):
-
-    #     character_data = self._get_character_data(character_name)
-
-    #     weapon_data = character_data.get('weapon', {})
-    #     if len(character_data) == 0:
-    #         raise ValueError(f'Character {character_name} does not have a weapon equipped.')
-
-    # def get_character_artifacts(self, character_name: str):
-
-    #     character_data = self.data['characterDatabase'][character_name]
-
-    # def _get_character_data(self, character_name: str):
-    #     character_data = self.data['characterDatabase'].get(character_name, {})
-    #     if len(character_data) == 0:
-    #         raise ValueError(f'Character {character_name} not found in database.')
-    #     return character_data
-
-
-if __name__ == "__main__":
-
-    # Setup Logging (ignore this step)
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    config_path = os.path.join(dir_path, "logging.conf")
-    logging.config.fileConfig(config_path)
-    logging.info("Logging initialized.")
-
-    ### HOW TO IMPORT CHARACTERS AND ARTIFACTS FROM GENSHIN OPTIMIZER ###
-
-    # Import data from Genshin Optimizer
-    go_data = GenshinOptimizerData("Data/go_data.json")
-
-    # Import Fischl and her artifacts
-    fischl = go_data.get_character(character_name="fischl")
-    fischl_artifacts = go_data.get_characters_artifacts(character_name="fischl")
-
-    # Update Fischl and Fischl's weapon's (in my case, Stringless) passives
-    # Passives are not automatically imported from Genshin Optimzer. Only base stats and ascension stats.
-    fischl.passive = {}
-    fischl.weapon.passive = {"DMG%": 24.0}
-
-    # Evaluate Fischl's power
-    base_power = evaluate.evaluate_power(character=fischl, artifacts=fischl_artifacts, verbose=True)

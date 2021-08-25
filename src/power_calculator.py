@@ -14,11 +14,15 @@ log = logging.getLogger(__name__)
 
 
 def evaluate_stats(character: Character, artifacts: Artifacts, *args):
+    # Agregate stats
     stats = pd.Series(0.0, index=genshin_data.stat_names)
     stats = stats + character.stats
     stats = stats + artifacts.stats
     for arg in args:
         stats = stats + arg
+    # Calculate total stats
+    for stat in ["HP", "ATK", "DEF"]:
+        stats[f"Total {stat}"] = stats[f"Base {stat}"] * (1 + stats[f"{stat}%"] / 100) + stats[stat]
     return stats
 
 
@@ -50,11 +54,13 @@ def evaluate_power(
     if stats is None:
         stats = evaluate_stats(character=character, artifacts=artifacts)
 
+    # Apply stat transformation
+    for destination_stat, source_stats in character.stat_transfer.items():
+        for source_stat, value in source_stats.items():
+            stats[destination_stat] += stats[source_stat] * value / 100
+
     # ATK, DEF, or HP scaling
-    scaling_stat_base = stats["Base " + character.scaling_stat]
-    scaling_stat_flat = stats[character.scaling_stat]
-    scaling_stat_percent = stats[character.scaling_stat + "%"] / 100
-    scaling_stat_value = scaling_stat_base * (1 + scaling_stat_percent) + scaling_stat_flat
+    scalling_stat_total = stats[f"Total {character.scaling_stat}"]
 
     # Crit scaling
     if character.crits == "hit":
@@ -66,11 +72,9 @@ def evaluate_power(
         crit_stat_value = 1 + stats["Crit Rate%"] / 100 * stats["Crit DMG%"] / 100
 
     # Damage or healing scaling
-    if character.dmg_type == "Physical":
-        dmg_stat_value = 1 + stats["Physical DMG%"] / 100 + stats["DMG%"] / 100
-    elif character.dmg_type == "Elemental":
-        dmg_stat_value = 1 + stats["Elemental DMG%"] / 100 + stats["DMG%"] / 100
-    elif character.dmg_type == "Healing":
+    if character.dmg_type in ["physical", "pyro", "hydro", "cryo", "electro", "anemo", "geo"]:
+        dmg_stat_value = 1 + stats[f"{character.dmg_type.capitalize()} DMG%"] / 100 + stats["DMG%"] / 100
+    elif character.dmg_type == "healing":
         dmg_stat_value = 1 + stats["Healing Bonus%"] / 100
 
     # Elemental Mastery scaling
@@ -80,7 +84,7 @@ def evaluate_power(
     )
 
     # Power
-    power = scaling_stat_value * crit_stat_value * dmg_stat_value * em_stat_value
+    power = scalling_stat_total * crit_stat_value * dmg_stat_value * em_stat_value
 
     # Log
     if type(power) is pd.Series:

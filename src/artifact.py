@@ -19,12 +19,14 @@ class Artifact:
 
     def __init__(
         self,
+        name: str,
         main_stat: str,
         stars: int,
         level: int,
         set_str: str = "",
         substats: dict[str, float] = None,
         substat_rolls: dict[str, list[float]] = None,
+        locked: bool = False,
     ):
 
         # Mutually exclusive inputs
@@ -46,10 +48,12 @@ class Artifact:
             if set_str not in genshin_data.set_stats:
                 raise ValueError("Invalid set.")
 
+        self._name = name
         self._stars = stars
         self._main_stat = main_stat
         self._level = level
         self._set = set_str
+        self._locked = locked
 
         if (substats is None) and (substat_rolls is None):
             substats = {}
@@ -61,27 +65,39 @@ class Artifact:
             self.calculate_substats()
 
     @property
-    def stars(self):
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def stars(self) -> int:
         return self._stars
 
     @property
-    def main_stat(self):
+    def max_level(self) -> int:
+        return [np.nan, 4, 4, 12, 16, 20][self.stars]
+
+    @property
+    def main_stat(self) -> str:
         return self._main_stat
 
     @property
-    def level(self):
+    def level(self) -> int:
         return self._level
 
     @property
-    def set(self):
+    def set(self) -> str:
         return self._set
 
     @property
-    def substats(self):
+    def slot(self) -> type:
+        return type(self)
+
+    @property
+    def substats(self) -> dict[str, float]:
         return self._substats
 
     @property
-    def substat_rolls(self):
+    def substat_rolls(self) -> dict[str, list[int]]:
         return self._substat_rolls
 
     def calculate_substat_rolls(self):
@@ -137,11 +153,13 @@ class Artifact:
         self._stats[self._main_stat] += genshin_data.main_stat_scaling[self._stars][self._main_stat][self._level]
         return self._stats
 
-    def to_string_table(self):
+    def to_string_table(self) -> str:
+        short_set_name = genshin_data.artifact_set_shortened[self.set]
         return_str = (
+            f"{f'#{self.name}':>5} "
             f"{type(self).__name__:>7s} "
             f"{self.stars:>d}* "
-            f"{self.set.title():>14} "
+            f"{short_set_name:>14} "
             f"{self.level:>2d}/{genshin_data.max_level_by_stars[self.stars]:>2d} "
             f"{self.main_stat:>17s}: {genshin_data.main_stat_scaling[self._stars][self._main_stat][self._level]:>4}"
         )
@@ -156,15 +174,22 @@ class Artifact:
 
         return return_str
 
-    # TODO
-    def add_substat(self, substat: str, roll_num: int) -> Artifact:
-        """Create a new artifact and add substat with given roll"""
-        return 1
+    def to_short_string_table(self) -> str:
+        return_str = f"{f'#{self.name}':>5} " f"{self.level:>2d}/{genshin_data.max_level_by_stars[self.stars]:>2d} "
+        for possible_substat in genshin_data.substat_roll_values:
+            if possible_substat in self.substats:
+                if "%" in possible_substat:
+                    return_str += f" {self.substats[possible_substat]:>4.1f}"
+                else:
+                    return_str += f" {self.substats[possible_substat]:>4}"
+            else:
+                return_str += "     "
 
-    # TODO
-    def roll_substat(self, substat: str, roll_num: int) -> Artifact:
-        """Create a new artifact and add substat roll"""
-        return 1
+        return return_str
+
+    @property
+    def locked(self) -> bool:
+        return self._locked
 
 
 class Flower(Artifact):
@@ -184,7 +209,19 @@ class Sands(Artifact):
 
 class Goblet(Artifact):
 
-    _main_stats = ["HP%", "ATK%", "DEF%", "Elemental Mastery", "Elemental DMG%", "Physical DMG%"]
+    _main_stats = [
+        "HP%",
+        "ATK%",
+        "DEF%",
+        "Elemental Mastery",
+        "Physical DMG%",
+        "Pyro DMG%",
+        "Hydro DMG%",
+        "Cryo DMG%",
+        "Electro DMG%",
+        "Anemo DMG%",
+        "Geo DMG%",
+    ]
 
 
 class Circlet(Artifact):

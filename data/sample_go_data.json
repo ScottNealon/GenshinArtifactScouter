@@ -248,60 +248,6 @@
                 "ascending": false
             }
         },
-        "qiqi": {
-            "characterKey": "qiqi",
-            "level": 70,
-            "ascension": 5,
-            "hitMode": "avgHit",
-            "reactionMode": null,
-            "conditionalValues": {},
-            "baseStatOverrides": {},
-            "weapon": {
-                "key": "FavoniusSword",
-                "level": 80,
-                "ascension": 5,
-                "refineIndex": 0
-            },
-            "talentLevelKeys": {
-                "auto": 7,
-                "skill": 7,
-                "burst": 7
-            },
-            "infusionAura": "",
-            "constellation": 0,
-            "buildSettings": {
-                "setFilters": [
-                    {
-                        "key": "GladiatorsFinale",
-                        "num": 2
-                    },
-                    {
-                        "key": "",
-                        "num": 0
-                    },
-                    {
-                        "key": "",
-                        "num": 0
-                    }
-                ],
-                "statFilters": {},
-                "mainStatKeys": [
-                    "atk_",
-                    "atk_",
-                    "heal_"
-                ],
-                "optimizationTarget": [
-                    "character",
-                    "qiqi",
-                    "burst",
-                    "healing"
-                ],
-                "mainStatAssumptionLevel": 20,
-                "useLockedArts": true,
-                "useEquippedArts": true,
-                "ascending": false
-            }
-        },
         "fischl": {
             "characterKey": "fischl",
             "level": 70,
@@ -394,8 +340,8 @@
             "buildSettings": {
                 "setFilters": [
                     {
-                        "key": "NoblesseOblige",
-                        "num": 2
+                        "key": "EmblemOfSeveredFate",
+                        "num": 4
                     },
                     {
                         "key": "",
@@ -901,6 +847,60 @@
                     "eula",
                     "burst",
                     "0"
+                ],
+                "mainStatAssumptionLevel": 20,
+                "useLockedArts": true,
+                "useEquippedArts": true,
+                "ascending": false
+            }
+        },
+        "qiqi": {
+            "characterKey": "qiqi",
+            "level": 70,
+            "ascension": 5,
+            "hitMode": "avgHit",
+            "reactionMode": null,
+            "conditionalValues": {},
+            "baseStatOverrides": {},
+            "weapon": {
+                "key": "FavoniusSword",
+                "level": 80,
+                "ascension": 5,
+                "refineIndex": 0
+            },
+            "talentLevelKeys": {
+                "auto": 7,
+                "skill": 7,
+                "burst": 7
+            },
+            "infusionAura": "",
+            "constellation": 0,
+            "buildSettings": {
+                "setFilters": [
+                    {
+                        "key": "GladiatorsFinale",
+                        "num": 2
+                    },
+                    {
+                        "key": "",
+                        "num": 0
+                    },
+                    {
+                        "key": "",
+                        "num": 0
+                    }
+                ],
+                "statFilters": {},
+                "mainStatKeys": [
+                    "atk_",
+                    "atk_",
+                    "heal_"
+                ],
+                "optimizationTarget": [
+                    "character",
+                    "qiqi",
+                    "burst",
+                    "healing"
                 ],
                 "mainStatAssumptionLevel": 20,
                 "useLockedArts": true,
@@ -1647,29 +1647,29 @@
             "location": "",
             "lock": false
         },
-        "artifact_72": {
-            "id": "artifact_72",
-            "setKey": "MaidenBeloved",
+        "artifact_709": {
+            "id": "artifact_709",
+            "setKey": "EmblemOfSeveredFate",
             "numStars": 5,
             "level": 0,
-            "slotKey": "goblet",
-            "mainStatKey": "hydro_dmg_",
+            "slotKey": "plume",
+            "mainStatKey": "atk",
             "substats": [
                 {
                     "key": "atk_",
-                    "value": 4.7
+                    "value": 5.3
+                },
+                {
+                    "key": "critRate_",
+                    "value": 3.9
                 },
                 {
                     "key": "enerRech_",
-                    "value": 6.5
+                    "value": 5.2
                 },
                 {
-                    "key": "eleMas",
-                    "value": 21
-                },
-                {
-                    "key": "hp_",
-                    "value": 4.7
+                    "key": "",
+                    "value": 0
                 }
             ],
             "location": "",
@@ -1757,7 +1757,7 @@
                 }
             ],
             "location": "diluc",
-            "lock": false
+            "lock": true
         },
         "artifact_231": {
             "id": "artifact_231",
@@ -1899,6 +1899,34 @@
             "location": "",
             "lock": false
         },
+        "artifact_28": {
+            "id": "artifact_28",
+            "setKey": "WanderersTroupe",
+            "numStars": 5,
+            "level": 20,
+            "slotKey": "flower",
+            "mainStatKey": "hp",
+            "substats": [
+                {
+                    "key": "eleMas",
+                    "value": 42
+                },
+                {
+                    "key": "atk",
+                    "value": 39
+                },
+                {
+                    "key": "def",
+                    "value": 21
+                },
+                {
+                    "key": "critRate_",
+                    "value": 13.6
+                }
+            ],
+            "location": "keqing",
+            "lock": true
+        },
         "artifact_813": {
             "id": "artifact_813",
             "setKey": "EmblemOfSeveredFate",
@@ -1953,7 +1981,7 @@
                 }
             ],
             "location": "beidou",
-            "lock": false
+            "lock": true
         },
         "artifact_608": {
             "id": "artifact_608",
@@ -2235,34 +2263,6 @@
             "location": "",
             "lock": false
         },
-        "artifact_657": {
-            "id": "artifact_657",
-            "setKey": "ShimenawasReminiscence",
-            "numStars": 5,
-            "level": 0,
-            "slotKey": "sands",
-            "mainStatKey": "atk_",
-            "substats": [
-                {
-                    "key": "enerRech_",
-                    "value": 5.2
-                },
-                {
-                    "key": "hp",
-                    "value": 299
-                },
-                {
-                    "key": "atk",
-                    "value": 14
-                },
-                {
-                    "key": "eleMas",
-                    "value": 23
-                }
-            ],
-            "location": "",
-            "lock": false
-        },
         "artifact_109": {
             "id": "artifact_109",
             "setKey": "ViridescentVenerer",
@@ -2373,7 +2373,7 @@
                 }
             ],
             "location": "diona",
-            "lock": false
+            "lock": true
         },
         "artifact_116": {
             "id": "artifact_116",
@@ -2457,7 +2457,7 @@
                 }
             ],
             "location": "beidou",
-            "lock": false
+            "lock": true
         },
         "artifact_59": {
             "id": "artifact_59",
@@ -2513,7 +2513,7 @@
                 }
             ],
             "location": "ningguang",
-            "lock": false
+            "lock": true
         },
         "artifact_209": {
             "id": "artifact_209",
@@ -2569,7 +2569,7 @@
                 }
             ],
             "location": "venti",
-            "lock": false
+            "lock": true
         },
         "artifact_127": {
             "id": "artifact_127",
@@ -2597,7 +2597,7 @@
                 }
             ],
             "location": "noelle",
-            "lock": false
+            "lock": true
         },
         "artifact_344": {
             "id": "artifact_344",
@@ -2681,7 +2681,7 @@
                 }
             ],
             "location": "xiangling",
-            "lock": false
+            "lock": true
         },
         "artifact_137": {
             "id": "artifact_137",
@@ -2793,7 +2793,7 @@
                 }
             ],
             "location": "keqing",
-            "lock": false
+            "lock": true
         },
         "artifact_678": {
             "id": "artifact_678",
@@ -2877,7 +2877,7 @@
                 }
             ],
             "location": "qiqi",
-            "lock": false
+            "lock": true
         },
         "artifact_843": {
             "id": "artifact_843",
@@ -3129,7 +3129,7 @@
                 }
             ],
             "location": "klee",
-            "lock": false
+            "lock": true
         },
         "artifact_197": {
             "id": "artifact_197",
@@ -3185,7 +3185,7 @@
                 }
             ],
             "location": "xiangling",
-            "lock": false
+            "lock": true
         },
         "artifact_26": {
             "id": "artifact_26",
@@ -3212,7 +3212,7 @@
                     "value": 9.7
                 }
             ],
-            "location": "mona",
+            "location": "",
             "lock": false
         },
         "artifact_695": {
@@ -3465,7 +3465,7 @@
                 }
             ],
             "location": "keqing",
-            "lock": false
+            "lock": true
         },
         "artifact_529": {
             "id": "artifact_529",
@@ -3717,7 +3717,7 @@
                 }
             ],
             "location": "diluc",
-            "lock": false
+            "lock": true
         },
         "artifact_83": {
             "id": "artifact_83",
@@ -3885,7 +3885,7 @@
                 }
             ],
             "location": "venti",
-            "lock": false
+            "lock": true
         },
         "artifact_128": {
             "id": "artifact_128",
@@ -3997,7 +3997,7 @@
                 }
             ],
             "location": "bennett",
-            "lock": false
+            "lock": true
         },
         "artifact_130": {
             "id": "artifact_130",
@@ -4053,7 +4053,7 @@
                 }
             ],
             "location": "ganyu",
-            "lock": false
+            "lock": true
         },
         "artifact_734": {
             "id": "artifact_734",
@@ -4193,7 +4193,7 @@
                 }
             ],
             "location": "bennett",
-            "lock": false
+            "lock": true
         },
         "artifact_339": {
             "id": "artifact_339",
@@ -4221,7 +4221,7 @@
                 }
             ],
             "location": "venti",
-            "lock": false
+            "lock": true
         },
         "artifact_186": {
             "id": "artifact_186",
@@ -4333,7 +4333,7 @@
                 }
             ],
             "location": "xiangling",
-            "lock": false
+            "lock": true
         },
         "artifact_237": {
             "id": "artifact_237",
@@ -4417,7 +4417,7 @@
                 }
             ],
             "location": "bennett",
-            "lock": false
+            "lock": true
         },
         "artifact_505": {
             "id": "artifact_505",
@@ -4557,7 +4557,7 @@
                 }
             ],
             "location": "klee",
-            "lock": false
+            "lock": true
         },
         "artifact_310": {
             "id": "artifact_310",
@@ -4633,6 +4633,34 @@
                 },
                 {
                     "key": "eleMas",
+                    "value": 19
+                },
+                {
+                    "key": "",
+                    "value": 0
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
+        "artifact_639": {
+            "id": "artifact_639",
+            "setKey": "WanderersTroupe",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "goblet",
+            "mainStatKey": "cryo_dmg_",
+            "substats": [
+                {
+                    "key": "def_",
+                    "value": 5.8
+                },
+                {
+                    "key": "enerRech_",
+                    "value": 4.5
+                },
+                {
+                    "key": "def",
                     "value": 19
                 },
                 {
@@ -4921,7 +4949,7 @@
                 }
             ],
             "location": "albedo",
-            "lock": false
+            "lock": true
         },
         "artifact_218": {
             "id": "artifact_218",
@@ -5033,7 +5061,7 @@
                 }
             ],
             "location": "ningguang",
-            "lock": false
+            "lock": true
         },
         "artifact_129": {
             "id": "artifact_129",
@@ -5207,7 +5235,7 @@
             "id": "artifact_677",
             "setKey": "EmblemOfSeveredFate",
             "numStars": 5,
-            "level": 0,
+            "level": 4,
             "slotKey": "goblet",
             "mainStatKey": "hydro_dmg_",
             "substats": [
@@ -5224,12 +5252,12 @@
                     "value": 3.9
                 },
                 {
-                    "key": "",
-                    "value": 0
+                    "key": "atk_",
+                    "value": 5.3
                 }
             ],
-            "location": "",
-            "lock": false
+            "location": "mona",
+            "lock": true
         },
         "artifact_249": {
             "id": "artifact_249",
@@ -5285,7 +5313,7 @@
                 }
             ],
             "location": "xiangling",
-            "lock": false
+            "lock": true
         },
         "artifact_485": {
             "id": "artifact_485",
@@ -5397,7 +5425,7 @@
                 }
             ],
             "location": "fischl",
-            "lock": false
+            "lock": true
         },
         "artifact_338": {
             "id": "artifact_338",
@@ -5453,7 +5481,7 @@
                 }
             ],
             "location": "xiangling",
-            "lock": false
+            "lock": true
         },
         "artifact_80": {
             "id": "artifact_80",
@@ -5481,7 +5509,7 @@
                 }
             ],
             "location": "sucrose",
-            "lock": false
+            "lock": true
         },
         "artifact_333": {
             "id": "artifact_333",
@@ -5621,7 +5649,7 @@
                 }
             ],
             "location": "fischl",
-            "lock": false
+            "lock": true
         },
         "artifact_145": {
             "id": "artifact_145",
@@ -5649,7 +5677,7 @@
                 }
             ],
             "location": "diona",
-            "lock": false
+            "lock": true
         },
         "artifact_279": {
             "id": "artifact_279",
@@ -5705,7 +5733,7 @@
                 }
             ],
             "location": "eula",
-            "lock": false
+            "lock": true
         },
         "artifact_294": {
             "id": "artifact_294",
@@ -5789,7 +5817,7 @@
                 }
             ],
             "location": "barbara",
-            "lock": false
+            "lock": true
         },
         "artifact_369": {
             "id": "artifact_369",
@@ -5817,7 +5845,7 @@
                 }
             ],
             "location": "mona",
-            "lock": false
+            "lock": true
         },
         "artifact_311": {
             "id": "artifact_311",
@@ -5987,25 +6015,25 @@
             "location": "",
             "lock": false
         },
-        "artifact_328": {
-            "id": "artifact_328",
-            "setKey": "HeartOfDepth",
+        "artifact_784": {
+            "id": "artifact_784",
+            "setKey": "EmblemOfSeveredFate",
             "numStars": 5,
             "level": 0,
-            "slotKey": "flower",
-            "mainStatKey": "hp",
+            "slotKey": "plume",
+            "mainStatKey": "atk",
             "substats": [
                 {
-                    "key": "atk_",
+                    "key": "enerRech_",
                     "value": 5.8
                 },
                 {
-                    "key": "critRate_",
-                    "value": 3.1
+                    "key": "hp_",
+                    "value": 4.1
                 },
                 {
-                    "key": "def",
-                    "value": 21
+                    "key": "critRate_",
+                    "value": 3.9
                 },
                 {
                     "key": "",
@@ -6103,7 +6131,7 @@
             "id": "artifact_111",
             "setKey": "ViridescentVenerer",
             "numStars": 5,
-            "level": 16,
+            "level": 20,
             "slotKey": "flower",
             "mainStatKey": "hp",
             "substats": [
@@ -6117,7 +6145,7 @@
                 },
                 {
                     "key": "atk",
-                    "value": 33
+                    "value": 51
                 },
                 {
                     "key": "def",
@@ -6125,7 +6153,7 @@
                 }
             ],
             "location": "sucrose",
-            "lock": false
+            "lock": true
         },
         "artifact_210": {
             "id": "artifact_210",
@@ -6349,7 +6377,7 @@
                 }
             ],
             "location": "sucrose",
-            "lock": false
+            "lock": true
         },
         "artifact_463": {
             "id": "artifact_463",
@@ -6435,6 +6463,34 @@
             "location": "",
             "lock": false
         },
+        "artifact_9": {
+            "id": "artifact_9",
+            "setKey": "BloodstainedChivalry",
+            "numStars": 5,
+            "level": 20,
+            "slotKey": "goblet",
+            "mainStatKey": "hydro_dmg_",
+            "substats": [
+                {
+                    "key": "critRate_",
+                    "value": 10.5
+                },
+                {
+                    "key": "eleMas",
+                    "value": 33
+                },
+                {
+                    "key": "critDMG_",
+                    "value": 6.2
+                },
+                {
+                    "key": "atk",
+                    "value": 35
+                }
+            ],
+            "location": "xingqiu",
+            "lock": true
+        },
         "artifact_227": {
             "id": "artifact_227",
             "setKey": "MaidenBeloved",
@@ -6461,7 +6517,7 @@
                 }
             ],
             "location": "qiqi",
-            "lock": false
+            "lock": true
         },
         "artifact_248": {
             "id": "artifact_248",
@@ -6629,7 +6685,7 @@
                 }
             ],
             "location": "ganyu",
-            "lock": false
+            "lock": true
         },
         "artifact_332": {
             "id": "artifact_332",
@@ -6654,6 +6710,34 @@
                 {
                     "key": "",
                     "value": 0
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
+        "artifact_430": {
+            "id": "artifact_430",
+            "setKey": "EmblemOfSeveredFate",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "goblet",
+            "mainStatKey": "physical_dmg_",
+            "substats": [
+                {
+                    "key": "hp",
+                    "value": 299
+                },
+                {
+                    "key": "eleMas",
+                    "value": 23
+                },
+                {
+                    "key": "atk",
+                    "value": 14
+                },
+                {
+                    "key": "def",
+                    "value": 19
                 }
             ],
             "location": "",
@@ -6769,7 +6853,7 @@
                 }
             ],
             "location": "xingqiu",
-            "lock": false
+            "lock": true
         },
         "artifact_146": {
             "id": "artifact_146",
@@ -6825,7 +6909,7 @@
                 }
             ],
             "location": "albedo",
-            "lock": false
+            "lock": true
         },
         "artifact_278": {
             "id": "artifact_278",
@@ -7051,6 +7135,34 @@
             "location": "",
             "lock": false
         },
+        "artifact_655": {
+            "id": "artifact_655",
+            "setKey": "WanderersTroupe",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "plume",
+            "mainStatKey": "atk",
+            "substats": [
+                {
+                    "key": "critDMG_",
+                    "value": 6.2
+                },
+                {
+                    "key": "def_",
+                    "value": 5.8
+                },
+                {
+                    "key": "enerRech_",
+                    "value": 5.8
+                },
+                {
+                    "key": "eleMas",
+                    "value": 21
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
         "artifact_411": {
             "id": "artifact_411",
             "setKey": "BloodstainedChivalry",
@@ -7135,6 +7247,34 @@
             "location": "",
             "lock": false
         },
+        "artifact_70": {
+            "id": "artifact_70",
+            "setKey": "ArchaicPetra",
+            "numStars": 5,
+            "level": 8,
+            "slotKey": "goblet",
+            "mainStatKey": "anemo_dmg_",
+            "substats": [
+                {
+                    "key": "atk_",
+                    "value": 5.8
+                },
+                {
+                    "key": "atk",
+                    "value": 18
+                },
+                {
+                    "key": "critRate_",
+                    "value": 7
+                },
+                {
+                    "key": "def",
+                    "value": 16
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
         "artifact_44": {
             "id": "artifact_44",
             "setKey": "CrimsonWitchOfFlames",
@@ -7161,7 +7301,7 @@
                 }
             ],
             "location": "diona",
-            "lock": false
+            "lock": true
         },
         "artifact_592": {
             "id": "artifact_592",
@@ -7189,7 +7329,35 @@
                 }
             ],
             "location": "ganyu",
-            "lock": false
+            "lock": true
+        },
+        "artifact_90": {
+            "id": "artifact_90",
+            "setKey": "ArchaicPetra",
+            "numStars": 5,
+            "level": 16,
+            "slotKey": "flower",
+            "mainStatKey": "hp",
+            "substats": [
+                {
+                    "key": "atk_",
+                    "value": 10.5
+                },
+                {
+                    "key": "def",
+                    "value": 35
+                },
+                {
+                    "key": "eleMas",
+                    "value": 42
+                },
+                {
+                    "key": "critDMG_",
+                    "value": 10.9
+                }
+            ],
+            "location": "ningguang",
+            "lock": true
         },
         "artifact_356": {
             "id": "artifact_356",
@@ -7251,13 +7419,13 @@
             "id": "artifact_112",
             "setKey": "GladiatorsFinale",
             "numStars": 5,
-            "level": 16,
+            "level": 20,
             "slotKey": "goblet",
             "mainStatKey": "eleMas",
             "substats": [
                 {
                     "key": "atk",
-                    "value": 27
+                    "value": 47
                 },
                 {
                     "key": "hp_",
@@ -7273,7 +7441,7 @@
                 }
             ],
             "location": "sucrose",
-            "lock": false
+            "lock": true
         },
         "artifact_359": {
             "id": "artifact_359",
@@ -7443,6 +7611,34 @@
             "location": "",
             "lock": false
         },
+        "artifact_475": {
+            "id": "artifact_475",
+            "setKey": "EmblemOfSeveredFate",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "flower",
+            "mainStatKey": "hp",
+            "substats": [
+                {
+                    "key": "enerRech_",
+                    "value": 6.5
+                },
+                {
+                    "key": "atk_",
+                    "value": 4.7
+                },
+                {
+                    "key": "eleMas",
+                    "value": 23
+                },
+                {
+                    "key": "",
+                    "value": 0
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
         "artifact_240": {
             "id": "artifact_240",
             "setKey": "ThunderingFury",
@@ -7497,7 +7693,7 @@
                 }
             ],
             "location": "albedo",
-            "lock": false
+            "lock": true
         },
         "artifact_133": {
             "id": "artifact_133",
@@ -7665,7 +7861,7 @@
                 }
             ],
             "location": "klee",
-            "lock": false
+            "lock": true
         },
         "artifact_323": {
             "id": "artifact_323",
@@ -7805,31 +8001,31 @@
                 }
             ],
             "location": "bennett",
-            "lock": false
+            "lock": true
         },
-        "artifact_720": {
-            "id": "artifact_720",
-            "setKey": "HeartOfDepth",
+        "artifact_72": {
+            "id": "artifact_72",
+            "setKey": "MaidenBeloved",
             "numStars": 5,
             "level": 0,
-            "slotKey": "sands",
-            "mainStatKey": "atk_",
+            "slotKey": "goblet",
+            "mainStatKey": "hydro_dmg_",
             "substats": [
                 {
-                    "key": "critDMG_",
-                    "value": 7
-                },
-                {
-                    "key": "hp",
-                    "value": 239
+                    "key": "atk_",
+                    "value": 4.7
                 },
                 {
                     "key": "enerRech_",
-                    "value": 5.8
+                    "value": 6.5
                 },
                 {
-                    "key": "def_",
-                    "value": 6.6
+                    "key": "eleMas",
+                    "value": 21
+                },
+                {
+                    "key": "hp_",
+                    "value": 4.7
                 }
             ],
             "location": "",
@@ -7895,7 +8091,7 @@
             "id": "artifact_34",
             "setKey": "ArchaicPetra",
             "numStars": 5,
-            "level": 16,
+            "level": 20,
             "slotKey": "goblet",
             "mainStatKey": "geo_dmg_",
             "substats": [
@@ -7909,7 +8105,7 @@
                 },
                 {
                     "key": "def_",
-                    "value": 17.5
+                    "value": 22.6
                 },
                 {
                     "key": "def",
@@ -7917,6 +8113,34 @@
                 }
             ],
             "location": "albedo",
+            "lock": true
+        },
+        "artifact_853": {
+            "id": "artifact_853",
+            "setKey": "GladiatorsFinale",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "goblet",
+            "mainStatKey": "hydro_dmg_",
+            "substats": [
+                {
+                    "key": "def_",
+                    "value": 5.1
+                },
+                {
+                    "key": "hp_",
+                    "value": 4.7
+                },
+                {
+                    "key": "atk",
+                    "value": 16
+                },
+                {
+                    "key": "",
+                    "value": 0
+                }
+            ],
+            "location": "",
             "lock": false
         },
         "artifact_192": {
@@ -7979,13 +8203,13 @@
             "id": "artifact_32",
             "setKey": "ArchaicPetra",
             "numStars": 5,
-            "level": 16,
+            "level": 20,
             "slotKey": "sands",
             "mainStatKey": "def_",
             "substats": [
                 {
                     "key": "hp",
-                    "value": 299
+                    "value": 598
                 },
                 {
                     "key": "enerRech_",
@@ -8001,7 +8225,7 @@
                 }
             ],
             "location": "albedo",
-            "lock": false
+            "lock": true
         },
         "artifact_216": {
             "id": "artifact_216",
@@ -8113,7 +8337,7 @@
                 }
             ],
             "location": "qiqi",
-            "lock": false
+            "lock": true
         },
         "artifact_300": {
             "id": "artifact_300",
@@ -8339,6 +8563,62 @@
             "location": "",
             "lock": false
         },
+        "artifact_778": {
+            "id": "artifact_778",
+            "setKey": "WanderersTroupe",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "goblet",
+            "mainStatKey": "eleMas",
+            "substats": [
+                {
+                    "key": "hp",
+                    "value": 299
+                },
+                {
+                    "key": "enerRech_",
+                    "value": 5.8
+                },
+                {
+                    "key": "hp_",
+                    "value": 5.8
+                },
+                {
+                    "key": "",
+                    "value": 0
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
+        "artifact_686": {
+            "id": "artifact_686",
+            "setKey": "GladiatorsFinale",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "goblet",
+            "mainStatKey": "hydro_dmg_",
+            "substats": [
+                {
+                    "key": "def_",
+                    "value": 5.1
+                },
+                {
+                    "key": "def",
+                    "value": 19
+                },
+                {
+                    "key": "hp",
+                    "value": 269
+                },
+                {
+                    "key": "eleMas",
+                    "value": 23
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
         "artifact_295": {
             "id": "artifact_295",
             "setKey": "Lavawalker",
@@ -8477,13 +8757,13 @@
                 }
             ],
             "location": "diluc",
-            "lock": false
+            "lock": true
         },
         "artifact_591": {
             "id": "artifact_591",
             "setKey": "ViridescentVenerer",
             "numStars": 5,
-            "level": 18,
+            "level": 20,
             "slotKey": "plume",
             "mainStatKey": "atk",
             "substats": [
@@ -8493,7 +8773,7 @@
                 },
                 {
                     "key": "hp_",
-                    "value": 4.7
+                    "value": 8.7
                 },
                 {
                     "key": "enerRech_",
@@ -8505,7 +8785,7 @@
                 }
             ],
             "location": "sucrose",
-            "lock": false
+            "lock": true
         },
         "artifact_351": {
             "id": "artifact_351",
@@ -8731,33 +9011,33 @@
             "location": "",
             "lock": false
         },
-        "artifact_9": {
-            "id": "artifact_9",
-            "setKey": "BloodstainedChivalry",
+        "artifact_720": {
+            "id": "artifact_720",
+            "setKey": "HeartOfDepth",
             "numStars": 5,
-            "level": 20,
-            "slotKey": "goblet",
-            "mainStatKey": "hydro_dmg_",
+            "level": 0,
+            "slotKey": "sands",
+            "mainStatKey": "atk_",
             "substats": [
                 {
-                    "key": "critRate_",
-                    "value": 10.5
-                },
-                {
-                    "key": "eleMas",
-                    "value": 33
-                },
-                {
                     "key": "critDMG_",
-                    "value": 6.2
+                    "value": 7
                 },
                 {
-                    "key": "atk",
-                    "value": 35
+                    "key": "hp",
+                    "value": 239
+                },
+                {
+                    "key": "enerRech_",
+                    "value": 5.8
+                },
+                {
+                    "key": "def_",
+                    "value": 6.6
                 }
             ],
-            "location": "xingqiu",
-            "lock": true
+            "location": "",
+            "lock": false
         },
         "artifact_74": {
             "id": "artifact_74",
@@ -8869,7 +9149,7 @@
                 }
             ],
             "location": "qiqi",
-            "lock": false
+            "lock": true
         },
         "artifact_284": {
             "id": "artifact_284",
@@ -8924,7 +9204,7 @@
                     "value": 5.4
                 }
             ],
-            "location": "mona",
+            "location": "",
             "lock": false
         },
         "artifact_66": {
@@ -9400,7 +9680,7 @@
                     "value": 0
                 }
             ],
-            "location": "mona",
+            "location": "",
             "lock": false
         },
         "artifact_360": {
@@ -9457,7 +9737,7 @@
                 }
             ],
             "location": "eula",
-            "lock": false
+            "lock": true
         },
         "artifact_426": {
             "id": "artifact_426",
@@ -9487,29 +9767,29 @@
             "location": "",
             "lock": false
         },
-        "artifact_509": {
-            "id": "artifact_509",
-            "setKey": "HeartOfDepth",
+        "artifact_551": {
+            "id": "artifact_551",
+            "setKey": "GladiatorsFinale",
             "numStars": 5,
             "level": 0,
-            "slotKey": "sands",
-            "mainStatKey": "hp_",
+            "slotKey": "plume",
+            "mainStatKey": "atk",
             "substats": [
                 {
-                    "key": "atk_",
-                    "value": 4.1
-                },
-                {
                     "key": "hp",
-                    "value": 239
+                    "value": 269
                 },
                 {
-                    "key": "atk",
-                    "value": 18
+                    "key": "hp_",
+                    "value": 5.8
                 },
                 {
-                    "key": "",
-                    "value": 0
+                    "key": "critDMG_",
+                    "value": 7.8
+                },
+                {
+                    "key": "enerRech_",
+                    "value": 5.8
                 }
             ],
             "location": "",
@@ -9597,7 +9877,7 @@
                 }
             ],
             "location": "ningguang",
-            "lock": false
+            "lock": true
         },
         "artifact_91": {
             "id": "artifact_91",
@@ -9681,7 +9961,7 @@
                 }
             ],
             "location": "keqing",
-            "lock": false
+            "lock": true
         },
         "artifact_384": {
             "id": "artifact_384",
@@ -9793,7 +10073,7 @@
                 }
             ],
             "location": "eula",
-            "lock": false
+            "lock": true
         },
         "artifact_23": {
             "id": "artifact_23",
@@ -9821,7 +10101,7 @@
                 }
             ],
             "location": "klee",
-            "lock": false
+            "lock": true
         },
         "artifact_105": {
             "id": "artifact_105",
@@ -9879,29 +10159,29 @@
             "location": "",
             "lock": false
         },
-        "artifact_264": {
-            "id": "artifact_264",
-            "setKey": "NoblesseOblige",
+        "artifact_657": {
+            "id": "artifact_657",
+            "setKey": "ShimenawasReminiscence",
             "numStars": 5,
             "level": 0,
-            "slotKey": "goblet",
-            "mainStatKey": "physical_dmg_",
+            "slotKey": "sands",
+            "mainStatKey": "atk_",
             "substats": [
                 {
-                    "key": "def",
-                    "value": 23
-                },
-                {
-                    "key": "atk",
-                    "value": 16
+                    "key": "enerRech_",
+                    "value": 5.2
                 },
                 {
                     "key": "hp",
-                    "value": 239
+                    "value": 299
                 },
                 {
-                    "key": "",
-                    "value": 0
+                    "key": "atk",
+                    "value": 14
+                },
+                {
+                    "key": "eleMas",
+                    "value": 23
                 }
             ],
             "location": "",
@@ -10073,7 +10353,7 @@
                 }
             ],
             "location": "keqing",
-            "lock": false
+            "lock": true
         },
         "artifact_195": {
             "id": "artifact_195",
@@ -10101,7 +10381,7 @@
                 }
             ],
             "location": "barbara",
-            "lock": false
+            "lock": true
         },
         "artifact_567": {
             "id": "artifact_567",
@@ -10213,7 +10493,7 @@
                 }
             ],
             "location": "fischl",
-            "lock": false
+            "lock": true
         },
         "artifact_170": {
             "id": "artifact_170",
@@ -10243,6 +10523,34 @@
             "location": "",
             "lock": false
         },
+        "artifact_614": {
+            "id": "artifact_614",
+            "setKey": "EmblemOfSeveredFate",
+            "numStars": 5,
+            "level": 20,
+            "slotKey": "flower",
+            "mainStatKey": "hp",
+            "substats": [
+                {
+                    "key": "critRate_",
+                    "value": 6.2
+                },
+                {
+                    "key": "atk",
+                    "value": 47
+                },
+                {
+                    "key": "atk_",
+                    "value": 16.9
+                },
+                {
+                    "key": "enerRech_",
+                    "value": 5.2
+                }
+            ],
+            "location": "mona",
+            "lock": true
+        },
         "artifact_8": {
             "id": "artifact_8",
             "setKey": "RetracingBolide",
@@ -10269,7 +10577,7 @@
                 }
             ],
             "location": "noelle",
-            "lock": false
+            "lock": true
         },
         "artifact_682": {
             "id": "artifact_682",
@@ -10381,7 +10689,7 @@
                 }
             ],
             "location": "diona",
-            "lock": false
+            "lock": true
         },
         "artifact_343": {
             "id": "artifact_343",
@@ -10577,7 +10885,7 @@
                 }
             ],
             "location": "diluc",
-            "lock": false
+            "lock": true
         },
         "artifact_15": {
             "id": "artifact_15",
@@ -10605,7 +10913,7 @@
                 }
             ],
             "location": "qiqi",
-            "lock": false
+            "lock": true
         },
         "artifact_147": {
             "id": "artifact_147",
@@ -10658,6 +10966,34 @@
                 {
                     "key": "critRate_",
                     "value": 3.1
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
+        "artifact_386": {
+            "id": "artifact_386",
+            "setKey": "EmblemOfSeveredFate",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "circlet",
+            "mainStatKey": "heal_",
+            "substats": [
+                {
+                    "key": "hp_",
+                    "value": 5.3
+                },
+                {
+                    "key": "critDMG_",
+                    "value": 5.4
+                },
+                {
+                    "key": "enerRech_",
+                    "value": 6.5
+                },
+                {
+                    "key": "",
+                    "value": 0
                 }
             ],
             "location": "",
@@ -10719,29 +11055,29 @@
             "location": "",
             "lock": false
         },
-        "artifact_70": {
-            "id": "artifact_70",
-            "setKey": "ArchaicPetra",
+        "artifact_328": {
+            "id": "artifact_328",
+            "setKey": "HeartOfDepth",
             "numStars": 5,
-            "level": 8,
-            "slotKey": "goblet",
-            "mainStatKey": "anemo_dmg_",
+            "level": 0,
+            "slotKey": "flower",
+            "mainStatKey": "hp",
             "substats": [
                 {
                     "key": "atk_",
                     "value": 5.8
                 },
                 {
-                    "key": "atk",
-                    "value": 18
-                },
-                {
                     "key": "critRate_",
-                    "value": 7
+                    "value": 3.1
                 },
                 {
                     "key": "def",
-                    "value": 16
+                    "value": 21
+                },
+                {
+                    "key": "",
+                    "value": 0
                 }
             ],
             "location": "",
@@ -10943,6 +11279,34 @@
             "location": "",
             "lock": false
         },
+        "artifact_447": {
+            "id": "artifact_447",
+            "setKey": "WanderersTroupe",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "circlet",
+            "mainStatKey": "critRate_",
+            "substats": [
+                {
+                    "key": "atk_",
+                    "value": 5.8
+                },
+                {
+                    "key": "critDMG_",
+                    "value": 7.8
+                },
+                {
+                    "key": "eleMas",
+                    "value": 16
+                },
+                {
+                    "key": "hp",
+                    "value": 299
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
         "artifact_233": {
             "id": "artifact_233",
             "setKey": "GladiatorsFinale",
@@ -10969,7 +11333,7 @@
                 }
             ],
             "location": "ningguang",
-            "lock": false
+            "lock": true
         },
         "artifact_722": {
             "id": "artifact_722",
@@ -11109,6 +11473,34 @@
                 }
             ],
             "location": "venti",
+            "lock": true
+        },
+        "artifact_509": {
+            "id": "artifact_509",
+            "setKey": "HeartOfDepth",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "sands",
+            "mainStatKey": "hp_",
+            "substats": [
+                {
+                    "key": "atk_",
+                    "value": 4.1
+                },
+                {
+                    "key": "hp",
+                    "value": 239
+                },
+                {
+                    "key": "atk",
+                    "value": 18
+                },
+                {
+                    "key": "",
+                    "value": 0
+                }
+            ],
+            "location": "",
             "lock": false
         },
         "artifact_501": {
@@ -11335,32 +11727,32 @@
             "location": "",
             "lock": false
         },
-        "artifact_90": {
-            "id": "artifact_90",
-            "setKey": "ArchaicPetra",
+        "artifact_715": {
+            "id": "artifact_715",
+            "setKey": "EmblemOfSeveredFate",
             "numStars": 5,
-            "level": 16,
-            "slotKey": "flower",
-            "mainStatKey": "hp",
+            "level": 0,
+            "slotKey": "plume",
+            "mainStatKey": "atk",
             "substats": [
                 {
-                    "key": "atk_",
-                    "value": 10.5
+                    "key": "critRate_",
+                    "value": 3.5
+                },
+                {
+                    "key": "hp",
+                    "value": 299
+                },
+                {
+                    "key": "enerRech_",
+                    "value": 5.8
                 },
                 {
                     "key": "def",
-                    "value": 35
-                },
-                {
-                    "key": "eleMas",
-                    "value": 42
-                },
-                {
-                    "key": "critDMG_",
-                    "value": 10.9
+                    "value": 16
                 }
             ],
-            "location": "ningguang",
+            "location": "",
             "lock": false
         },
         "artifact_424": {
@@ -11391,32 +11783,32 @@
             "location": "",
             "lock": false
         },
-        "artifact_28": {
-            "id": "artifact_28",
-            "setKey": "WanderersTroupe",
+        "artifact_474": {
+            "id": "artifact_474",
+            "setKey": "GladiatorsFinale",
             "numStars": 5,
-            "level": 20,
-            "slotKey": "flower",
-            "mainStatKey": "hp",
+            "level": 0,
+            "slotKey": "goblet",
+            "mainStatKey": "atk_",
             "substats": [
                 {
                     "key": "eleMas",
-                    "value": 42
+                    "value": 23
                 },
                 {
-                    "key": "atk",
-                    "value": 39
+                    "key": "critRate_",
+                    "value": 2.7
                 },
                 {
                     "key": "def",
                     "value": 21
                 },
                 {
-                    "key": "critRate_",
-                    "value": 13.6
+                    "key": "",
+                    "value": 0
                 }
             ],
-            "location": "keqing",
+            "location": "",
             "lock": false
         },
         "artifact_281": {
@@ -11473,7 +11865,7 @@
                 }
             ],
             "location": "ganyu",
-            "lock": false
+            "lock": true
         },
         "artifact_266": {
             "id": "artifact_266",
@@ -11498,6 +11890,34 @@
                 {
                     "key": "",
                     "value": 0
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
+        "artifact_777": {
+            "id": "artifact_777",
+            "setKey": "GladiatorsFinale",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "goblet",
+            "mainStatKey": "electro_dmg_",
+            "substats": [
+                {
+                    "key": "hp_",
+                    "value": 5.3
+                },
+                {
+                    "key": "hp",
+                    "value": 209
+                },
+                {
+                    "key": "atk_",
+                    "value": 5.3
+                },
+                {
+                    "key": "def_",
+                    "value": 5.1
                 }
             ],
             "location": "",
@@ -11615,6 +12035,34 @@
             "location": "",
             "lock": false
         },
+        "artifact_264": {
+            "id": "artifact_264",
+            "setKey": "NoblesseOblige",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "goblet",
+            "mainStatKey": "physical_dmg_",
+            "substats": [
+                {
+                    "key": "def",
+                    "value": 23
+                },
+                {
+                    "key": "atk",
+                    "value": 16
+                },
+                {
+                    "key": "hp",
+                    "value": 239
+                },
+                {
+                    "key": "",
+                    "value": 0
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
         "artifact_160": {
             "id": "artifact_160",
             "setKey": "HeartOfDepth",
@@ -11669,7 +12117,7 @@
                 }
             ],
             "location": "barbara",
-            "lock": false
+            "lock": true
         },
         "artifact_86": {
             "id": "artifact_86",
@@ -11865,7 +12313,7 @@
                 }
             ],
             "location": "barbara",
-            "lock": false
+            "lock": true
         },
         "artifact_756": {
             "id": "artifact_756",
@@ -12035,6 +12483,34 @@
             "location": "",
             "lock": false
         },
+        "artifact_490": {
+            "id": "artifact_490",
+            "setKey": "EmblemOfSeveredFate",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "circlet",
+            "mainStatKey": "critDMG_",
+            "substats": [
+                {
+                    "key": "atk",
+                    "value": 14
+                },
+                {
+                    "key": "critRate_",
+                    "value": 3.1
+                },
+                {
+                    "key": "hp_",
+                    "value": 4.7
+                },
+                {
+                    "key": "enerRech_",
+                    "value": 4.5
+                }
+            ],
+            "location": "mona",
+            "lock": true
+        },
         "artifact_43": {
             "id": "artifact_43",
             "setKey": "NoblesseOblige",
@@ -12061,7 +12537,7 @@
                 }
             ],
             "location": "diluc",
-            "lock": false
+            "lock": true
         },
         "artifact_342": {
             "id": "artifact_342",
@@ -12173,7 +12649,7 @@
                 }
             ],
             "location": "fischl",
-            "lock": false
+            "lock": true
         },
         "artifact_135": {
             "id": "artifact_135",
@@ -12313,7 +12789,7 @@
                 }
             ],
             "location": "diona",
-            "lock": false
+            "lock": true
         },
         "artifact_329": {
             "id": "artifact_329",
@@ -12670,6 +13146,34 @@
                 {
                     "key": "enerRech_",
                     "value": 5.2
+                },
+                {
+                    "key": "",
+                    "value": 0
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
+        "artifact_698": {
+            "id": "artifact_698",
+            "setKey": "ShimenawasReminiscence",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "goblet",
+            "mainStatKey": "atk_",
+            "substats": [
+                {
+                    "key": "critDMG_",
+                    "value": 7
+                },
+                {
+                    "key": "def",
+                    "value": 23
+                },
+                {
+                    "key": "enerRech_",
+                    "value": 4.5
                 },
                 {
                     "key": "",
@@ -13153,7 +13657,7 @@
                 }
             ],
             "location": "bennett",
-            "lock": false
+            "lock": true
         },
         "artifact_163": {
             "id": "artifact_163",
@@ -13209,7 +13713,7 @@
                 }
             ],
             "location": "xingqiu",
-            "lock": false
+            "lock": true
         },
         "artifact_290": {
             "id": "artifact_290",
@@ -13461,7 +13965,7 @@
                 }
             ],
             "location": "fischl",
-            "lock": false
+            "lock": true
         },
         "artifact_208": {
             "id": "artifact_208",
@@ -13573,7 +14077,7 @@
                 }
             ],
             "location": "noelle",
-            "lock": false
+            "lock": true
         },
         "artifact_345": {
             "id": "artifact_345",
@@ -13628,7 +14132,7 @@
                     "value": 42
                 }
             ],
-            "location": "mona",
+            "location": "",
             "lock": false
         },
         "artifact_719": {
@@ -13743,57 +14247,141 @@
             "location": "",
             "lock": false
         },
-        "artifact_490": {
-            "id": "artifact_490",
+        "artifact_786": {
+            "id": "artifact_786",
             "setKey": "EmblemOfSeveredFate",
             "numStars": 5,
             "level": 0,
-            "slotKey": "circlet",
-            "mainStatKey": "critDMG_",
+            "slotKey": "sands",
+            "mainStatKey": "def_",
             "substats": [
                 {
                     "key": "atk",
-                    "value": 14
+                    "value": 16
                 },
                 {
-                    "key": "critRate_",
-                    "value": 3.1
-                },
-                {
-                    "key": "hp_",
-                    "value": 4.7
-                },
-                {
-                    "key": "enerRech_",
-                    "value": 4.5
-                }
-            ],
-            "location": "",
-            "lock": false
-        },
-        "artifact_386": {
-            "id": "artifact_386",
-            "setKey": "EmblemOfSeveredFate",
-            "numStars": 5,
-            "level": 0,
-            "slotKey": "circlet",
-            "mainStatKey": "heal_",
-            "substats": [
-                {
-                    "key": "hp_",
-                    "value": 5.3
-                },
-                {
-                    "key": "critDMG_",
-                    "value": 5.4
+                    "key": "hp",
+                    "value": 239
                 },
                 {
                     "key": "enerRech_",
                     "value": 6.5
                 },
                 {
+                    "key": "critDMG_",
+                    "value": 7
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
+        "artifact_219": {
+            "id": "artifact_219",
+            "setKey": "EmblemOfSeveredFate",
+            "numStars": 5,
+            "level": 4,
+            "slotKey": "sands",
+            "mainStatKey": "enerRech_",
+            "substats": [
+                {
+                    "key": "eleMas",
+                    "value": 19
+                },
+                {
+                    "key": "critRate_",
+                    "value": 3.1
+                },
+                {
+                    "key": "atk",
+                    "value": 19
+                },
+                {
+                    "key": "hp_",
+                    "value": 5.3
+                }
+            ],
+            "location": "mona",
+            "lock": true
+        },
+        "artifact_483": {
+            "id": "artifact_483",
+            "setKey": "EmblemOfSeveredFate",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "sands",
+            "mainStatKey": "eleMas",
+            "substats": [
+                {
+                    "key": "critRate_",
+                    "value": 3.9
+                },
+                {
+                    "key": "hp",
+                    "value": 239
+                },
+                {
+                    "key": "def",
+                    "value": 21
+                },
+                {
                     "key": "",
                     "value": 0
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
+        "artifact_829": {
+            "id": "artifact_829",
+            "setKey": "EmblemOfSeveredFate",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "circlet",
+            "mainStatKey": "atk_",
+            "substats": [
+                {
+                    "key": "eleMas",
+                    "value": 19
+                },
+                {
+                    "key": "critDMG_",
+                    "value": 6.2
+                },
+                {
+                    "key": "hp_",
+                    "value": 5.3
+                },
+                {
+                    "key": "",
+                    "value": 0
+                }
+            ],
+            "location": "",
+            "lock": false
+        },
+        "artifact_626": {
+            "id": "artifact_626",
+            "setKey": "EmblemOfSeveredFate",
+            "numStars": 5,
+            "level": 0,
+            "slotKey": "circlet",
+            "mainStatKey": "def_",
+            "substats": [
+                {
+                    "key": "critDMG_",
+                    "value": 5.4
+                },
+                {
+                    "key": "atk_",
+                    "value": 5.8
+                },
+                {
+                    "key": "critRate_",
+                    "value": 2.7
+                },
+                {
+                    "key": "hp_",
+                    "value": 5.8
                 }
             ],
             "location": "",
@@ -13809,15 +14397,15 @@
         ],
         "filterLevelLow": 0,
         "filterLevelHigh": 20,
-        "filterSlotKey": "goblet",
-        "filterMainStatKey": "eleMas",
+        "filterSlotKey": "",
+        "filterMainStatKey": "",
         "filterSubstats": [
             "",
             "",
             "",
             ""
         ],
-        "filterLocation": "",
+        "filterLocation": "Equipped",
         "filterLocked": "",
         "ascending": false,
         "sortType": "quality",
@@ -13836,13 +14424,13 @@
         ]
     },
     "characterDisplay": {
-        "charIdToEdit": "sucrose",
+        "charIdToEdit": "mona",
         "sortBy": "level",
-        "elementalFilter": "pyro",
+        "elementalFilter": "hydro",
         "weaponFilter": ""
     },
     "buildsDisplay": {
-        "characterKey": "bennett",
-        "maxBuildsToShow": 50
+        "characterKey": "mona",
+        "maxBuildsToShow": 10
     }
 }
