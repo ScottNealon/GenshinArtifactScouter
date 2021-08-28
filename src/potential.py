@@ -138,11 +138,7 @@ def evaluate_character(
         slot_potential_df = _individual_potential(
             character=character,
             equipped_artifacts=equipped_artifacts,
-            slot=slot,
-            set_str=equipped_artifact.set,
-            stars=equipped_artifact.stars,
-            main_stat=equipped_artifact.main_stat,
-            target_level=equipped_artifact.max_level,
+            artifact=equipped_artifact,
             source=source,
         )
         slot_potentials[slot] = slot_potential_df
@@ -168,11 +164,7 @@ def evaluate_character(
             artifact_potential_df = _individual_potential(
                 character=character,
                 equipped_artifacts=equipped_artifacts,
-                slot=type(alternative_artifact),
-                set_str=alternative_artifact.set,
-                stars=alternative_artifact.stars,
-                main_stat=alternative_artifact.main_stat,
-                target_level=alternative_artifact.max_level,
+                artifact=alternative_artifact,
                 substat_rolls=alternative_artifact.substat_rolls,
                 source=source,
             )
@@ -192,7 +184,9 @@ def evaluate_character(
             artifact_scores[slot][alternative_artifact] = (score, beat_equipped_chance)
             log.info("")
 
-    # After all slots are run, summarize each slot in a leaderboard
+    # POST CALCULATION SUMMARY
+
+    # Summarize each slot in a leaderboard
     log.info("-" * 140)
     log.info(f"SLOT SCOREBOARDS...")
     log.info("")
@@ -223,6 +217,8 @@ def evaluate_character(
             log.info(log_str)
             ind += 1
         log.info("")
+
+    # Plot each slot
 
     a = 1
 
@@ -386,13 +382,8 @@ def log_artifact_power(
 def _individual_potential(
     character: Character,
     equipped_artifacts: Artifacts,
-    slot: type,
-    set_str: str,
-    stars: int,
-    main_stat: str,
-    target_level: int,
+    artifact: Artifact,
     source: str,
-    starting_level: int = None,
     substat_rolls: dict[str] = None,
 ) -> pd.DataFrame:
 
@@ -404,29 +395,21 @@ def _individual_potential(
             seed_pseudo_artifact["substats"][substat] = 0
             seed_pseudo_artifact_rolls["substats"][substat] = [0, 0, 0, 0]
             for roll in rolls:
-                roll_level = genshin_data.substat_roll_values[substat][stars].index(roll)
+                roll_level = genshin_data.substat_roll_values[substat][artifact.stars].index(roll)
                 seed_pseudo_artifact_rolls["substats"][substat][roll_level] += 1
 
     # Calculate number of unlocks and increases
     existing_unlocks = len(seed_pseudo_artifact["substats"])
     if substat_rolls is not None:
-        remaining_unlocks = min(4, max(0, stars - 2) + math.floor(target_level / 4)) - existing_unlocks
-        if starting_level is not None:
-            remaining_increases = math.floor(target_level / 4) - math.floor(starting_level / 4) - remaining_unlocks
-        else:
-            existing_increases = sum([len(rolls) for substat, rolls in substat_rolls.items()]) - existing_unlocks
-            remaining_increases = (
-                max(0, stars - 2)
-                + math.floor(target_level / 4)
-                - existing_unlocks
-                - remaining_unlocks
-                - existing_increases
-            )
+        remaining_unlocks = min(4, max(0, artifact.stars - 2) + math.floor(artifact.max_level / 4)) - existing_unlocks
+        remaining_increases = math.floor(artifact.max_level / 4) - math.floor(artifact.level / 4) - remaining_unlocks
     else:
-        remaining_unlocks = min(4, max(0, stars - 2) + math.floor(target_level / 4)) - existing_unlocks
-        remaining_increases = max(0, stars - 2) + math.floor(target_level / 4) - existing_unlocks - remaining_unlocks
+        remaining_unlocks = min(4, max(0, artifact.stars - 2) + math.floor(artifact.max_level / 4)) - existing_unlocks
+        remaining_increases = (
+            max(0, artifact.stars - 2) + math.floor(artifact.max_level / 4) - existing_unlocks - remaining_unlocks
+        )
 
-    total_rolls_high_chance = genshin_data.extra_substat_probability[source][stars]
+    total_rolls_high_chance = genshin_data.extra_substat_probability[source][artifact.stars]
 
     # Identify useful and condensable stats
     useful_stats = _find_useful_stats(character=character, artifacts=equipped_artifacts)
@@ -435,8 +418,8 @@ def _individual_potential(
     # Identify roll combinations
     substat_values_df, slot_potential_df = _make_children(
         character=character,
-        stars=stars,
-        main_stat=main_stat,
+        stars=artifact.stars,
+        main_stat=artifact.main_stat,
         remaining_unlocks=remaining_unlocks,
         remaining_increases=remaining_increases,
         total_rolls_high_chance=total_rolls_high_chance,
@@ -452,12 +435,19 @@ def _individual_potential(
     substat_values_df = substat_values_df.fillna(0)
 
     # Assign to artifact
-    artifact = slot(
-        name="pseudo", set_str=set_str, main_stat=main_stat, stars=stars, level=target_level, substats=substat_values_df
+    artifact = type(artifact)(
+        name="pseudo",
+        set_str=artifact.set,
+        main_stat=artifact.main_stat,
+        stars=artifact.stars,
+        level=artifact.max_level,
+        substats=substat_values_df,
     )
 
     # Create artifact list, replacing previous artifact
-    other_artifacts_list = [other_artifact for other_artifact in equipped_artifacts if type(other_artifact) != slot]
+    other_artifacts_list = [
+        other_artifact for other_artifact in equipped_artifacts if type(other_artifact) != type(artifact)
+    ]
     other_artifacts_list.append(artifact)
     other_artifacts = Artifacts(other_artifacts_list)
 
