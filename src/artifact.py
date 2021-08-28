@@ -146,17 +146,30 @@ class Artifact:
         if type(self.substats) is pd.DataFrame:
             self._stats = copy.copy(self.substats)
         elif type(self.substats) is dict:
-            self._stats = pd.Series(0.0, index=genshin_data.stat_names)
+            self._stats = pd.Series(0.0, index=genshin_data.pandas_headers)
             for substat, value in self.substats.items():
                 self._stats[substat] += value
         # Main stat
-        self._stats[self._main_stat] += genshin_data.main_stat_scaling[self._stars][self._main_stat][self._level]
+        self._stats[self.main_stat] += genshin_data.main_stat_scaling[self.stars][self.main_stat][self.level]
+        return self._stats
+
+    @property
+    def leveled_stats(self):
+        # Substats
+        if type(self.substats) is pd.DataFrame:
+            self._stats = copy.copy(self.substats)
+        elif type(self.substats) is dict:
+            self._stats = pd.Series(0.0, index=genshin_data.pandas_headers)
+            for substat, value in self.substats.items():
+                self._stats[substat] += value
+        # Main stat
+        self._stats[self.main_stat] += genshin_data.main_stat_scaling[self.stars][self.main_stat][self.max_level]
         return self._stats
 
     def to_string_table(self) -> str:
         short_set_name = genshin_data.artifact_set_shortened[self.set]
         return_str = (
-            f"{f'#{self.name}':>5} "
+            f"#{self.name:>4} "
             f"{type(self).__name__:>7s} "
             f"{self.stars:>d}* "
             f"{short_set_name:>14} "

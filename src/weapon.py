@@ -140,7 +140,7 @@ class Weapon:
 
     @property
     def stats(self):
-        self._stats = pd.Series(0.0, index=genshin_data.stat_names)
+        self._stats = pd.Series(0.0, index=genshin_data.pandas_headers)
         self._stats["Base ATK"] += self.base_ATK
         self._stats[self.ascension_stat] += self.ascension_stat_value
         for key, value in self.passive.items():

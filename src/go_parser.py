@@ -43,7 +43,7 @@ log = logging.getLogger(__name__)
 
 class GenshinOptimizerData:
     def __init__(self, file_path: os.PathLike):
-        log.info("-" * 110)
+        log.info("-" * 140)
         log.info(f"READING GENSHIN OPTIMIZER DATA FROM {file_path}...")
 
         # Read file path and save data

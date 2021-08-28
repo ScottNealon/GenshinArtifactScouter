@@ -97,27 +97,77 @@ class Artifacts:
         return getattr(self, slot.__name__.lower()) is not None
 
     @property
-    def stats(self):
-        self._stats = pd.Series(0.0, index=genshin_data.stat_names)
+    def stats(self) -> Union[pd.Series, pd.DataFrame]:
+        """Returns collective stats of artifacts at CURRENT level"""
+        stats = pd.Series(0.0, index=genshin_data.pandas_headers)
         sets = {}
         # Artifact stats
         for artifact in self.artifact_list:
             if artifact is not None:
-                if (type(artifact.stats) is pd.DataFrame) and (type(self._stats) is pd.DataFrame):
-                    raise ValueError("Cannot have two probablistic artifacts.")  # TODO
-                self._stats = self._stats + artifact.stats
+                if (type(artifact.stats) is pd.DataFrame) and (type(stats) is pd.DataFrame):
+                    raise ValueError("Cannot have two probablistic artifacts.")
+                stats = stats + artifact.stats
                 if artifact.set is not None:
                     sets[artifact.set] = sets.get(artifact.set, 0) + 1
         # Set stats
+        stats, _ = self.add_set_bonus(stats=stats, sets=sets)
+        return stats
+
+    @property
+    def leveled_stats(self) -> Union[pd.Series, pd.DataFrame]:
+        """Returns collective stats of artifacts at MAXIMUM level"""
+        stats = pd.Series(0.0, index=genshin_data.pandas_headers)
+        sets = {}
+
+        # Artifact stats
+        for artifact in self.artifact_list:
+            if artifact is not None:
+                if (type(artifact.stats) is pd.DataFrame) and (type(stats) is pd.DataFrame):
+                    raise ValueError("Cannot have two probablistic artifacts.")
+                stats = stats + artifact.leveled_stats
+                if artifact.set is not None:
+                    sets[artifact.set] = sets.get(artifact.set, 0) + 1
+        # Set stats
+        stats, _ = self.add_set_bonus(stats, sets)
+        return stats
+
+    @property
+    def stat_transfer(self) -> dict[str, dict[str, float]]:
+        stats = pd.Series(0.0, index=genshin_data.pandas_headers)
+        sets = {}
+        # Artifact stats
+        for artifact in self.artifact_list:
+            if artifact is not None:
+                if artifact.set is not None:
+                    sets[artifact.set] = sets.get(artifact.set, 0) + 1
+        # Set stats
+        _, stat_transfer = self.add_set_bonus(stats, sets)
+        return stat_transfer
+
+    def add_set_bonus(
+        self, stats: Union[pd.Series, pd.DataFrame], sets: dict[str, int]
+    ) -> tuple[Union[pd.Series, pd.DataFrame], dict[str, dict[str, float]]]:
+        stat_transfer: dict[str, dict[str, float]] = {}
         for set, count in sets.items():
             if count >= 2:
                 for stat, value in genshin_data.set_stats[set][0].items():
-                    self._stats[stat] += value
+                    if type(value) is not dict:  # Not stat transfer
+                        stats[stat] += value
+                    else:
+                        if stat not in stat_transfer:
+                            stat_transfer[stat] = {}
+                        for source_stat, source_value in stats[stat]:
+                            stat_transfer[stat][source_stat] = source_value
             if count >= 4:
                 for stat, value in genshin_data.set_stats[set][1].items():
-                    self._stats[stat] += value
-
-        return self._stats
+                    if type(value) is not dict:  # Not stat transfer
+                        stats[stat] += value
+                    else:
+                        if stat not in stat_transfer:
+                            stat_transfer[stat] = {}
+                        for source_stat, source_value in value.items():
+                            stat_transfer[stat][source_stat] = source_value
+        return stats, stat_transfer
 
     def __iter__(self) -> Iterable[type]:
         return iter(self.artifact_list)

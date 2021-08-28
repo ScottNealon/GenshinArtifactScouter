@@ -8,59 +8,60 @@ import pandas as pd
 from . import genshin_data
 from .artifacts import Artifacts
 from .character import Character
-from .weapon import Weapon
-
-log = logging.getLogger(__name__)
 
 
-def evaluate_stats(character: Character, artifacts: Artifacts, *args):
+def evaluate_power(character: Character, artifacts: Artifacts):
+    """Evaluates the current power of character with artifacts"""
+    stats = evaluate_stats(character=character, artifacts=artifacts)
+    power = _evaluate_power(character=character, stats=stats)
+    return power
+
+
+def evaluate_leveled_power(character: Character, artifacts: Artifacts):
+    """Evalautes the future power of character with artifacts"""
+    stats = evaluate_leveled_stats(character=character, artifacts=artifacts)
+    power = _evaluate_power(character=character, stats=stats)
+    return power
+
+
+def evaluate_stats(character: Character, artifacts: Artifacts):
     # Agregate stats
-    stats = pd.Series(0.0, index=genshin_data.stat_names)
+    stats = pd.Series(0.0, index=genshin_data.pandas_headers)
     stats = stats + character.stats
     stats = stats + artifacts.stats
-    for arg in args:
-        stats = stats + arg
     # Calculate total stats
     for stat in ["HP", "ATK", "DEF"]:
         stats[f"Total {stat}"] = stats[f"Base {stat}"] * (1 + stats[f"{stat}%"] / 100) + stats[stat]
+    # Apply stat transformation
+    old_stats = stats.copy()
+    for destination_stat, source_stats in character.stat_transfer.items():
+        for source_stat, value in source_stats.items():
+            stats[destination_stat] += old_stats[source_stat] * value / 100
+    for destination_stat, source_stats in artifacts.stat_transfer.items():
+        for source_stat, value in source_stats.items():
+            stats[destination_stat] += old_stats[source_stat] * value / 100
     return stats
 
 
-def evaluate_power(
-    character: Character,
-    stats: pd.DataFrame = None,
-    artifacts: Artifacts = None,
-    probability: pd.Series = None,
-    verbose: bool = False,
-):
-
-    # Set verbosity
-    if verbose:
-        log.setLevel("INFO")
-    else:
-        log.setLevel("WARNING")
-
-    # Log intro
-    # fmt: off
-    log.info("-" * 110)
-    log.info("Evaluating power...")
-    log.info(f"CHARACTER: {character.name.title()}, {character.level}/{[20, 40, 50, 60, 70, 80, 90][character.ascension]}")
-    log.info(f"WEAPON: {character.weapon.name_formated.title()}, {character.weapon.level}/{[20, 40, 50, 60, 70, 80, 90][character.weapon.ascension]}")
-    if character.amplifying_reaction is not None:
-        log.info(f"TRANSFORMATIVE REACTION: {character.amplifying_reaction.replace('_', ' ').title()} ({character.reaction_percentage::>.0f}%)")
-    # fmt: on
-
-    # Calculate overall stats if not provided
-    if stats is None:
-        stats = evaluate_stats(character=character, artifacts=artifacts)
-
+def evaluate_leveled_stats(character: Character, artifacts: Artifacts):
+    # Agregate stats
+    stats = pd.Series(0.0, index=genshin_data.pandas_headers)
+    stats = stats + character.stats
+    stats = stats + artifacts.leveled_stats
+    # Calculate total stats
+    for stat in ["HP", "ATK", "DEF"]:
+        stats[f"Total {stat}"] = stats[f"Base {stat}"] * (1 + stats[f"{stat}%"] / 100) + stats[stat]
     # Apply stat transformation
     for destination_stat, source_stats in character.stat_transfer.items():
         for source_stat, value in source_stats.items():
             stats[destination_stat] += stats[source_stat] * value / 100
+    return stats
+
+
+def _evaluate_power(character: Character, stats: pd.Series) -> float:
 
     # ATK, DEF, or HP scaling
-    scalling_stat_total = stats[f"Total {character.scaling_stat}"]
+    scaling_stat_total = stats[f"Total {character.scaling_stat}"]
 
     # Crit scaling
     if character.crits == "hit":
@@ -84,40 +85,6 @@ def evaluate_power(
     )
 
     # Power
-    power = scalling_stat_total * crit_stat_value * dmg_stat_value * em_stat_value
-
-    # Log
-    if type(power) is pd.Series:
-        if probability is not None:
-            log.info(f"MIN POWER: {power.min():,.0f}")
-            log.info(f"AVG POWER: {power.dot(probability):,.0f}")
-            log.info(f"MAX POWER: {power.max():,.0f}")
-    else:
-        log.info(f"POWER: {power:,.0f}")
+    power = scaling_stat_total * crit_stat_value * dmg_stat_value * em_stat_value
 
     return power
-
-
-# Example
-if __name__ == "__main__":
-
-    # Example setup
-    character = Character(name="klee", level=90, ascension=6, passive={}, dmg_type="Elemental")
-    weapon = Weapon(
-        name="Dodoco Tales",
-        level=90,
-        ascension=6,
-        passive={"DMG%": 32.0, "ATK%": 16.0},
-    )
-    artifacts = Artifacts([None, None, None, None, None])
-
-    # Evaluate stats
-    stats = evaluate_stats(character=character, weapon=weapon, artifacts=artifacts)
-
-    # Evaluate power with example setup
-    power_from_exampe = evaluate_power(character=character, weapon=weapon, artifacts=artifacts)
-
-    # Evaluate power with stats
-    power_from_stats = evaluate_power(character=character, stats=stats)
-
-    assert power_from_exampe == power_from_stats

@@ -207,7 +207,6 @@ class Character:
             }
         }
 
-        TODO: Actually make this work
         Noelle C6 Ult at Talent 10: {
             "Total ATK": {
                 "Total DEF": 140.0
@@ -289,7 +288,7 @@ class Character:
         return self._baseStats
 
     def update_stats(self):
-        self._baseStats = pd.Series(0.0, index=genshin_data.stat_names)
+        self._baseStats = pd.Series(0.0, index=genshin_data.pandas_headers)
         self._baseStats["Base HP"] += self.base_HP
         self._baseStats["Base ATK"] += self.base_ATK
         self._baseStats["Base DEF"] += self.base_DEF
@@ -303,34 +302,6 @@ class Character:
             raise ValueError("Character does not have a weapon.")
         self._baseStats += self.weapon.stats
         self._update_stats = False
-
-    @property
-    def condensable_substats(self) -> list[str]:
-        """Return a list of substats that can be 'condensed' when evaluating potential"""
-
-        # Scaling stat
-        if self.scaling_stat == "ATK":
-            condensable_substats = ["DEF", "DEF%", "HP", "HP%", "Energy Recharge%"]
-        elif self.scaling_stat == "DEF":
-            condensable_substats = ["ATK", "ATK%", "HP", "HP%", "Energy Recharge%"]
-        elif self.scaling_stat == "HP":
-            condensable_substats = ["ATK", "ATK%", "DEF", "DEF%", "Energy Recharge%"]
-        # Elemental Mastery
-        if self.amplifying_reaction is None:
-            condensable_substats.append("Elemental Mastery")
-        # Crits
-        if self.crits == "always":
-            condensable_substats.append("Crit Rate%")
-        elif self.crits == "never":
-            condensable_substats.append("Crit Rate%")
-            condensable_substats.append("Crit DMG%")
-        # Transforming stats
-        for destination_stat, source_stats in self.stat_transfer.items():
-            for source_stat in source_stats:
-                if source_stat in condensable_substats:
-                    condensable_substats.remove(source_stat)
-
-        return condensable_substats
 
     def __str__(self):
         return f"{self.name}, Level: {self.level}"

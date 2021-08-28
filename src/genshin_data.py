@@ -48,7 +48,7 @@ import pandas as pd
 import requests
 
 log = logging.getLogger(__name__)
-log.info("-" * 110)
+log.info("-" * 140)
 log.info(f"IMPORTING AND CALCULATING GAME DATA...")
 
 # Copied from Genshin Optimizer pipeline/index.ts
@@ -528,8 +528,9 @@ promote_stats_map = {
 stat_names = [
     "Base HP", "Base ATK", "Base DEF", "HP", "ATK", "DEF", "HP%", "ATK%", "DEF%", "Physical DMG%", "Pyro DMG%",
     "Hydro DMG%", "Cryo DMG%", "Electro DMG%", "Anemo DMG%", "Geo DMG%", "DMG%", "Elemental Mastery",
-    "Energy Recharge%", "Crit Rate%", "Crit DMG%", "Healing Bonus%", "probability"
+    "Energy Recharge%", "Crit Rate%", "Crit DMG%", "Healing Bonus%"
 ]
+pandas_headers = stat_names + ["probability"]
 
 main_stat_scaling = {
     1: {
@@ -951,7 +952,7 @@ set_stats = {
     "HeartOfDepth": [{"Hydro DMG%": 15.0}, {"DMG%": 30.0}],
     "TenacityOfTheMillelith": [{"HP%": 20.0}, {"ATK%": 20.0}],
     "PaleFlame": [{"Physical DMG%": 25.0}, {"ATK%": 18.0, "Physical DMG%": 15.0}],
-    "EmblemOfSeveredFate": [{"Energy Recharge%": 20.0}, {}],
+    "EmblemOfSeveredFate": [{"Energy Recharge%": 20.0}, {"DMG%": {"Energy Recharge%": 20.0}}],  # Unique stat transfer
     "ShimenawasReminiscence": [{"ATK%": 18.0}, {"DMG%": 50.0}],
 }
 
