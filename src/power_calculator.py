@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import logging
-import logging.config
-
 import pandas as pd
 
 from . import genshin_data

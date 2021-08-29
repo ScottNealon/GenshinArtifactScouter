@@ -3,11 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 
-from src import artifacts
-
-from . import genshin_data, power_calculator
 from .artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
 from .artifacts import Artifacts
 from .character import Character
