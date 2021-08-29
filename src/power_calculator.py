@@ -52,9 +52,13 @@ def evaluate_leveled_stats(character: Character, artifacts: Artifacts):
     for stat in ["HP", "ATK", "DEF"]:
         stats[f"Total {stat}"] = stats[f"Base {stat}"] * (1 + stats[f"{stat}%"] / 100) + stats[stat]
     # Apply stat transformation
+    old_stats = stats.copy()
     for destination_stat, source_stats in character.stat_transfer.items():
         for source_stat, value in source_stats.items():
             stats[destination_stat] += stats[source_stat] * value / 100
+    for destination_stat, source_stats in artifacts.stat_transfer.items():
+        for source_stat, value in source_stats.items():
+            stats[destination_stat] += old_stats[source_stat] * value / 100
     return stats
 
 
