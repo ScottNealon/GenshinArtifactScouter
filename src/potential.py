@@ -46,7 +46,10 @@ def individual_potential(
             max(0, artifact.stars - 2) + math.floor(artifact.max_level / 4) - existing_unlocks - remaining_unlocks
         )
 
-    total_rolls_high_chance = genshin_data.extra_substat_probability[source][artifact.stars]
+    if len(seed_pseudo_artifact["substats"]) == 0:
+        total_rolls_high_chance = genshin_data.extra_substat_probability[source][artifact.stars]
+    else:
+        total_rolls_high_chance = 0.0
 
     # Identify useful and condensable stats
     useful_stats = find_useful_stats(character=character, artifacts=equipped_artifacts)
