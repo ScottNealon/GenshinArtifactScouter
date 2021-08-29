@@ -185,7 +185,7 @@ def _make_children(
         for pseudo_artifact_extra in pseudo_artifacts_extra:
             pseudo_artifact_extra["probability"] *= extra_unlock_chance
             pseudo_artifacts.append(pseudo_artifact_extra)
-    if len(pseudo_artifacts) > 1:
+    if len(pseudo_artifacts) > 1 and initial_substats == 0:  # Only log on slot potential
         log.info(f"{len(pseudo_artifacts):,.0f} possible ways to roll initial substats...")
 
     # Create every possible pseudo artifact by assigning substat rolls
@@ -199,14 +199,14 @@ def _make_children(
             extra_increase_chance=extra_increase_chance,
             condensable_substats=condensable_substats,
         )
-    if len(pseudo_artifacts) > 1:
+    if len(pseudo_artifacts) > 1 and initial_substats == 0:  # Only log on slot potential
         log.info(f"{len(pseudo_artifacts):,.0f} possible ways to assign substat increases...")
 
     # Convert pseudo artifacts by calculating roll values
     substat_values_df, pseudo_artifacts_df = _calculate_substats(
         pseudo_artifacts=pseudo_artifacts, stars=stars, seed_pseudo_artifact_rolls=seed_pseudo_artifact_rolls
     )
-    if substat_values_df.shape[0] > 1:
+    if substat_values_df.shape[0] > 1 and initial_substats == 0:  # Only log on slot potential
         log.info(f"{substat_values_df.shape[0]:,.0f} different ways to roll substat increases...")
 
     return substat_values_df, pseudo_artifacts_df
