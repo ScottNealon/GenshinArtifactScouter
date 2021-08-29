@@ -185,9 +185,6 @@ def graph_slot_potential(
     ax3.xaxis.set_major_locator(mtick.MultipleLocator(5))
     ax3.xaxis.set_minor_locator(mtick.MultipleLocator(1))
 
-    # Log
-    log.info(f"{title} plotted.")
-
 
 def _adjust_lightness(color, amount=0.5):
     import colorsys
