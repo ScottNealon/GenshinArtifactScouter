@@ -25,10 +25,12 @@ evaluate_character(
     weapon_passive={},  # TTODS
     amplifying_reaction=None,
     reaction_percentage=0.0,
-    # slots=[Plume],
+    # slots=[Sands],
     plot=True,
-    smooth_plot=True,
+    max_artifacts_plotted=10,
 )
+
+a = 1
 
 # Evaluate Klee
 # potential.evaluate_character(

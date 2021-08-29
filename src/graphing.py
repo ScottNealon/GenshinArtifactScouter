@@ -2,86 +2,56 @@ from __future__ import annotations
 
 import itertools
 import logging
-import math
-from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
 import pandas as pd
 
-if TYPE_CHECKING:
-    from .potential import ArtifactPotential, SlotPotential
+from src.artifact import Artifact
 
 log = logging.getLogger(__name__)
-
-# Source: https://colorbrewer2.org/#type=qualitative&scheme=Pastel1&n=5
-plot_colors = [
-    (179 / 255, 205 / 255, 227 / 255),
-    (204 / 255, 235 / 255, 197 / 255),
-    (254 / 255, 217 / 255, 166 / 255),
-    (222 / 255, 203 / 255, 228 / 255),
-    (251 / 255, 180 / 255, 174 / 255),
-]
-# plot_colors = [(127/255, 201/255, 127/255), (190/255, 174/255, 212/255), (253/255, 192/255, 134/255), (255/255, 255/255, 153/255), (56/255, 108/255, 176/255)]
 
 # Set plot size preemptively
 plt.rcParams["figure.figsize"] = (12, 6)
 plt.rcParams["figure.dpi"] = 125
 
 
-def graph_slot_potentials(
-    slot_potentials: list[SlotPotential],
-    legend_labels: list[str] = [],
-    base_power: float = None,
-    title: str = None,
-    nbins: int = None,
-    smooth_plot: bool = True,
-    truncate_large_power: bool = True,
+def graph_slot_potential(
+    slot_potential: pd.DataFrame,
+    artifact_potentials: dict[str, pd.DataFrame],
+    equipped_expected_power: float,
+    title: str,
+    max_artifacts_plotted: int,
 ):
+    # Log
+    log.info(f"Plotting {title}...")
 
-    # Calculate number of bins
-    if nbins is None:
-        biggest_df = max([slot_potential.potential_df.size for slot_potential in slot_potentials])
-        nbins = min(250, biggest_df / 100)
+    # Calculate min and 4-sigma max power (99.93rd percentile) (if truncating)
+    min_power = slot_potential["power"].min()
+    artifact_power_max = max([artifact_potential["power"].max() for artifact_potential in artifact_potentials.values()])
+    # TODO Reevaluate if I want 4 sigma
+    # slot_cumsum = slot_potential["probability"].cumsum()
+    # slot_four_sigma = slot_potential["power"].loc[(slot_cumsum >= 0.9993).idxmax()]
+    # max_power = max([artifact_power_max, slot_four_sigma, equipped_expected_power])
+    max_power = max([artifact_power_max, slot_potential["power"].max(), equipped_expected_power])
 
-    # Calculate min and 4-sigma max power (99.9th percentile) (if truncating)
-    min_power = min([slot_potential.potential_df["power"].min() for slot_potential in slot_potentials])
-    if truncate_large_power:
-        max_power = -np.Infinity
-        for slot_potential in slot_potentials:
-            cumsum = slot_potential.potential_df["probability"].cumsum()
-            slot_six_sigma = slot_potential.potential_df["power"].loc[(cumsum >= 0.997).idxmax()]
-            max_power = max(max_power, slot_six_sigma)
-    else:
-        max_power = max([slot_potential.potential_df["power"].max() for slot_potential in slot_potentials])
-
-    # Prepare histogram
+    # Create percentile-based histogram for slot potential
+    nbins = 250
     bin_size = (max_power - min_power) / nbins
-    bins = pd.DataFrame(
-        [
-            (min_power + bin * bin_size, min_power + (bin + 1) * bin_size, min_power + (bin + 0.5) * bin_size)
-            for bin in range(nbins)
-        ],
-        columns=["bin bottom", "bin top", "bin mid"],
-    )
-
-    # Fill histogram
-    for (input_ind, slot_potential) in enumerate(slot_potentials):
-        bins[f"pop_{input_ind}"] = np.nan
-        for bin_ind, bin in bins.iterrows():
-            bins[f"pop_{input_ind}"][bin_ind] = slot_potential.potential_df[
-                (slot_potential.potential_df["power"] >= bin["bin bottom"])
-                & (slot_potential.potential_df["power"] < bin["bin top"])
-            ]["probability"].sum()
-        # Calculate percentiles
-        bins[f"per_{input_ind}"] = bins[f"pop_{input_ind}"].cumsum()
-        # Apply smoothing after percentiles
-        if smooth_plot:
-            smoothing_period = math.floor(nbins / 30)
-            bins[f"pop_{input_ind}"] = (
-                bins[f"pop_{input_ind}"].rolling(window=smoothing_period, min_periods=1).sum() / smoothing_period
-            )
+    index = np.linspace(min_power + bin_size, max_power, num=nbins)
+    slot_histogram = pd.Series(0, index=index)
+    previous_bin = -np.Infinity
+    for bin_top in index:
+        slot_histogram.loc[bin_top] = slot_potential["probability"][
+            (previous_bin < slot_potential["power"]) & (slot_potential["power"] <= bin_top)
+        ].sum()
+        previous_bin = bin_top
+    slot_percentile = slot_histogram.cumsum()
+    # Apply smoothing
+    # slot_histogram = slot_histogram.rolling(window=15, min_periods=1).sum() / 15
+    slot_histogram = slot_histogram.rolling(window=10, win_type="blackman", min_periods=1).sum()
+    slot_histogram /= slot_histogram.sum()
 
     # Create axes
     fig, ax1 = plt.subplots()
@@ -90,211 +60,133 @@ def graph_slot_potentials(
     ax2 = ax1.twinx()
     ax3 = ax1.twiny()
 
-    # Prepare color iterable
-    plot_color_iter = itertools.cycle(plot_colors)
+    # Plot slot histogram
+    # Select plot color
+    plot_color = (179 / 255, 205 / 255, 227 / 255)
+    plot_color_dark = _adjust_lightness(plot_color, 0.5)
+    # Plot histogram outline and fill
+    # ax1.plot(index + bin_size / 2, slot_histogram / bin_size, color=plot_color)
+    fill = ax1.fill(
+        index.tolist() + [index[0]],
+        (slot_histogram / bin_size).to_list() + [0],
+        color=plot_color,
+        alpha=0.3,
+    )
+    # Plot percentile line
+    ax2.plot(index, slot_percentile, color=plot_color_dark, label="Percentile")
 
-    fills = []
-    for ind in range(len(slot_potentials)):
-        # Select plot color
-        plot_color = next(plot_color_iter)
-        plot_color_dark = _adjust_lightness(plot_color, 0.5)
-        # Plot histogram
-        ax1.plot(bins["bin mid"], bins[f"pop_{ind}"], color=plot_color)
-        fill = ax1.fill(
-            bins["bin mid"].tolist() + [bins["bin mid"].loc[0]],
-            bins[f"pop_{ind}"].to_list() + [0],
-            color=plot_color,
-            alpha=0.3,
+    # Draw vertical expection line
+    ax2.plot([equipped_expected_power, equipped_expected_power], [0, 1.02], "r-")
+
+    # Cull artifact list to only the top `max_artifacts_plotted`
+    artifact_medians: dict[Artifact, float] = {}
+    for artifact_name, artifact_potential in artifact_potentials.items():
+        artifact_cumsum = artifact_potential["probability"].cumsum()
+        artifact_medians[artifact_name] = artifact_potential["power"].loc[(artifact_cumsum >= 0.5).idxmax()]
+    artifact_medians = dict(sorted(artifact_medians.items(), key=lambda item: item[1], reverse=True))
+    for ind, artifact in enumerate(list(artifact_medians.keys())):
+        if ind >= max_artifacts_plotted:
+            artifact_medians.pop(artifact)
+
+    # Plot artifacts
+    x_location = []
+    y_location = []
+    x_1std = []
+    x_2std = []
+    x_3std = []
+    x_extremes = []
+    for artifact_name in artifact_medians.keys():
+        artifact_potential = artifact_potentials[artifact_name]
+        artifact_cumsum = artifact_potential["probability"].cumsum()
+        artifact_median = artifact_potential["power"].loc[(artifact_cumsum >= 0.5).idxmax()]
+        x_location.append(artifact_median)
+        y_location.append(slot_percentile[index[index >= artifact_median][0]])
+        x_1std.append(
+            [
+                -(artifact_potential["power"].loc[(artifact_cumsum >= 0.317).idxmax()] - artifact_median),
+                artifact_potential["power"].loc[(artifact_cumsum >= 1 - 0.317).idxmax()] - artifact_median,
+            ]
         )
-        fills.append(fill)
-        # Plot percentile line
-        ax2.plot(bins["bin mid"], bins[f"per_{ind}"], color=plot_color_dark)
+        x_2std.append(
+            [
+                -(artifact_potential["power"].loc[(artifact_cumsum >= 0.0455).idxmax()] - artifact_median),
+                artifact_potential["power"].loc[(artifact_cumsum >= 1 - 0.0455).idxmax()] - artifact_median,
+            ]
+        )
+        x_3std.append(
+            [
+                -(artifact_potential["power"].loc[(artifact_cumsum >= 0.00267).idxmax()] - artifact_median),
+                artifact_potential["power"].loc[(artifact_cumsum >= 1 - 0.00267).idxmax()] - artifact_median,
+            ]
+        )
+        x_extremes.append(
+            [
+                -(artifact_potential["power"].min() - artifact_median),
+                artifact_potential["power"].max() - artifact_median,
+            ]
+        )
 
-    # Draw base power comparisons
-    if base_power is not None:
-        ax2.plot([base_power, base_power], [0, 1], "r-")
-        percentiles = [
-            (slot_potential.potential_df[slot_potential.potential_df["power"] < base_power]["probability"].sum(), ind)
-            for (slot_potential, ind) in zip(slot_potentials, list(range(len(slot_potentials))))
-        ]
-        percentiles = sorted(percentiles, key=lambda x: x[0], reverse=True)
-        ax2.scatter([base_power] * len(percentiles), [percentile for (percentile, _) in percentiles], c="k")
-        # Determine positions of labels. If far enough fro right hand side, alternate between left and right.
-        if 0.15 < (base_power - min_power) / (max_power - min_power) < 0.85:
-            x_location = itertools.cycle(
-                [base_power - (max_power - min_power) * 0.015, base_power + (max_power - min_power) * 0.015]
-            )
-            horizontal_allignment = itertools.cycle(["right", "left"])
-        elif (base_power - min_power) / (max_power - min_power) >= 0.85:
-            x_location = itertools.cycle([base_power - (max_power - min_power) * 0.015])
-            horizontal_allignment = itertools.cycle(["left"])
-        else:
-            x_location = itertools.cycle([base_power + (max_power - min_power) * 0.015])
-            horizontal_allignment = itertools.cycle(["right"])
-        max_height = 1
-        for (percentile, ind) in percentiles:
-            if ind < len(legend_labels):
-                label = legend_labels[ind]
-                delta_power = base_power / slot_potentials[ind].potential_df["power"].min() - 1
-                if percentile < 0.15:
-                    y_location = percentile + 0.05
-                    max_height = y_location
-                else:
-                    y_location = min(max_height - 0.0375, percentile)
-                    max_height = y_location
-                # Plot labels
-                ax2.annotate(
-                    f"{label}: ({100*percentile:.1f}% / {100*delta_power:+.1f}%)",
-                    (next(x_location), y_location),
-                    horizontalalignment=next(horizontal_allignment),
-                    verticalalignment="center",
-                    bbox=dict(facecolor="white", alpha=0.5),
-                    size=10,
-                )
-    # Legend
-    fills = [fill[0] for fill in fills]
-    if len(fills) == len(legend_labels):
-        ax3.legend(handles=fills, labels=legend_labels, loc="center right", framealpha=0.9)
+    # Transpose
+    x_1std = np.array(x_1std).transpose()
+    x_2std = np.array(x_2std).transpose()
+    x_3std = np.array(x_3std).transpose()
+    x_extremes = np.array(x_extremes).transpose()
 
+    # Plot error bars
+    ax2.errorbar(x=x_location, y=y_location, xerr=x_1std, fmt="ok", lw=2, capsize=5)
+    ax2.errorbar(x=x_location, y=y_location, xerr=x_2std, fmt=".k", lw=1.5, capsize=5)
+    # ax2.errorbar(x=x_location, y=y_location, xerr=x_3std, fmt=".k", lw=1, capsize=5)
+    ax2.errorbar(x=x_location, y=y_location, xerr=x_extremes, fmt=".k", lw=0.5, capsize=5)
+
+    # # Plot labels
+    # plot_range = ax2.get_xlim()[1] - ax2.get_xlim()[0]
+    # mid_point = ax2.get_xlim()[0] + plot_range / 2
+    # y_last = 1
+    # for ind, artifact_potential in reversed(list(enumerate(artifact_potentials_grouped))):
+    #     percentile = (
+    #         100
+    #         * slot_potential.potential_df[slot_potential.potential_df["power"] <= x_location[ind]][
+    #             "probability"
+    #         ].sum()
+    #     )
+    #     delta_power = 100 * (x_location[ind] / ax2.get_xlim()[0] - 1)
+    #     label_x_location = x_location[ind]
+    #     label_y_location = min(y_last - 0.075, y_location[ind] - 0.06)
+    #     y_last = label_y_location
+    #     horizontal_allignment = "right" if x_location[ind] >= mid_point else "left"
+    #     ax2.annotate(
+    #         f"{artifact_potential.name}: ({percentile:.1f}% / {delta_power:+.1f}%)",
+    #         (label_x_location, label_y_location),
+    #         horizontalalignment=horizontal_allignment,
+    #         bbox=dict(facecolor="white", alpha=0.5),
+    #     )
+    #     ax2.plot(
+    #         [label_x_location, label_x_location], [y_location[ind], label_y_location + 0.05], "k--", linewidth=1
+    #     )
+
+    # Set axes properties
     ax1.set_xlabel("Power")
-    ax1.set_ylabel("Probability")
+    ax1.set_ylabel("Probability Distribution Function")
     ax1.set_xlim(min_power, max_power)
-    # Ignore first bin in setting ymax. If things are smoothed, this is generally ignored but that's OK.
-    y_max = max([bins[f"pop_{ind}"].loc[1:].max() for ind in range(len(slot_potentials))])
-    ax1.set_ylim(0, y_max)
+    ax1.set_ylim(0, slot_histogram.max() / bin_size)
+    ax1.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+    ax1.minorticks_on()
 
+    ax2.set_ylabel("Cumulative Distribution Function")
     ax2.set_xlim(ax1.get_xlim())
-    ax2.set_ylabel("Power Percentile")
-    ax2.set_ylim(0, 1)
+    ax2.set_ylim(0, 1.02)
     ax2.set_yticks(np.arange(0, 1.1, 0.1))
     ax2.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+    ax2.minorticks_on()
     ax2.grid(axis="both")
 
-    tick_label_count = 5 if (max_power - min_power) / min_power > 0.2 else 2
-    num_x_ticks = math.floor((max_power - min_power) / min_power / 0.01) + 1
-    x_tick_locations = min_power + 0.01 * min_power * np.array(list(range(num_x_ticks)))
-    tick_labels = []
-    for num in range(num_x_ticks):
-        if num % tick_label_count == 0:
-            tick_labels.append(f"{num:.0f}%")
-        else:
-            tick_labels.append("")
-    ax3.set_xlabel("ΔPower")
-    ax3.set_xlim(ax1.get_xlim())
-    ax3.set_xticks(x_tick_locations)
-    ax3.set_xticklabels(tick_labels)
+    ax3.set_xlim((0, 100 * (max_power / min_power - 1)))
+    ax3.xaxis.set_major_formatter(lambda x, pos=None: f"+{x:.0f}%")
+    ax3.xaxis.set_major_locator(mtick.MultipleLocator(5))
+    ax3.xaxis.set_minor_locator(mtick.MultipleLocator(1))
 
-    plt.subplots_adjust(top=0.85)
-    plt.subplots_adjust(right=0.85)
-
-    return fig, ax1, ax2, ax3, bins
-
-
-def graph_artifact_potentials(
-    artifact_potentials: list[ArtifactPotential],
-    base_power: float = None,
-    nbins: int = None,
-    smooth_plot: bool = True,
-):
-
-    # Group artifact potentials by slot potentials
-    slot_potential_groups = dict[object, list]()
-    for artifact_potential in artifact_potentials:
-        if artifact_potential.slot_potential not in slot_potential_groups:
-            slot_potential_groups[artifact_potential.slot_potential] = []
-        slot_potential_groups[artifact_potential.slot_potential].append(artifact_potential)
-
-    # Iterate through slot_potential_groups
-    for slot_potential, artifact_potentials_grouped in slot_potential_groups.items():
-
-        if slot_potential == None:
-            log.warn("No slot potential found for artifacts. Plotting skipped.")
-            continue
-
-        # Plot slot potential and extract axes
-        title = f"{slot_potential.stars}* {slot_potential.set.title()} {slot_potential.main_stat} {slot_potential.slot.__name__} Artifact Potentials on {slot_potential.character.name.title()}"
-        fig, ax1, ax2, ax3, bins = graph_slot_potentials(
-            slot_potentials=[slot_potential],
-            legend_labels=[],
-            title=title,
-            base_power=base_power,
-            nbins=nbins,
-            smooth_plot=smooth_plot,
-        )
-
-        # Sort artifacts by average power, and also sort artifact labels
-        artifact_potentials_grouped.sort(key=lambda x: x.potential_df["power"].dot(x.potential_df["probability"]).sum())
-
-        # Determine statistics
-        x_location = []
-        y_location = []
-        x_1std = []
-        x_2std = []
-        x_3std = []
-        x_extremes = []
-        for artifact_potential in artifact_potentials_grouped:
-            potential_df = artifact_potential.potential_df
-            cumsum = potential_df["probability"].cumsum()
-            median = potential_df["power"].loc[(cumsum >= 0.5).idxmax()]
-            x_location.append(median)
-            y_location.append(bins.loc[(bins["bin bottom"] > median).idxmax()]["per_0"])
-            x_1std.append(
-                [
-                    -(potential_df["power"].loc[(cumsum >= 0.317).idxmax()] - median),
-                    potential_df["power"].loc[(cumsum >= 1 - 0.317).idxmax()] - median,
-                ]
-            )
-            x_2std.append(
-                [
-                    -(potential_df["power"].loc[(cumsum >= 0.0455).idxmax()] - median),
-                    potential_df["power"].loc[(cumsum >= 1 - 0.0455).idxmax()] - median,
-                ]
-            )
-            x_3std.append(
-                [
-                    -(potential_df["power"].loc[(cumsum >= 0.00267).idxmax()] - median),
-                    potential_df["power"].loc[(cumsum >= 1 - 0.00267).idxmax()] - median,
-                ]
-            )
-            x_extremes.append([-(potential_df["power"].min() - median), potential_df["power"].max() - median])
-
-        # Transpose
-        x_1std = np.array(x_1std).transpose()
-        x_2std = np.array(x_2std).transpose()
-        x_3std = np.array(x_3std).transpose()
-        x_extremes = np.array(x_extremes).transpose()
-
-        # Plot error bars
-        ax2.errorbar(x=x_location, y=y_location, xerr=x_1std, fmt="ok", lw=2, capsize=5)
-        ax2.errorbar(x=x_location, y=y_location, xerr=x_2std, fmt=".k", lw=1.5, capsize=5)
-        ax2.errorbar(x=x_location, y=y_location, xerr=x_3std, fmt=".k", lw=1, capsize=5)
-        ax2.errorbar(x=x_location, y=y_location, xerr=x_extremes, fmt=".k", lw=0.5, capsize=5)
-
-        # Plot labels
-        plot_range = ax2.get_xlim()[1] - ax2.get_xlim()[0]
-        mid_point = ax2.get_xlim()[0] + plot_range / 2
-        y_last = 1
-        for ind, artifact_potential in reversed(list(enumerate(artifact_potentials_grouped))):
-            percentile = (
-                100
-                * slot_potential.potential_df[slot_potential.potential_df["power"] <= x_location[ind]][
-                    "probability"
-                ].sum()
-            )
-            delta_power = 100 * (x_location[ind] / ax2.get_xlim()[0] - 1)
-            label_x_location = x_location[ind]
-            label_y_location = min(y_last - 0.075, y_location[ind] - 0.06)
-            y_last = label_y_location
-            horizontal_allignment = "right" if x_location[ind] >= mid_point else "left"
-            ax2.annotate(
-                f"{artifact_potential.name}: ({percentile:.1f}% / {delta_power:+.1f}%)",
-                (label_x_location, label_y_location),
-                horizontalalignment=horizontal_allignment,
-                bbox=dict(facecolor="white", alpha=0.5),
-            )
-            ax2.plot(
-                [label_x_location, label_x_location], [y_location[ind], label_y_location + 0.05], "k--", linewidth=1
-            )
+    # Log
+    log.info(f"{title} plotted.")
 
 
 def _adjust_lightness(color, amount=0.5):

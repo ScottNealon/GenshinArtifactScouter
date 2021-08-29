@@ -6,6 +6,8 @@ import math
 import re
 from typing import TYPE_CHECKING
 
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 from . import genshin_data, graphing, power_calculator
@@ -30,7 +32,7 @@ def evaluate_character(
     reaction_percentage: float,
     slots: list[type] = [Flower, Plume, Sands, Goblet, Circlet],
     plot: bool = True,
-    smooth_plot: bool = True,
+    max_artifacts_plotted: int = 10,
 ):
 
     # Fix inputs
@@ -115,10 +117,13 @@ def evaluate_character(
 
     # Iterate through slots
     slot_potentials: dict[type, pd.DataFrame] = {}
+    slot_histograms: dict[type, pd.DataFrame] = {}
     artifact_potentials: dict[type, dict[Artifact, pd.DataFrame]] = {slot: {} for slot in slots}
     artifact_powers: dict[type, dict[Artifact, float]] = {slot: {} for slot in slots}
     artifact_percentiles: dict[type, dict[Artifact, float]] = {slot: {} for slot in slots}
     artifact_scores: dict[type, dict[Artifact, float]] = {slot: {} for slot in slots}
+    equipped_potentials: dict[type, pd.DataFrame] = {}
+    equipped_expected_power: dict[type, float] = {}
     for slot in slots:
 
         log.info("-" * 140)
@@ -146,7 +151,21 @@ def evaluate_character(
             artifact=equipped_artifact,
             source=source,
         )
+        # Make slot histogram
+        nbins = 250
+        bin_size = (slot_potential_df["power"].max() - slot_potential_df["power"].min()) / nbins
+        index = np.linspace(slot_potential_df["power"].min() + bin_size, slot_potential_df["power"].max(), num=nbins)
+        slot_histogram = pd.Series(0, index=index)
+        previous_bin = -np.Infinity
+        for bin_top in index:
+            slot_histogram.loc[bin_top] = slot_potential_df["probability"][
+                (previous_bin < slot_potential_df["power"]) & (slot_potential_df["power"] <= bin_top)
+            ].sum()
+            previous_bin = bin_top
+        # Save Results
         slot_potentials[slot] = slot_potential_df
+        slot_histograms[slot] = slot_histogram
+
         log_slot_power(slot_potential_df=slot_potential_df, leveled_power=leveled_power)
         log.info("")
 
@@ -158,7 +177,6 @@ def evaluate_character(
         other_artifacts = [artifact for artifact in alternative_artifacts[slot] if artifact is not equipped_artifact]
         other_artifacts.sort(key=lambda artifact: int(artifact.name))
         alternative_artifacts_slot = [equipped_artifact] + other_artifacts
-        equipped_expected_power = None
         for alternative_artifact in alternative_artifacts_slot:
             # Log artifact
             log.info(
@@ -178,13 +196,16 @@ def evaluate_character(
             cumsum = artifact_potential_df["probability"].cumsum()
             artifact_powers[slot][alternative_artifact] = artifact_potential_df.loc[(cumsum >= 0.5).idxmax()]["power"]
             # Save expected equipped power
-            if equipped_expected_power is None:
-                equipped_expected_power = artifact_powers[slot][alternative_artifact]
+            if slot not in equipped_expected_power:
+                equipped_expected_power[slot] = artifact_powers[slot][alternative_artifact]
+                equipped_potentials[slot] = artifact_potential_df
             # Log results (and calculate score)
             percentile, score, beat_equipped_chance = log_artifact_power(
                 slot_potential_df=slot_potential_df,
+                slot_histogram=slot_histograms[slot],
                 artifact_potential_df=artifact_potential_df,
-                equipped_expected_power=equipped_expected_power,
+                equipped_potential_df=equipped_potentials[slot],
+                equipped_expected_power=equipped_expected_power[slot],
                 artifact=alternative_artifact,
             )
             # Save excpected percentile
@@ -201,7 +222,6 @@ def evaluate_character(
     log.info("")
     for slot in slots:
         equipped_artifact = equipped_artifacts.get_artifact(slot=slot)
-        artifact_scores_sorted = dict(sorted(artifact_scores[slot].items(), key=lambda item: item[1], reverse=True))
         set_str_long = re.sub(r"(\w)([A-Z])", r"\1 \2", equipped_artifact.set)
         log.info(f"{equipped_artifact.stars}* {equipped_artifact.main_stat} {slot.__name__} Scoreboard")
         # Calculate space required for percentile
@@ -212,8 +232,9 @@ def evaluate_character(
         max_percentile_spaces = len(_high_percentile_to_string(max_percentile))
         percentile_left_spaces = max([0, 10 - max_percentile_spaces])
         # Calculate space required for score
+        artifact_scores_sorted = dict(sorted(artifact_scores[slot].items(), key=lambda item: item[1], reverse=True))
         max_score = max([max([score for _, (score, _) in artifact_scores_sorted.items()]), 6])
-        max_score_spaces = max(len(f"{max_score:>,.0f}") + 1, 5)
+        max_score_spaces = max(len(f"{max_score:>,.1f}"), 5)
         header_str = (
             f"RANK   NAME    SLOT STARS         SET LEVEL               MAIN STAT   HP  ATK  DEF  HP% ATK% DEF%   EM  ER%  CR%  CD%"
             " |"
@@ -223,7 +244,8 @@ def evaluate_character(
             "  Chance of Beating Equipped"
         )
         ind = 1
-        for artifact, (score, beat_equipped_chance) in artifact_scores_sorted.items():
+        artifact_powers_sorted = dict(sorted(artifact_powers[slot].items(), key=lambda item: item[1], reverse=True))
+        for artifact in artifact_powers_sorted.keys():
             if ind % 10 == 1:
                 log.info(header_str)
             log.info(
@@ -232,15 +254,27 @@ def evaluate_character(
                 " |"
                 f"{100 * (artifact_powers[slot][artifact] / slot_potentials[slot]['power'].min() - 1):>+7.1f}%"
                 f"  {(' ' * percentile_left_spaces) + f'{_high_percentile_to_string(artifact_percentiles[slot][artifact])}'.ljust(max_percentile_spaces)}"
-                f"  {f'{score:>,.0f}'.rjust(max_score_spaces)}"
-                f"  {'EQUIPPED' if artifact is equipped_artifact else _unbounded_percentile_to_string(beat_equipped_chance)}"
+                f"  {f'{artifact_scores_sorted[artifact][0]:>,.1f}'.rjust(max_score_spaces)}"
+                f"  {'EQUIPPED' if artifact is equipped_artifact else _unbounded_percentile_to_string(artifact_scores_sorted[artifact][1])}"
             )
             ind += 1
         log.info("")
 
     # Plot each slot
-
-    a = 1
+    if plot:
+        for slot in slots:
+            equipped_artifact = equipped_artifacts.get_artifact(slot=slot)
+            title = f"Slot and Artifact Potentials for Top {min(len(artifact_potentials[slot]), 10)} {equipped_artifact.stars}* {equipped_artifact._main_stat} {slot.__name__}"
+            if title[-1] != "s" and len(artifact_potentials[slot]) > 1:
+                title += "s"
+            graphing.graph_slot_potential(
+                slot_potential=slot_potentials[slot],
+                artifact_potentials=artifact_potentials[slot],
+                equipped_expected_power=equipped_expected_power[slot],
+                title=title,
+                max_artifacts_plotted=max_artifacts_plotted,
+            )
+        plt.show()
 
 
 def log_slot_power(slot_potential_df: pd.DataFrame, leveled_power: float):
@@ -280,7 +314,9 @@ def log_slot_power(slot_potential_df: pd.DataFrame, leveled_power: float):
 
 def log_artifact_power(
     slot_potential_df: pd.DataFrame,
+    slot_histogram: pd.DataFrame,
     artifact_potential_df: pd.DataFrame,
+    equipped_potential_df: pd.DataFrame,
     equipped_expected_power: float,
     artifact: Artifact,
 ):
@@ -307,14 +343,6 @@ def log_artifact_power(
     max_power_slot_percentile = (
         100 * slot_potential_df["probability"][slot_potential_df["power"] < artifact_max_power].sum()
     )
-    # Current Power
-    equipped_expected_power_artifact_percentile = (
-        100 * artifact_potential_df["probability"][artifact_potential_df["power"] <= equipped_expected_power].sum()
-    )  # <= so that "Chance of Beating" doesn't include ties
-    equipped_expected_power_increase = 100 * (equipped_expected_power / slot_min_power - 1)
-    equipped_expected_power_slot_percentile = (
-        100 * slot_potential_df["probability"][slot_potential_df["power"] < equipped_expected_power].sum()
-    )
 
     # Prepare artifact log strings
     log_strings = [
@@ -337,50 +365,38 @@ def log_artifact_power(
             f"{max_power_slot_percentile:>5.1f}{_suffix(max_power_slot_percentile)} Slot Percentile"
         )
         log_strings = [min_power_str] + log_strings + [max_power_str]
-    # Prepare equipped artifact log string
-    if equipped_expected_power is not None:
-        if equipped_expected_power != artifact_median_power:  # Skip if this is the current equippped artifact
-            leveled_power_str = (
-                f"Equipped Expected Power: {equipped_expected_power:>7,.0f} | "
-                f"{equipped_expected_power_increase:>+5.1f}% | "
-                f"{equipped_expected_power_slot_percentile:>5.1f}%{_suffix(equipped_expected_power_slot_percentile)} Slot Percentile | "
-            )
-            if equipped_expected_power >= artifact_max_power:
-                leveled_power_str += f">100.0th Artifact Percentile"
-            elif equipped_expected_power_artifact_percentile == 100:
-                leveled_power_str += f"=100.0th Artifact Percentile"
-            else:
-                leveled_power_str += f"{_percentile_str_to_suffix(_unbounded_percentile_to_string(equipped_expected_power_artifact_percentile))} Artifact Percentile"
-
-            if num_child_artifacts > 1:
-                leveled_position = (
-                    int(equipped_expected_power >= artifact_min_power)
-                    + int(equipped_expected_power >= artifact_median_power)
-                    + int(equipped_expected_power >= artifact_max_power)
-                )
-            else:
-                leveled_position = int(equipped_expected_power > artifact_median_power)
-            log_strings.insert(leveled_position, leveled_power_str)
     # Log to console
     for log_string in log_strings:
         log.info(log_string)
 
     # Calculate artifact score
-    # Cost to run domain once
-    if artifact.set in genshin_data.dropped_from_world_boss:
-        run_cost = 40
-    else:
-        run_cost = 20
     # Chance to drop artifact with same set, slot, and main_stat
     drop_chance = 0.5 * 0.2 * genshin_data.main_stat_drop_rate[type(artifact).__name__][artifact.main_stat] / 100
     # Chance of dropping better artifact
-    better_chance = (100 - median_power_slot_percentile) / 100
+    slot_better_chance = 0
+    for _, artifact_potential_instance in artifact_potential_df.iterrows():
+        slot_better_chance += (
+            artifact_potential_instance["probability"]
+            * slot_histogram[slot_histogram.index < artifact_potential_instance["power"]].sum()
+        )
+    # better_chance = (100 - median_power_slot_percentile) / 100
     # Score
-    score = run_cost / (drop_chance * better_chance)
-    log_str = f"Artifact Score: {score:>6,.0f} Resin"
+    score = 1 / (drop_chance * (1 - slot_better_chance))
+    log_str = f"Artifact Score: {score:>6,.1f} Runs"
     # Better than equipped chance
     if equipped_expected_power != artifact_median_power:
-        beat_equipped_chance = 100 - equipped_expected_power_artifact_percentile
+        # equipped_expected_power_artifact_percentile = (
+        #     100 * artifact_potential_df["probability"][artifact_potential_df["power"] < equipped_expected_power].sum()
+        # )  # <= so that "Chance of Beating" doesn't include ties
+        # beat_equipped_chance = 100 - equipped_expected_power_artifact_percentile
+        beat_equipped_chance = 0
+        for _, equipped_potential_instance in equipped_potential_df.iterrows():
+            beat_equipped_chance += 100 * (
+                equipped_potential_instance["probability"]
+                * artifact_potential_df[artifact_potential_df["power"] > equipped_potential_instance["power"]][
+                    "probability"
+                ].sum()
+            )
         # Deal with computer floating point error
         if beat_equipped_chance < 0.0:
             beat_equipped_chance = 0.0
