@@ -50,9 +50,8 @@ def graph_slot_potentials(
     if truncate_large_power:
         max_power = -np.Infinity
         for slot_potential in slot_potentials:
-            sorted_slot_potential = slot_potential.potential_df.sort_values("power")
-            cumsum = sorted_slot_potential["probability"].cumsum()
-            slot_six_sigma = sorted_slot_potential["power"].loc[(cumsum >= 0.997).idxmax()]
+            cumsum = slot_potential.potential_df["probability"].cumsum()
+            slot_six_sigma = slot_potential.potential_df["power"].loc[(cumsum >= 0.997).idxmax()]
             max_power = max(max_power, slot_six_sigma)
     else:
         max_power = max([slot_potential.potential_df["power"].max() for slot_potential in slot_potentials])
@@ -234,7 +233,7 @@ def graph_artifact_potentials(
         x_3std = []
         x_extremes = []
         for artifact_potential in artifact_potentials_grouped:
-            potential_df = artifact_potential.potential_df.sort_values("power")
+            potential_df = artifact_potential.potential_df
             cumsum = potential_df["probability"].cumsum()
             median = potential_df["power"].loc[(cumsum >= 0.5).idxmax()]
             x_location.append(median)

@@ -3,7 +3,10 @@ import logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
-    handlers=[logging.FileHandler(filename="output.log", mode="w"), logging.StreamHandler()],
+    handlers=[
+        logging.FileHandler(filename="output.log", mode="w", encoding="utf8"),
+        logging.StreamHandler(),
+    ],
 )
 
 from src import *
@@ -12,7 +15,7 @@ from src import *
 genshin_optimizer_data = go_parser.GenshinOptimizerData(file_path="Data/sample_go_data.json")
 
 # Evaluate Mona
-potential.evaluate_character(
+evaluate_character(
     genshin_optimizer_data=genshin_optimizer_data,
     character_name="Mona",
     character_dmg_type="Hydro",
@@ -22,6 +25,7 @@ potential.evaluate_character(
     weapon_passive={},  # TTODS
     amplifying_reaction=None,
     reaction_percentage=0.0,
+    # slots=[Plume],
     plot=True,
     smooth_plot=True,
 )
