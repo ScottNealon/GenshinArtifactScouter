@@ -379,16 +379,11 @@ def log_artifact_power(
             artifact_potential_instance["probability"]
             * slot_histogram[slot_histogram.index < artifact_potential_instance["power"]].sum()
         )
-    # better_chance = (100 - median_power_slot_percentile) / 100
     # Score
     score = 1 / (drop_chance * (1 - slot_better_chance))
     log_str = f"Artifact Score: {score:>6,.1f} Runs"
     # Better than equipped chance
     if equipped_expected_power != artifact_median_power:
-        # equipped_expected_power_artifact_percentile = (
-        #     100 * artifact_potential_df["probability"][artifact_potential_df["power"] < equipped_expected_power].sum()
-        # )  # <= so that "Chance of Beating" doesn't include ties
-        # beat_equipped_chance = 100 - equipped_expected_power_artifact_percentile
         beat_equipped_chance = 0
         for _, equipped_potential_instance in equipped_potential_df.iterrows():
             beat_equipped_chance += 100 * (
