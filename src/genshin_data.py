@@ -47,7 +47,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("GAS")
 log.info("-" * 140)
 log.info(f"IMPORTING AND CALCULATING GAME DATA...")
 

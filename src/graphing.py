@@ -9,7 +9,7 @@ import pandas as pd
 
 from src.artifact import Artifact
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("GAS")
 
 # Set plot size preemptively
 plt.rcParams["figure.figsize"] = (12, 6)

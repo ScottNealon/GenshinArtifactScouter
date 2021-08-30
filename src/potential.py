@@ -13,7 +13,7 @@ from .artifact import Artifact
 from .artifacts import Artifacts
 from .character import Character
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("GAS")
 
 
 def individual_potential(

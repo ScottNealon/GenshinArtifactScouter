@@ -9,7 +9,7 @@ import pandas as pd
 
 from . import genshin_data
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("GAS")
 
 
 class Weapon:

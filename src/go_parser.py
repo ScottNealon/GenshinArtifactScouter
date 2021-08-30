@@ -34,7 +34,7 @@ go_stat_map = {
 slotStr2type = {"flower": Flower, "plume": Plume, "sands": Sands, "goblet": Goblet, "circlet": Circlet}
 # fmt: on
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("GAS")
 
 
 class GenshinOptimizerData:

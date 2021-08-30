@@ -4,6 +4,7 @@ import decimal
 import logging
 import math
 import re
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
@@ -17,7 +18,7 @@ from .potential import find_useful_stats, individual_potential
 if TYPE_CHECKING:
     from .go_parser import GenshinOptimizerData
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("GAS")
 
 
 def evaluate_character(
@@ -28,19 +29,25 @@ def evaluate_character(
     character_passive: dict[str, float],
     character_stat_transfer: dict[str, dict[str, float]],
     weapon_passive: dict[str, float],
-    amplifying_reaction: str,
-    reaction_percentage: float,
+    amplifying_reaction: str = None,
+    reaction_percentage: float = 0.0,
+    character_crits: str = "avgHit",
     slots: list[type] = [Flower, Plume, Sands, Goblet, Circlet],
     plot: bool = True,
+    log_to_file: bool = True,
     max_artifacts_plotted: int = 10,
 ):
-
     # Fix inputs
     # Singleton type
     if type(slots) is type:
         slots = [slots]
 
-    # Log
+    # Modify module level logger
+    if log_to_file:
+        # Create output folder if it doesn't exist
+        Path(f"./output").mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(filename=f"./output/{character_name.lower()}.log", mode="w", encoding="utf8")
+        log.addHandler(file_handler)
     log.info("-" * 140)
     log.info(f"EVALUATING ARTIFACT POTENTIALS")
     log.info("")
@@ -55,6 +62,7 @@ def evaluate_character(
     character.weapon.passive = weapon_passive
     character.amplifying_reaction = amplifying_reaction
     character.reaction_percentage = reaction_percentage
+    character.crits = character_crits
 
     # Retrieve equipped and potential artifacts from GO database
     equipped_artifacts = genshin_optimizer_data.get_characters_artifacts(character_name=character_name)
@@ -275,6 +283,9 @@ def evaluate_character(
                 max_artifacts_plotted=max_artifacts_plotted,
             )
         plt.show()
+
+    # Remove file handler from logger
+    log.removeHandler(file_handler)
 
 
 def log_slot_power(slot_potential_df: pd.DataFrame, leveled_power: float):
