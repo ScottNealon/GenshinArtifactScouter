@@ -120,6 +120,7 @@ def find_useful_stats(character: Character, artifacts: Artifacts):
         useful_stats.append("Healing Bonus%")
     else:
         useful_stats.append(f"{character.dmg_type.capitalize()} DMG%")
+        useful_stats.append("DMG%")
     # Transforming stats
     for destination_stat, source_stats in character.stat_transfer.items():
         if destination_stat in useful_stats:
