@@ -1,0 +1,17 @@
+{
+    "weapon_type": "sword",
+    "initial_ATK": 45.06869888305664,
+    "base_ATK_scaling": "GROW_CURVE_ATTACK_203",
+    "ATK_ascension_scaling": [
+        0,
+        25.899999618530273,
+        51.900001525878906,
+        77.80000305175781,
+        103.69999694824219,
+        129.6999969482422,
+        155.60000610351562
+    ],
+    "ascension_stat": "eleMas",
+    "base_ascension_stat": 11.999987602233887,
+    "ascension_stat_scaling": "GROW_CURVE_CRITICAL_201"
+}

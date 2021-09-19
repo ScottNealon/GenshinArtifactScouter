@@ -1,0 +1,17 @@
+{
+    "weapon_type": "bow",
+    "initial_ATK": 39.875099182128906,
+    "base_ATK_scaling": "GROW_CURVE_ATTACK_102",
+    "ATK_ascension_scaling": [
+        0,
+        19.5,
+        38.900001525878906,
+        58.400001525878906,
+        77.80000305175781,
+        97.30000305175781,
+        116.69999694824219
+    ],
+    "ascension_stat": "critDMG_",
+    "base_ascension_stat": 0.06800000369548798,
+    "ascension_stat_scaling": "GROW_CURVE_CRITICAL_101"
+}

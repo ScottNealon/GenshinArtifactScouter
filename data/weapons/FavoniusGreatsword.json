@@ -1,0 +1,17 @@
+{
+    "weapon_type": "claymore",
+    "initial_ATK": 41.067100524902344,
+    "base_ATK_scaling": "GROW_CURVE_ATTACK_204",
+    "ATK_ascension_scaling": [
+        0,
+        25.899999618530273,
+        51.900001525878906,
+        77.80000305175781,
+        103.69999694824219,
+        129.6999969482422,
+        155.60000610351562
+    ],
+    "ascension_stat": "enerRech_",
+    "base_ascension_stat": 0.1333329975605011,
+    "ascension_stat_scaling": "GROW_CURVE_CRITICAL_201"
+}

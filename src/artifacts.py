@@ -4,8 +4,8 @@ from typing import Iterable, Union
 
 import pandas as pd
 
-from . import genshin_data
-from .artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
+from src import genshin_data
+from src.artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
 
 
 class Artifacts:
@@ -60,7 +60,7 @@ class Artifacts:
         self._circlet = circlet
 
     @property
-    def artifact_list(self):
+    def artifact_list(self) -> list[Artifact]:
         return [
             artifact
             for artifact in [self.flower, self.plume, self.sands, self.goblet, self.circlet]
@@ -96,39 +96,21 @@ class Artifacts:
             return False
         return getattr(self, slot.__name__.lower()) is not None
 
-    @property
-    def stats(self) -> Union[pd.Series, pd.DataFrame]:
-        """Returns collective stats of artifacts at CURRENT level"""
+    def get_stats(self, leveled: bool = False) -> Union[pd.Series, pd.DataFrame]:
+        """Returns collective stats of artifacts"""
         stats = pd.Series(0.0, index=genshin_data.pandas_headers)
         sets = {}
         # Artifact stats
         for artifact in self.artifact_list:
             if artifact is not None:
-                if (type(artifact.stats) is pd.DataFrame) and (type(stats) is pd.DataFrame):
+                artifact_stats = artifact.get_stats(leveled)
+                if (type(artifact_stats) is pd.DataFrame) and (type(stats) is pd.DataFrame):
                     raise ValueError("Cannot have two probablistic artifacts.")
-                stats = stats + artifact.stats
+                stats = stats + artifact_stats
                 if artifact.set is not None:
                     sets[artifact.set] = sets.get(artifact.set, 0) + 1
         # Set stats
         stats, _ = self.add_set_bonus(stats=stats, sets=sets)
-        return stats
-
-    @property
-    def leveled_stats(self) -> Union[pd.Series, pd.DataFrame]:
-        """Returns collective stats of artifacts at MAXIMUM level"""
-        stats = pd.Series(0.0, index=genshin_data.pandas_headers)
-        sets = {}
-
-        # Artifact stats
-        for artifact in self.artifact_list:
-            if artifact is not None:
-                if (type(artifact.stats) is pd.DataFrame) and (type(stats) is pd.DataFrame):
-                    raise ValueError("Cannot have two probablistic artifacts.")
-                stats = stats + artifact.leveled_stats
-                if artifact.set is not None:
-                    sets[artifact.set] = sets.get(artifact.set, 0) + 1
-        # Set stats
-        stats, _ = self.add_set_bonus(stats, sets)
         return stats
 
     @property

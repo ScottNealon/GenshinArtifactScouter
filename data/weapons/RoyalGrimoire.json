@@ -1,0 +1,17 @@
+{
+    "weapon_type": "catalyst",
+    "initial_ATK": 43.734901428222656,
+    "base_ATK_scaling": "GROW_CURVE_ATTACK_202",
+    "ATK_ascension_scaling": [
+        0,
+        25.899999618530273,
+        51.900001525878906,
+        77.80000305175781,
+        103.69999694824219,
+        129.6999969482422,
+        155.60000610351562
+    ],
+    "ascension_stat": "atk_",
+    "base_ascension_stat": 0.05999999865889549,
+    "ascension_stat_scaling": "GROW_CURVE_CRITICAL_201"
+}

@@ -1,151 +1,103 @@
 from __future__ import annotations
 
+import json
 import logging
-import random
+import os
 import re
 
 import numpy as np
 import pandas as pd
 
-from . import genshin_data
+from src import genshin_data
 
-log = logging.getLogger("GAS")
+log = logging.getLogger("root")
+
+# Location of directory containing weapon json files
+_weapon_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "data", "weapons")
 
 
 class Weapon:
-    def __init__(
-        self,
-        name: str,
-        level: int,
-        ascension: int,
-        passive: dict[str] = {},
-    ):
+    def __init__(self, key: str, level: int, ascension: int, refinement: int, location: int):
 
-        # Validated inputs
-        # Capitalize words, leave existing capitals, then remove spaces
-        name = " ".join(s[:1].upper() + s[1:] for s in name.split(" ")).replace(" ", "")
-        if name not in genshin_data.weapon_stats:
-            raise ValueError("Invalid weapon name.")
-        self._name = name
+        # Save inputs
+        self._key = key
+        self._level = level
+        self._ascension = ascension
+        self._refinement = refinement
+        self._location = location
 
-        self.level = level
-        self.ascension = ascension
-
-        self.passive = passive
-
-        self._get_stat_arrays()
-
-    @property
-    def name(self):
-        return self._name
+        # Retrieve and save weapon data
+        file_path = os.path.join(_weapon_dir_path, f"{key}.json")
+        if not os.path.isfile(file_path):
+            raise ValueError(f'Statistics for weapon "{key}" not found in GAS database.')
+        with open(file_path, "r") as file_handle:
+            weapon_data = json.load(file_handle)
+        self._weapon_type = weapon_data["weapon_type"]
+        self._initial_ATK = weapon_data["initial_ATK"]
+        self._base_ATK_scaling = weapon_data["base_ATK_scaling"]
+        self._ATK_ascension_scaling = weapon_data["ATK_ascension_scaling"]
+        self._ascension_stat = weapon_data.setdefault("ascension_stat", "atk_")
+        self._base_ascension_stat = weapon_data.setdefault("base_ascension_stat", 0)
+        self._ascension_stat_scaling = weapon_data.setdefault("ascension_stat_scaling", [0, 0, 0, 0, 0, 0, 0])
+        self._passive = {}  # TODO
 
     @property
-    def name_formated(self):
-        return re.sub(r"(\w)([A-Z])", r"\1 \2", self._name)
+    def key(self) -> str:
+        return self._key
 
     @property
-    def level(self):
+    def name(self) -> str:
+        return re.sub(r"(\w)([A-Z])", r"\1 \2", self.key)
+
+    @property
+    def level(self) -> int:
         return self._level
 
-    @level.setter
-    def level(self, level: int):
-        if level < 1 or level > 90:
-            raise ValueError("Invalid weapon level")
-        self._level = level
-        # If weapon has already been instantiated, default ascension to highest valid
-        if hasattr(self, "_ascension"):
-            intended_ascension = sum(level >= np.array([20, 40, 50, 60, 70, 80]))
-            if self.ascension != intended_ascension:
-                self.ascension = intended_ascension
-                if level in [20, 40, 50, 60, 70, 80]:
-                    log.warning(
-                        f"Weapon {self.name.title()} set to level {level}. Ascension defaulted to {intended_ascension}."
-                    )
-        self._update_stats = True
-
     @property
-    def ascension(self):
+    def ascension(self) -> int:
         return self._ascension
 
-    @ascension.setter
-    def ascension(self, ascension: int):
-        if ascension < 0 or ascension > 6:
-            raise ValueError("Invalid ascension")
-        self._ascension = ascension
-        # If weapon has alredy been instantiated, default level to middle of valid if not in range
-        min_level = [0, 20, 40, 50, 60, 70, 80][ascension]
-        max_level = [20, 40, 50, 60, 70, 80, 90][ascension]
-        if not min_level <= self.level <= max_level:
-            self.level = int((min_level + max_level) / 2)
-            log.warning(f"Weapon {self.name.title()} set to Ascension {ascension}. Level defaulted to {self.level}.")
-        self._update_stats = True
-
-    def _get_stat_arrays(self):
-
-        # Retrieve all stats from database
-        self._base_stats = genshin_data.weapon_stats[self.name]
-
-        # Retrieve base stat arrays
-        self._base_ATK_scaling = genshin_data.weapon_stat_curves[
-            self._base_stats["WeaponProp"]["FIGHT_PROP_BASE_ATTACK"]["Type"]
-        ]
-
-        # Retrieve base stat increases due to ascension
-        self._promote_stats = genshin_data.weapon_promote_stats[self._base_stats["WeaponPromoteId"]]
-
-        # Retireve ascension stat increases
-        if len(self._base_stats["WeaponProp"]) > 1:
-            self._ascension_stat_str = list(self._base_stats["WeaponProp"])[1]
-            self._ascension_stat = genshin_data.promote_stats_map[self._ascension_stat_str]
-            self._ascension_stat_dict = self._base_stats["WeaponProp"][self._ascension_stat_str]
-            self._ascension_stat_initial_value = self._ascension_stat_dict["InitValue"]
-
-            ascension_stat_scaling_str = self._ascension_stat_dict["Type"]
-            self._ascension_stat_scaling = genshin_data.weapon_stat_curves[ascension_stat_scaling_str]
-        else:
-            self._ascension_stat = "ATK"
-            self._ascension_stat_initial_value = 0
-            self._ascension_stat_scaling = np.zeros([1, 91])
+    # TODO: Use this
+    @property
+    def refinement(self) -> int:
+        return self._refinement
 
     @property
-    def base_ATK(self):
-        base_ATK = self._base_stats["WeaponProp"]["FIGHT_PROP_BASE_ATTACK"]["InitValue"]
-        ascension_ATK = self._promote_stats["FIGHT_PROP_BASE_ATTACK"][self.ascension]
-        scaling_ATK = self._base_ATK_scaling[self.level]
-        return base_ATK * scaling_ATK + ascension_ATK
-
-    @property
-    def ascension_stat(self):
+    def ascension_stat(self) -> str:
         return self._ascension_stat
 
     @property
-    def ascension_stat_value(self):
-        ascension_value = self._ascension_stat_initial_value * self._ascension_stat_scaling[self.level]
-        if "%" in self.ascension_stat:
+    def ascension_stat_value(self) -> float:
+        ascension_value = self._base_ascension_stat * self._ascension_stat_scaling[self.level]
+        if "_" in self.ascension_stat:
             ascension_value *= 100
         return ascension_value
 
     @property
-    def passive(self):
+    def passive(self) -> dict[str]:
         return self._passive
 
-    @passive.setter
-    def passive(self, passive: dict[str]):
-        for key, value in passive.items():
-            if key not in genshin_data.stat_names:
-                raise ValueError("Invalid passive stat.")
-            elif value < 0:
-                raise ValueError("Invalid passive stat value.")
-        self._passive = passive
-
     @property
-    def stats(self):
+    def stats(self) -> pd.Series:
+        # Calculate base ATK
+        ascension_ATK = self._ATK_ascension_scaling[self.ascension]
+        scaling_ATK = genshin_data.weapon_stat_curves[self._base_ATK_scaling][self.level]
+        base_ATK = self._initial_ATK * scaling_ATK + ascension_ATK
+        # Calculate ascension value
+        ascension_scaling = genshin_data.weapon_stat_curves[self._ascension_stat_scaling][self.level]
+        ascension_value = self._base_ascension_stat * ascension_scaling
+        if "_" in self.ascension_stat:
+            ascension_value *= 100
+        # Create stats
         self._stats = pd.Series(0.0, index=genshin_data.pandas_headers)
-        self._stats["Base ATK"] += self.base_ATK
-        self._stats[self.ascension_stat] += self.ascension_stat_value
+        self._stats["baseAtk"] += base_ATK
+        self._stats[self.ascension_stat] += ascension_scaling
         for key, value in self.passive.items():
             self._stats[key] += value
         return self._stats
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name}, Level: {self.level}"
+
+    def __repr__(self) -> str:
+        return f"<__src__.weapon.Weapon: {self.name}>"

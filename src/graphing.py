@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import logging
-
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
 import pandas as pd
 
 from src.artifact import Artifact
-
-log = logging.getLogger("GAS")
 
 # Set plot size preemptively
 plt.rcParams["figure.figsize"] = (12, 6)
@@ -23,8 +19,7 @@ def graph_slot_potential(
     title: str,
     max_artifacts_plotted: int,
 ):
-    # Log
-    log.info(f"Plotting {title}...")
+
 
     # Calculate min and 4-sigma max power (99.93rd percentile) (if truncating)
     min_power = slot_potential["power"].min()

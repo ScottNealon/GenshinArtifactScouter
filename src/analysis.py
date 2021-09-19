@@ -11,73 +11,48 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from . import genshin_data, graphing, power_calculator
-from .artifact import Artifact, Circlet, Flower, Goblet, Plume, Sands
-from .potential import find_useful_stats, individual_potential
+from src import artifact, genshin_data, graphing, potential, power_calculator
 
 if TYPE_CHECKING:
-    from .go_parser import GenshinOptimizerData
+    from .GOOD_database import GenshinOpenObjectDescriptionDatabase
 
-log = logging.getLogger("GAS")
+log = logging.getLogger(__name__)
 
 
 def evaluate_character(
-    genshin_optimizer_data: GenshinOptimizerData,
-    character_name: str,
-    character_dmg_type: str,
-    character_scaling_stat: str,
-    character_passive: dict[str, float],
-    character_stat_transfer: dict[str, dict[str, float]],
-    weapon_passive: dict[str, float],
-    amplifying_reaction: str = None,
-    reaction_percentage: float = 0.0,
-    character_crits: str = "avgHit",
-    slots: list[type] = [Flower, Plume, Sands, Goblet, Circlet],
-    plot: bool = True,
+    database: GenshinOpenObjectDescriptionDatabase,
+    character_key: str,
+    slots: list[type] = [artifact.Flower, artifact.Plume, artifact.Sands, artifact.Goblet, artifact.Circlet],
     log_to_file: bool = True,
+    plot: bool = True,
     max_artifacts_plotted: int = 10,
 ):
-    # Fix inputs
-    # Singleton type
-    if type(slots) is type:
-        slots = [slots]
 
-    # Modify module level logger
+    # Update module level logger
     if log_to_file:
         # Create output folder if it doesn't exist
-        Path(f"./output").mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(filename=f"./output/{character_name.lower()}.log", mode="w", encoding="utf8")
+        Path(f"./logs").mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(filename=f"./logs/{character_key}.log", mode="w", encoding="utf8")
         log.addHandler(file_handler)
     log.info("-" * 140)
     log.info(f"EVALUATING ARTIFACT POTENTIALS")
     log.info("")
 
     # Retrieve character from GO database
-    character = genshin_optimizer_data.get_character(character_name=character_name)
-    # Set character and weapon characteristics
-    character.dmg_type = character_dmg_type
-    character.scaling_stat = character_scaling_stat
-    character.passive = character_passive
-    character.stat_transfer = character_stat_transfer
-    character.weapon.passive = weapon_passive
-    character.amplifying_reaction = amplifying_reaction
-    character.reaction_percentage = reaction_percentage
-    character.crits = character_crits
+    character = database.get_character(character_key)
 
     # Retrieve equipped and potential artifacts from GO database
-    equipped_artifacts = genshin_optimizer_data.get_characters_artifacts(character_name=character_name)
-    alternative_artifacts = genshin_optimizer_data.get_alternative_artifacts(equipped_artifacts=equipped_artifacts)
+    equipped_artifacts = database.equipped_artifacts[character]
+    alternative_artifacts = database.get_alternative_artifacts(equipped_artifacts)
     # Remove alternative artifacts from slots not being evaluated
     for slot in list(alternative_artifacts.keys()):
         if slot not in slots:
             alternative_artifacts.pop(slot)
 
     # Log character settings
+    log.info(f"CHARACTER: {character.name}, {character.level}/{[20, 40, 50, 60, 70, 80, 90][character.ascension]}")
     log.info(
-        f"CHARACTER: {character.name.title()}, {character.level}/{[20, 40, 50, 60, 70, 80, 90][character.ascension]}"
-    )
-    log.info(
-        f"WEAPON: {character.weapon.name_formated.title()}, {character.weapon.level}/{[20, 40, 50, 60, 70, 80, 90][character.weapon.ascension]}"
+        f"WEAPON: {character.weapon.name}, {character.weapon.level}/{[20, 40, 50, 60, 70, 80, 90][character.weapon.ascension]}"
     )
     if character.amplifying_reaction is not None:
         log.info(
@@ -93,29 +68,52 @@ def evaluate_character(
 
     # Log character stats
     log.info(f"{character.name.upper()} CURRENT STATS:")
-    current_power = power_calculator.evaluate_power(character=character, artifacts=equipped_artifacts)
+    useful_stats = potential.find_useful_stats(character, equipped_artifacts)
     current_stats = power_calculator.evaluate_stats(character=character, artifacts=equipped_artifacts)
-    current_stats = current_stats[find_useful_stats(character, equipped_artifacts)]
+    current_power = power_calculator.evaluate_power(
+        character=character, artifacts=equipped_artifacts, stats=current_stats
+    )
+    human_readable_current_stats = current_stats[useful_stats].rename(genshin_data.stat2output_map)
     log.info(f"CURRENT POWER: {current_power:>7,.0f}")
-    log.info(current_stats.to_frame().T)
+    log.info(human_readable_current_stats.to_frame().T.to_string(index=False))
     log.info("")
     # Log character future stats
-    leveled_power = power_calculator.evaluate_leveled_power(character=character, artifacts=equipped_artifacts)
+    leveled_stats = power_calculator.evaluate_stats(character=character, artifacts=equipped_artifacts, leveled=True)
+    leveled_power = power_calculator.evaluate_power(
+        character=character, artifacts=equipped_artifacts, stats=leveled_stats
+    )
     if leveled_power > current_power:
-        log.info(f"{character.name.upper()} LEVELED STATS:")
         power_delta = 100 * (leveled_power / current_power - 1)
+        human_readable_leveled_stats = leveled_stats[useful_stats].rename(genshin_data.stat2output_map)
+        log.info(f"{character.name.upper()} LEVELED STATS:")
         log.info(f"LEVELED POWER: {leveled_power:>7,.0f} | {power_delta:>+5.1f}%")
-        leveled_stats = power_calculator.evaluate_leveled_stats(character=character, artifacts=equipped_artifacts)
-        leveled_stats = leveled_stats[find_useful_stats(character, equipped_artifacts)]
-        log.info(leveled_stats.to_frame().T)
+        log.info(human_readable_leveled_stats.to_frame().T.to_string(index=False))
         log.info("")
     log.info("(Stats not shown above do not affect character power and are suppressed in artifact evaluation.)")
-    log.info(
-        "(If you belive there is a stat missing, double check `character_scaling_stat` and `character_stat_transfer` inputs.)"
-    )
     log.info("")
 
-    # TODO: Describe how good one roll of ATK% vs Crit Rate% vs DMG%
+    # Calculate expect damge boost from substat roll
+    log.info("DAMAGE INCREASE OF MAX SUBSTAT ROLL WITH LEVELED ARTIFACTS")
+    valuable_substats = [
+        substat_name for substat_name in genshin_data.substat_roll_values.keys() if substat_name in useful_stats
+    ]
+    substat_values: dict[str, float] = {}
+    for substat_name in valuable_substats:
+        substat_stats_increase = {substat_name: genshin_data.substat_roll_values[substat_name][5][-1]}  # Assume 5-star
+        substat_stats = power_calculator.evaluate_stats(
+            character=character, artifacts=equipped_artifacts, leveled=True, bonus_stats=substat_stats_increase
+        )
+        substat_power = power_calculator.evaluate_power(
+            character=character, artifacts=equipped_artifacts, stats=substat_stats
+        )
+        substat_power_delta = 100 * (substat_power / leveled_power - 1)
+        substat_values[substat_name] = substat_power_delta
+    log.info(
+        pd.Series(substat_values)
+        .rename(genshin_data.stat2output_map)
+        .to_frame()
+        .T.to_string(float_format="{:+.2}%".format, index=False)
+    )
 
     # Log number of artifacts
     log.info("Number of alternative artifacts:")
@@ -126,10 +124,10 @@ def evaluate_character(
     # Iterate through slots
     slot_potentials: dict[type, pd.DataFrame] = {}
     slot_histograms: dict[type, pd.DataFrame] = {}
-    artifact_potentials: dict[type, dict[Artifact, pd.DataFrame]] = {slot: {} for slot in slots}
-    artifact_powers: dict[type, dict[Artifact, float]] = {slot: {} for slot in slots}
-    artifact_percentiles: dict[type, dict[Artifact, float]] = {slot: {} for slot in slots}
-    artifact_scores: dict[type, dict[Artifact, float]] = {slot: {} for slot in slots}
+    artifact_potentials: dict[type, dict[artifact.Artifact, pd.DataFrame]] = {slot: {} for slot in slots}
+    artifact_powers: dict[type, dict[artifact.Artifact, float]] = {slot: {} for slot in slots}
+    artifact_percentiles: dict[type, dict[artifact.Artifact, float]] = {slot: {} for slot in slots}
+    artifact_scores: dict[type, dict[artifact.Artifact, float]] = {slot: {} for slot in slots}
     equipped_potentials: dict[type, pd.DataFrame] = {}
     equipped_expected_power: dict[type, float] = {}
     for slot in slots:
@@ -140,24 +138,25 @@ def evaluate_character(
         # Get equipped artifact
         equipped_artifact = equipped_artifacts.get_artifact(slot=slot)
         if equipped_artifact is None:
-            log.info(f"No {slot.__name__} equipped on {character_name}.")
+            log.info(f"No {slot.__name__} equipped on {character.name}.")
             log.info("")
             continue
         log.info(f"    Stars: {equipped_artifact.stars:>d}*")
         set_str_long = re.sub(r"(\w)([A-Z])", r"\1 \2", equipped_artifact.set)  # Add spaces between capitals
         log.info(f"      Set: {set_str_long}")
-        log.info(f"Main Stat: {equipped_artifact.main_stat}")
+        log.info(f"Main Stat: {genshin_data.stat2output_map[equipped_artifact.main_stat]}")
 
         # Evaluate slot potential
         if equipped_artifact.set in genshin_data.dropped_from_world_boss:
             source = "world boss"
         else:
             source = "domain"
-        slot_potential_df = individual_potential(
+        slot_potential_df = potential.individual_potential(
             character=character,
             equipped_artifacts=equipped_artifacts,
             artifact=equipped_artifact,
             source=source,
+            ignore_substats=True,
         )
         # Make slot histogram
         nbins = 250
@@ -183,7 +182,7 @@ def evaluate_character(
         log.info("!!! CURRENTLY EQUIPPED ARTIFACT !!!")
         equipped_artifact = equipped_artifacts.get_artifact(slot)
         other_artifacts = [artifact for artifact in alternative_artifacts[slot] if artifact is not equipped_artifact]
-        other_artifacts.sort(key=lambda artifact: int(artifact.name))
+        other_artifacts.sort(key=lambda artifact: int(artifact.index))
         alternative_artifacts_slot = [equipped_artifact] + other_artifacts
         for alternative_artifact in alternative_artifacts_slot:
             # Log artifact
@@ -192,11 +191,10 @@ def evaluate_character(
             )
             log.info(alternative_artifact.to_string_table())
             # Calculate potential
-            artifact_potential_df = individual_potential(
+            artifact_potential_df = potential.individual_potential(
                 character=character,
                 equipped_artifacts=equipped_artifacts,
                 artifact=alternative_artifact,
-                substat_rolls=alternative_artifact.substat_rolls,
                 source=source,
             )
             artifact_potentials[slot][alternative_artifact] = artifact_potential_df
@@ -296,6 +294,7 @@ def log_slot_power(slot_potential_df: pd.DataFrame, leveled_power: float):
     max_power = slot_potential_df["power"].max()
     max_power_increase = 100 * (max_power / min_power - 1)
     # Median Power
+    #cumsum = slot_potential_df["probability"].sparse.to_dense().cumsum()
     cumsum = slot_potential_df["probability"].cumsum()
     median_power = slot_potential_df.iloc[(cumsum >= 0.5).idxmax()]["power"]
     median_power_increase = 100 * (median_power / min_power - 1)
@@ -329,7 +328,7 @@ def log_artifact_power(
     artifact_potential_df: pd.DataFrame,
     equipped_potential_df: pd.DataFrame,
     equipped_expected_power: float,
-    artifact: Artifact,
+    artifact: artifact.Artifact,
 ):
     """Logs artifact potential to console"""
 
