@@ -15,11 +15,12 @@ plt.rcParams["figure.dpi"] = 125
 def graph_slot_potential(
     slot_potential: pd.DataFrame,
     artifact_potentials: dict[str, pd.DataFrame],
-    equipped_expected_power: float,
+    equipped_median_power: float,
     title: str,
     max_artifacts_plotted: int,
 ):
 
+    # TODO Fix whisker graphs
 
     # Calculate min and 4-sigma max power (99.93rd percentile) (if truncating)
     min_power = slot_potential["power"].min()
@@ -27,8 +28,8 @@ def graph_slot_potential(
     # TODO Reevaluate if I want 4 sigma
     # slot_cumsum = slot_potential["probability"].cumsum()
     # slot_four_sigma = slot_potential["power"].loc[(slot_cumsum >= 0.9993).idxmax()]
-    # max_power = max([artifact_power_max, slot_four_sigma, equipped_expected_power])
-    max_power = max([artifact_power_max, slot_potential["power"].max(), equipped_expected_power])
+    # max_power = max([artifact_power_max, slot_four_sigma, equipped_median_power])
+    max_power = max([artifact_power_max, slot_potential["power"].max(), equipped_median_power])
 
     # Create percentile-based histogram for slot potential
     nbins = 250
@@ -70,13 +71,13 @@ def graph_slot_potential(
     ax2.plot(index, slot_percentile, color=plot_color_dark, label="Percentile")
 
     # Draw vertical expection line
-    ax2.plot([equipped_expected_power, equipped_expected_power], [0, 1.02], "r-")
+    ax2.plot([equipped_median_power, equipped_median_power], [0, 1.02], "r-")
 
     # Cull artifact list to only the top `max_artifacts_plotted`
     artifact_medians: dict[Artifact, float] = {}
     for artifact_name, artifact_potential in artifact_potentials.items():
         artifact_cumsum = artifact_potential["probability"].cumsum()
-        artifact_medians[artifact_name] = artifact_potential["power"].loc[(artifact_cumsum >= 0.5).idxmax()]
+        artifact_medians[artifact_name] = (artifact_cumsum >= 0.5).idxmax()
     artifact_medians = dict(sorted(artifact_medians.items(), key=lambda item: item[1], reverse=True))
     for ind, artifact in enumerate(list(artifact_medians.keys())):
         if ind >= max_artifacts_plotted:
@@ -92,25 +93,25 @@ def graph_slot_potential(
     for artifact_name in artifact_medians.keys():
         artifact_potential = artifact_potentials[artifact_name]
         artifact_cumsum = artifact_potential["probability"].cumsum()
-        artifact_median = artifact_potential["power"].loc[(artifact_cumsum >= 0.5).idxmax()]
+        artifact_median = (artifact_cumsum >= 0.5).idxmax()
         x_location.append(artifact_median)
         y_location.append(slot_percentile[index[index >= artifact_median][0]])
         x_1std.append(
             [
-                -(artifact_potential["power"].loc[(artifact_cumsum >= 0.317).idxmax()] - artifact_median),
-                artifact_potential["power"].loc[(artifact_cumsum >= 1 - 0.317).idxmax()] - artifact_median,
+                -((artifact_cumsum >= 0.317).idxmax() - artifact_median),
+                (artifact_cumsum >= 1 - 0.317).idxmax() - artifact_median,
             ]
         )
         x_2std.append(
             [
-                -(artifact_potential["power"].loc[(artifact_cumsum >= 0.0455).idxmax()] - artifact_median),
-                artifact_potential["power"].loc[(artifact_cumsum >= 1 - 0.0455).idxmax()] - artifact_median,
+                -(artifact_cumsum >= 0.0455).idxmax() - artifact_median,
+                (artifact_cumsum >= 1 - 0.0455).idxmax() - artifact_median,
             ]
         )
         x_3std.append(
             [
-                -(artifact_potential["power"].loc[(artifact_cumsum >= 0.00267).idxmax()] - artifact_median),
-                artifact_potential["power"].loc[(artifact_cumsum >= 1 - 0.00267).idxmax()] - artifact_median,
+                -(artifact_cumsum >= 0.00267).idxmax() - artifact_median,
+                (artifact_cumsum >= 1 - 0.00267).idxmax() - artifact_median,
             ]
         )
         x_extremes.append(

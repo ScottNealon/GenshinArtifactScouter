@@ -96,14 +96,14 @@ class Artifacts:
             return False
         return getattr(self, slot.__name__.lower()) is not None
 
-    def get_stats(self, leveled: bool = False) -> Union[pd.Series, pd.DataFrame]:
+    def get_stats(self, leveled: bool = False, useful_stats: list[str] = None) -> Union[pd.Series, pd.DataFrame]:
         """Returns collective stats of artifacts"""
-        stats = pd.Series(0.0, index=genshin_data.pandas_headers)
+        stats = pd.Series(0.0, index=useful_stats)
         sets = {}
         # Artifact stats
         for artifact in self.artifact_list:
             if artifact is not None:
-                artifact_stats = artifact.get_stats(leveled)
+                artifact_stats = artifact.get_stats(leveled, useful_stats)
                 if (type(artifact_stats) is pd.DataFrame) and (type(stats) is pd.DataFrame):
                     raise ValueError("Cannot have two probablistic artifacts.")
                 stats = stats + artifact_stats

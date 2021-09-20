@@ -24,11 +24,6 @@ def evaluate_power(
     elif character.crits == "critHit":
         crit_stat_value = 1 + stats["critDMG_"] / 100
     elif character.crits == "avgHit":
-        # if type(stats["critRate_"]) == pd.Series:
-        #     crit_rate_column = stats["critRate_"].sparse.to_dense()
-        #     crit_rate_column[crit_rate_column > 100] = 100
-        #     stats["critRate_"] = crit_rate_column.astype(pd.SparseDtype(np.float64))
-        # else:
         stats[stats["critRate_"] > 100] = 100
         crit_stat_value = 1 + stats["critRate_"] / 100 * stats["critDMG_"] / 100
 
@@ -62,8 +57,8 @@ def evaluate_stats(
     # Agregate stats
     useful_stats = potential.find_useful_stats(character, artifacts)
     stats = pd.Series(0.0, index=useful_stats)
-    stats = stats + character.stats[useful_stats]
-    stats = stats + artifacts.get_stats(leveled)[useful_stats]
+    stats = stats + character.get_stats(useful_stats)
+    stats = stats + artifacts.get_stats(leveled, useful_stats)
     if bonus_stats is not None:
         for key, value in bonus_stats.items():
             if key in useful_stats:
@@ -76,10 +71,9 @@ def evaluate_stats(
             )
     # Apply stat transformation
     old_stats = stats.copy()
-    for destination_stat, source_stats in character.stat_transfer.items():
-        for source_stat, value in source_stats.items():
-            stats[destination_stat] += old_stats[source_stat] * value / 100
-    for destination_stat, source_stats in artifacts.stat_transfer.items():
-        for source_stat, value in source_stats.items():
-            stats[destination_stat] += old_stats[source_stat] * value / 100
+    for source in [character, artifacts]:
+        for destination_stat, source_stats in source.stat_transfer.items():
+            if destination_stat in useful_stats:
+                for source_stat, value in source_stats.items():
+                    stats[destination_stat] = stats[destination_stat] + old_stats[source_stat] * value / 100
     return stats

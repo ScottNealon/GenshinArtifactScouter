@@ -121,20 +121,23 @@ class Artifact:
 
     #     raise ValueError("Count not find a valid set of rolls to generate substat combination.")
 
-    def get_stats(self, leveled: bool = False):
+    def get_stats(self, leveled: bool = False, useful_stats: list[str] = None):
         # Substats
         if type(self.substats) is pd.DataFrame:
-            self._stats = copy.copy(self.substats)
+            stats = copy.copy(self.substats)
+            stats = stats.drop(columns=[col for col in stats if col not in useful_stats])
         else:
-            self._stats = pd.Series(0.0, index=genshin_data.pandas_headers)
+            stats = pd.Series(0.0, index=useful_stats)
             for substat in self.substats:
-                self._stats[substat["key"]] += substat["value"]
+                if substat["key"] in useful_stats:
+                    stats[substat["key"]] += substat["value"]
         # Main stat
-        if leveled:
-            self._stats[self.main_stat] += genshin_data.main_stat_scaling[self.stars][self.main_stat][self.max_level]
-        else:
-            self._stats[self.main_stat] += genshin_data.main_stat_scaling[self.stars][self.main_stat][self.level]
-        return self._stats
+        if self.main_stat in useful_stats:
+            if leveled:
+                stats[self.main_stat] += genshin_data.main_stat_scaling[self.stars][self.main_stat][self.max_level]
+            else:
+                stats[self.main_stat] += genshin_data.main_stat_scaling[self.stars][self.main_stat][self.level]
+        return stats
 
     def to_string_table(self) -> str:
         short_set_name = genshin_data.artifact_set_shortened[self.set]

@@ -119,10 +119,10 @@ def _get_weapon_stat_curves():
 
 
 def _get_substat_distribution_json():
-    def toIntIfInt(string: str):
-        """Converts string to int if string is int, else leaves as string"""
-        if string.isnumeric():
-            return int(string)
+    def toFloatIfFloat(string: str):
+        """Converts string to float if string is int, else leaves as string"""
+        if string.replace(".", "").isnumeric():
+            return float(string)
         else:
             return string
 
@@ -140,7 +140,7 @@ def _get_substat_distribution_json():
     # Read file
     with open(file_path, "r") as file_handle:
         substat_distributions = json.load(
-            file_handle, object_hook=lambda x: {toIntIfInt(k): toNumpyIfNumpy(v) for k, v in x.items()}
+            file_handle, object_hook=lambda x: {toFloatIfFloat(k): toNumpyIfNumpy(v) for k, v in x.items()}
         )
     return substat_distributions
 

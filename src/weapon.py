@@ -77,8 +77,7 @@ class Weapon:
     def passive(self) -> dict[str]:
         return self._passive
 
-    @property
-    def stats(self) -> pd.Series:
+    def get_stats(self, useful_stats: list[str]) -> pd.Series:
         # Calculate base ATK
         ascension_ATK = self._ATK_ascension_scaling[self.ascension]
         scaling_ATK = genshin_data.weapon_stat_curves[self._base_ATK_scaling][self.level]
@@ -89,12 +88,15 @@ class Weapon:
         if "_" in self.ascension_stat:
             ascension_value *= 100
         # Create stats
-        self._stats = pd.Series(0.0, index=genshin_data.pandas_headers)
-        self._stats["baseAtk"] += base_ATK
-        self._stats[self.ascension_stat] += ascension_scaling
+        stats = pd.Series(0.0, index=useful_stats)
+        if "baseAtk" in useful_stats:
+            stats["baseAtk"] += base_ATK
+        if self.ascension_stat in useful_stats:
+            stats[self.ascension_stat] += ascension_scaling
         for key, value in self.passive.items():
-            self._stats[key] += value
-        return self._stats
+            if key in useful_stats:
+                stats[key] += value
+        return stats
 
     def __str__(self) -> str:
         return f"{self.name}, Level: {self.level}"

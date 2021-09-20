@@ -57,6 +57,7 @@ def individual_potential(
         remaining_increases=remaining_increases,
         extra_substat_chance=extra_substat_chance,
         seed_substats=seed_substats,
+        useful_stats=useful_stats,
         condensable_substats=condensable_substats,
     )
 
@@ -82,6 +83,7 @@ def individual_potential(
     # Sort slot potnetial by power
     substat_instances_df["power"] = power
     substat_instances_df.sort_values("power", inplace=True)
+    substat_instances_df.reset_index(inplace=True)
 
     # Return results
     return substat_instances_df
@@ -136,14 +138,9 @@ def _make_children(
     remaining_increases: int,
     extra_substat_chance: float,
     seed_substats: dict[str],
+    useful_stats: list[str],
     condensable_substats: list[str],
 ) -> pd.DataFrame:
-
-    # Get precalculated substat distribution
-    # substat_distribution = genshin_data.substat_distributions[stars][remaining_unlocks][remaining_increases]
-
-    # Calculate initial substat count
-    initial_substats = len(seed_substats["substats"])
 
     # Create every possible substat instance by unlocking substats
     if remaining_unlocks > 0:
@@ -154,6 +151,12 @@ def _make_children(
             condensable_substats=condensable_substats,
         )
     else:
+        artifact_condensable_substat_indices = [
+            index for index, substat in enumerate(seed_substats["substats"]) if substat["key"] in condensable_substats
+        ]
+        for num, index in enumerate(artifact_condensable_substat_indices):
+            seed_substats["substats"][index]["key"] = f"condensed_{num}"
+            seed_substats["substats"][index]["value"] = np.nan
         substat_instances = [seed_substats]
 
     substat_instances_df = _calculate_substat_rolls(
@@ -161,18 +164,9 @@ def _make_children(
         stars=stars,
         remaining_unlocks=remaining_unlocks,
         remaining_increases=remaining_increases,
+        extra_substat_chance=extra_substat_chance,
+        useful_stats=useful_stats,
     )
-    # Add extra unlocks, this should only occur for 2-star artifacts (you bloody weirdo)
-    if extra_substat_chance > 0 and (initial_substats + remaining_unlocks == 4):
-        substat_instances_extra_df = _calculate_substat_rolls(
-            substat_instances=substat_instances,
-            stars=stars,
-            remaining_unlocks=remaining_unlocks,
-            remaining_increases=remaining_increases + 1,
-        )
-        substat_instances_df["probability"] = substat_instances_df["probability"] * (1 - extra_substat_chance)
-        substat_instances_extra_df["probability"] = substat_instances_extra_df["probability"] * extra_substat_chance
-        substat_instances_df = pd.concat([substat_instances_df, substat_instances_extra_df], axis=0, ignore_index=True)
 
     return substat_instances_df
 
@@ -245,7 +239,12 @@ def _add_substats(
 
 
 def _calculate_substat_rolls(
-    substat_instances: list[dict[str]], stars: int, remaining_unlocks: int, remaining_increases: int
+    substat_instances: list[dict[str]],
+    stars: int,
+    remaining_unlocks: int,
+    remaining_increases: int,
+    extra_substat_chance: float,
+    useful_stats: list[str],
 ) -> pd.DataFrame:
 
     # Iterate through substat instances
@@ -288,35 +287,17 @@ def _calculate_substat_rolls(
 
         # Create dataframe
         substat_instance_df = pd.DataFrame(stats, columns=columns)
-        substat_instance_df["probability"] = substat_distribution["probability"] / num_instances
+        substat_instance_df["probability"] = substat_distribution["probabilities"][extra_substat_chance] / num_instances
 
         # Append to list
         substat_instance_dfs.append(substat_instance_df)
 
     # Create composite dataframe
-    substat_instances_dfs = pd.concat(substat_instance_dfs, axis=0, ignore_index=True).fillna(0)
-
-    # TODO Find a faster way to do this
-
-    # non_probability_columns = [column for column in substat_instances_dfs.columns if column != "probability"]
-
-    # duplicates = substat_instances_dfs.duplicated(non_probability_columns)
-    # unique_substat_instance_df: pd.DataFrame = substat_instances_dfs[~duplicates]
-
-    # Iterate through duplicated rows, summing probability
-    # for index, row in unique_substat_instance_df.iterrows():
-    #     print(index)
-    #     matches = (substat_instances_dfs[non_probability_columns] == row[non_probability_columns]).all(axis=1)
-    #     unique_substat_instance_df.loc[index, "probability"] = substat_instances_dfs[matches]["probability"].sum()
-    #     substat_instances_dfs.drop(substat_instances_dfs.index[matches])
+    substat_instances_dfs = pd.concat(substat_instance_dfs, axis=0, ignore_index=True).fillna(0.0)
 
     # Add remaining columns
-    remaining_columns = [
-        header for header in genshin_data.pandas_headers if header not in substat_instances_dfs.columns
-    ]
-    substat_instances_dfs[remaining_columns] = 0
-
-    # Save as spare
-    # substat_instances_dfs = substat_instances_dfs.astype(pd.SparseDtype("float", 0))
+    for header in useful_stats:
+        if header not in substat_instances_dfs.columns:
+            substat_instances_dfs[header] = pd.Series(0.0, index=substat_instances_dfs.index)
 
     return substat_instances_dfs

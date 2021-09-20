@@ -5,22 +5,17 @@ import logging
 import math
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
-from src import artifact, genshin_data, graphing, potential, power_calculator
-
-if TYPE_CHECKING:
-    from .GOOD_database import GenshinOpenObjectDescriptionDatabase
+from src import GOOD_database, artifact, genshin_data, graphing, list_mapper, potential, power_calculator
 
 log = logging.getLogger(__name__)
 
 
 def evaluate_character(
-    database: GenshinOpenObjectDescriptionDatabase,
+    database: GOOD_database.GenshinOpenObjectDescriptionDatabase,
     character_key: str,
     slots: list[type] = [artifact.Flower, artifact.Plume, artifact.Sands, artifact.Goblet, artifact.Circlet],
     log_to_file: bool = True,
@@ -114,6 +109,7 @@ def evaluate_character(
         .to_frame()
         .T.to_string(float_format="{:+.2}%".format, index=False)
     )
+    log.info("")
 
     # Log number of artifacts
     log.info("Number of alternative artifacts:")
@@ -123,13 +119,15 @@ def evaluate_character(
 
     # Iterate through slots
     slot_potentials: dict[type, pd.DataFrame] = {}
-    slot_histograms: dict[type, pd.DataFrame] = {}
+    slot_cumsums: dict[type, pd.Series] = {}
     artifact_potentials: dict[type, dict[artifact.Artifact, pd.DataFrame]] = {slot: {} for slot in slots}
+    artifact_cumsums: dict[type, dict[artifact.Artifact, pd.Series]] = {slot: {} for slot in slots}
     artifact_powers: dict[type, dict[artifact.Artifact, float]] = {slot: {} for slot in slots}
     artifact_percentiles: dict[type, dict[artifact.Artifact, float]] = {slot: {} for slot in slots}
     artifact_scores: dict[type, dict[artifact.Artifact, float]] = {slot: {} for slot in slots}
     equipped_potentials: dict[type, pd.DataFrame] = {}
-    equipped_expected_power: dict[type, float] = {}
+    equipped_cumsums: dict[type, pd.Series] = {}
+    equipped_median_power: dict[type, float] = {}
     for slot in slots:
 
         log.info("-" * 140)
@@ -158,22 +156,14 @@ def evaluate_character(
             source=source,
             ignore_substats=True,
         )
-        # Make slot histogram
-        nbins = 250
-        bin_size = (slot_potential_df["power"].max() - slot_potential_df["power"].min()) / nbins
-        index = np.linspace(slot_potential_df["power"].min() + bin_size, slot_potential_df["power"].max(), num=nbins)
-        slot_histogram = pd.Series(0, index=index)
-        previous_bin = -np.Infinity
-        for bin_top in index:
-            slot_histogram.loc[bin_top] = slot_potential_df["probability"][
-                (previous_bin < slot_potential_df["power"]) & (slot_potential_df["power"] <= bin_top)
-            ].sum()
-            previous_bin = bin_top
-        # Save Results
+        # Calculate cumsum
+        slot_cumsum = slot_potential_df["probability"].cumsum()
+        slot_cumsum.index = slot_potential_df["power"]
+        # Save potential and cumsum
         slot_potentials[slot] = slot_potential_df
-        slot_histograms[slot] = slot_histogram
-
-        log_slot_power(slot_potential_df=slot_potential_df, leveled_power=leveled_power)
+        slot_cumsums[slot] = slot_cumsum
+        # Log results
+        log_slot_power(slot_cumsum=slot_cumsums[slot], leveled_power=leveled_power)
         log.info("")
 
         # Evaluate artifact potential
@@ -197,26 +187,29 @@ def evaluate_character(
                 artifact=alternative_artifact,
                 source=source,
             )
+            # Save potential
             artifact_potentials[slot][alternative_artifact] = artifact_potential_df
-            # Save expected power
-            cumsum = artifact_potential_df["probability"].cumsum()
-            artifact_powers[slot][alternative_artifact] = artifact_potential_df.loc[(cumsum >= 0.5).idxmax()]["power"]
-            # Save expected equipped power
-            if slot not in equipped_expected_power:
-                equipped_expected_power[slot] = artifact_powers[slot][alternative_artifact]
+            # Save median power
+            artifact_cumsum = artifact_potential_df["probability"].cumsum()
+            artifact_cumsum.index = artifact_potential_df["power"]
+            artifact_powers[slot][alternative_artifact] = artifact_cumsum.index[artifact_cumsum >= 0.5][0]
+            # Save median equipped power
+            if slot not in equipped_median_power:
+                equipped_median_power[slot] = artifact_powers[slot][alternative_artifact]
                 equipped_potentials[slot] = artifact_potential_df
+                equipped_cumsums[slot] = artifact_cumsum
             # Log results (and calculate score)
             percentile, score, beat_equipped_chance = log_artifact_power(
-                slot_potential_df=slot_potential_df,
-                slot_histogram=slot_histograms[slot],
+                slot_cumsum=slot_cumsums[slot],
                 artifact_potential_df=artifact_potential_df,
-                equipped_potential_df=equipped_potentials[slot],
-                equipped_expected_power=equipped_expected_power[slot],
+                artifact_cumsum=artifact_cumsum,
+                equipped_median_power=equipped_median_power[slot],
+                equipped_cumsum=equipped_cumsums[slot],
                 artifact=alternative_artifact,
             )
             # Save excpected percentile
             artifact_percentiles[slot][alternative_artifact] = percentile
-            # Save expected score
+            # Save median score
             artifact_scores[slot][alternative_artifact] = (score, beat_equipped_chance)
             log.info("")
 
@@ -276,103 +269,103 @@ def evaluate_character(
             graphing.graph_slot_potential(
                 slot_potential=slot_potentials[slot],
                 artifact_potentials=artifact_potentials[slot],
-                equipped_expected_power=equipped_expected_power[slot],
+                equipped_median_power=equipped_median_power[slot],
                 title=title,
                 max_artifacts_plotted=max_artifacts_plotted,
             )
         plt.show()
 
     # Remove file handler from logger
-    log.removeHandler(file_handler)
+    if log_to_file:
+        log.removeHandler(file_handler)
 
 
-def log_slot_power(slot_potential_df: pd.DataFrame, leveled_power: float):
+def log_slot_power(slot_cumsum: pd.Series, leveled_power: float):
     """Logs slot potential to console"""
-    # Minimum Power
-    min_power = slot_potential_df["power"].min()
-    # Maximum Power
-    max_power = slot_potential_df["power"].max()
-    max_power_increase = 100 * (max_power / min_power - 1)
-    # Median Power
-    #cumsum = slot_potential_df["probability"].sparse.to_dense().cumsum()
-    cumsum = slot_potential_df["probability"].cumsum()
-    median_power = slot_potential_df.iloc[(cumsum >= 0.5).idxmax()]["power"]
-    median_power_increase = 100 * (median_power / min_power - 1)
-    # Base Power
-    if leveled_power is not None:
-        leveled_power_increase = 100 * (leveled_power / min_power - 1)
-        leveled_power_percentile = (
-            100 * slot_potential_df["probability"][slot_potential_df["power"] < leveled_power].sum()
-        )
+    # Power
+    min_power = slot_cumsum.index.min()
+    median_power = slot_cumsum.index[slot_cumsum >= 0.5][0]
+    max_power = slot_cumsum.index.max()
+    # Power Ratio
+    min_power_ratio = 100 * min_power / max_power
+    median_power_ratio = 100 * median_power / max_power
+    max_power_ratio = 100
+    leveled_power_ratio = 100 * leveled_power / max_power
+    # Power Increase
+    # TODO: Scale these off of equipped median power. This will require being patient to get results of later iteration.
+    min_power_increase = 100 * (min_power - leveled_power) / leveled_power
+    median_power_increase = 100 * (median_power - leveled_power) / leveled_power
+    max_power_increase = 100 * (max_power - leveled_power) / leveled_power
+    leveled_power_increase = 0.0
+    # Percentile
+    leveled_power_percentile = 100 * slot_cumsum[slot_cumsum.index <= leveled_power].iloc[-1]
     # Log to console
     log_strings = [
-        f"Slot Min Power:         {min_power:>7,.0f} |  +0.0%",
-        f"Slot Expected Power:    {median_power:>7,.0f} | {median_power_increase:>+5.1f}%",
-        f"Slot Max Power:         {max_power:>7,.0f} | {max_power_increase:>+5.1f}%",
+        f"Slot Min Power:         {min_power:>7,.0f} | {min_power_ratio:>5.1f}% | {min_power_increase:>+5.1f}%",
+        f"Slot Expected Power:    {median_power:>7,.0f} | {median_power_ratio:>5.1f}% | {median_power_increase:>+5.1f}%",
+        f"Slot Max Power:         {max_power:>7,.0f} | {max_power_ratio:>5.1f}% | {max_power_increase:>+5.1f}%",
     ]
-    if leveled_power is not None:
-        leveled_power_str = (
-            f"Artifact Leveled Power: {leveled_power:>7,.0f} | "
-            f"{leveled_power_increase:>+5.1f}% | "
-            f"{_percentile_str_to_suffix(_unbounded_percentile_to_string(leveled_power_percentile))} Slot Percentile"
-        )
-        leveled_position = int(leveled_power >= min_power) + int(leveled_power >= median_power)
-        log_strings.insert(leveled_position, leveled_power_str)
+    leveled_power_str = (
+        f"Artifact Leveled Power: {leveled_power:>7,.0f} | "
+        f"{leveled_power_ratio:>5.1f}% | "
+        f"{leveled_power_increase:>+5.1f}% | "
+        f"{_percentile_str_to_suffix(_unbounded_percentile_to_string(leveled_power_percentile))} Slot Percentile"
+    )
+    leveled_position = int(leveled_power >= min_power) + int(leveled_power >= median_power)
+    log_strings.insert(leveled_position, leveled_power_str)
     for log_string in log_strings:
         log.info(log_string)
 
 
 def log_artifact_power(
-    slot_potential_df: pd.DataFrame,
-    slot_histogram: pd.DataFrame,
+    slot_cumsum: pd.Series,
     artifact_potential_df: pd.DataFrame,
-    equipped_potential_df: pd.DataFrame,
-    equipped_expected_power: float,
+    artifact_cumsum: pd.Series,
+    equipped_cumsum: pd.Series,
+    equipped_median_power: float,
     artifact: artifact.Artifact,
 ):
     """Logs artifact potential to console"""
-
-    # Slot Power
-    slot_min_power = slot_potential_df["power"].min()
-    # Minimum Artifact Power
-    artifact_min_power = artifact_potential_df["power"].min()
-    min_power_increase = 100 * (artifact_min_power / slot_min_power - 1)
-    min_power_slot_percentile = (
-        100 * slot_potential_df["probability"][slot_potential_df["power"] < artifact_min_power].sum()
-    )
-    # Median Artifact Power
-    cumsum = artifact_potential_df["probability"].cumsum()
-    artifact_median_power = artifact_potential_df.loc[(cumsum >= 0.5).idxmax()]["power"]
-    median_power_increase = 100 * (artifact_median_power / slot_min_power - 1)
-    median_power_slot_percentile = (
-        100 * slot_potential_df["probability"][slot_potential_df["power"] < artifact_median_power].sum()
-    )
-    # Maximum Artifact Power
-    artifact_max_power = artifact_potential_df["power"].max()
-    max_power_increase = 100 * (artifact_max_power / slot_min_power - 1)
-    max_power_slot_percentile = (
-        100 * slot_potential_df["probability"][slot_potential_df["power"] < artifact_max_power].sum()
-    )
+    # Power
+    artifact_min_power = artifact_cumsum.index.min()
+    artifact_median_power = artifact_cumsum.index[artifact_cumsum >= 0.5][0]
+    artifact_max_power = artifact_cumsum.index.max()
+    slot_max_power = slot_cumsum.index.max()
+    # Power Ratio
+    artifact_min_power_ratio = 100 * artifact_min_power / slot_max_power
+    artifact_median_power_ratio = 100 * artifact_median_power / slot_max_power
+    artifact_max_power_ratio = 100 * artifact_max_power / slot_max_power
+    # Power Increase
+    artifact_min_power_increase = 100 * (artifact_min_power - equipped_median_power) / equipped_median_power
+    artifact_median_power_increase = 100 * (artifact_median_power - equipped_median_power) / equipped_median_power
+    artifact_max_power_increase = 100 * (artifact_max_power - equipped_median_power) / equipped_median_power
+    # Percentile
+    artifact_min_power_percentile = 100 * slot_cumsum[slot_cumsum.index <= artifact_min_power].iloc[-1]
+    artifact_median_power_percentile = 100 * slot_cumsum[slot_cumsum.index <= artifact_median_power].iloc[-1]
+    artifact_max_power_percentile = 100 * slot_cumsum[slot_cumsum.index <= artifact_max_power].iloc[-1]
 
     # Prepare artifact log strings
     log_strings = [
         (
             f"Artifact Expected Power: {artifact_median_power:>7,.0f} | "
-            f"{median_power_increase:>+5.1f}% | "
-            f"{median_power_slot_percentile:>5.1f}{_suffix(median_power_slot_percentile)} Slot Percentile"
+            f"{artifact_median_power_ratio:>5.1f}% | "
+            f"{artifact_median_power_increase:>+5.1f}% | "
+            f"{artifact_median_power_percentile:>5.1f}{_suffix(artifact_median_power_percentile)} Slot Percentile"
         )
     ]
     num_child_artifacts = artifact_potential_df.shape[0]
     if num_child_artifacts > 1:
         min_power_str = (
             f"Artifact Min Power:      {artifact_min_power:>7,.0f} | "
-            f"{min_power_increase:>+5.1f}% | "
-            f"{min_power_slot_percentile:>5.1f}{_suffix(min_power_slot_percentile)} Slot Percentile"
+            f"{artifact_min_power_ratio:>5.1f}% | "
+            f"{artifact_min_power_increase:>+5.1f}% | "
+            f"{artifact_min_power_percentile:>5.1f}{_suffix(artifact_min_power_percentile)} Slot Percentile"
         )
         max_power_str = (
             f"Artifact Max Power:      {artifact_max_power:>7,.0f} | "
-            f"{max_power_increase:>+5.1f}% | "
-            f"{max_power_slot_percentile:>5.1f}{_suffix(max_power_slot_percentile)} Slot Percentile"
+            f"{artifact_max_power_ratio:>5.1f}% | "
+            f"{artifact_max_power_increase:>+5.1f}% | "
+            f"{artifact_max_power_percentile:>5.1f}{_suffix(artifact_max_power_percentile)} Slot Percentile"
         )
         log_strings = [min_power_str] + log_strings + [max_power_str]
     # Log to console
@@ -382,29 +375,51 @@ def log_artifact_power(
     # Calculate artifact score
     # Chance to drop artifact with same set, slot, and main_stat
     drop_chance = 0.5 * 0.2 * genshin_data.main_stat_drop_rate[type(artifact).__name__][artifact.main_stat] / 100
+    # TODO: If flex, raise drop_chance
+
+    # Create map between artifact power and slot power for probabalistic integration
+    artifact_probability_by_power = artifact_potential_df["probability"]
+    artifact_probability_by_power.index = artifact_potential_df["power"]
+    artifact_power_list = artifact_probability_by_power.index.tolist()
+    slot_power_list = slot_cumsum.index.tolist()
+    artifact2slot_map = list_mapper.map_float_lists(artifact_power_list, slot_power_list)
+
     # Chance of dropping better artifact
-    slot_better_chance = 0
-    for _, artifact_potential_instance in artifact_potential_df.iterrows():
-        slot_better_chance += (
-            artifact_potential_instance["probability"]
-            * slot_histogram[slot_histogram.index < artifact_potential_instance["power"]].sum()
-        )
+    slot_better_chance = 0.0
+    for artifact_power, slot_power in artifact2slot_map.items():
+        if slot_power is not None:
+            artifact_prob = artifact_probability_by_power.loc[artifact_power]
+            if type(artifact_prob) is pd.Series:
+                artifact_prob = artifact_prob.iloc[-1]
+            slot_cumulative_probability = slot_cumsum.loc[slot_power]
+            if type(slot_cumulative_probability) is pd.Series:
+                slot_cumulative_probability = slot_cumulative_probability.iloc[-1]
+            slot_better_chance += artifact_prob * slot_cumulative_probability
+
     # Score
     score = 1 / (drop_chance * (1 - slot_better_chance))
     log_str = f"Artifact Score: {score:>6,.1f} Runs"
-    # Better than equipped chance
-    if equipped_expected_power != artifact_median_power:
-        beat_equipped_chance = 0
-        for _, equipped_potential_instance in equipped_potential_df.iterrows():
-            beat_equipped_chance += 100 * (
-                equipped_potential_instance["probability"]
-                * artifact_potential_df[artifact_potential_df["power"] > equipped_potential_instance["power"]][
-                    "probability"
-                ].sum()
-            )
-        # Deal with computer floating point error
-        if beat_equipped_chance < 0.0:
-            beat_equipped_chance = 0.0
+
+    # Run if not currently equipped artifact
+    if equipped_median_power != artifact_median_power:
+
+        # Create map between artifact power and equipped power for probabalistic integration
+        equipped_power_list = equipped_cumsum.index.tolist()
+        artifact2equipped_map = list_mapper.map_float_lists(artifact_power_list, equipped_power_list)
+
+        # Chance of beating equipped artifact
+        beat_equipped_chance = 0.0
+        for artifact_power, equipped_power in artifact2equipped_map.items():
+            if equipped_power is not None:
+                artifact_prob = artifact_probability_by_power.loc[artifact_power]
+                if type(artifact_prob) is pd.Series:
+                    artifact_prob = artifact_prob.iloc[-1]
+                equipped_cumulative_probability = equipped_cumsum.loc[equipped_power]
+                if type(equipped_cumulative_probability) is pd.Series:
+                    equipped_cumulative_probability = equipped_cumulative_probability.iloc[-1]
+                beat_equipped_chance += artifact_prob * equipped_cumulative_probability
+
+        # Format chance to beat
         if beat_equipped_chance >= 100:
             decimal.getcontext().prec = 4
             beat_equipped_chance_str = str(decimal.getcontext().create_decimal(beat_equipped_chance)) + "%"
@@ -421,7 +436,7 @@ def log_artifact_power(
         beat_equipped_chance = None
     log.info(log_str)
 
-    return median_power_slot_percentile, score, beat_equipped_chance
+    return artifact_median_power_percentile, score, beat_equipped_chance
 
 
 def _unbounded_percentile_to_string(percentile: float):

@@ -150,8 +150,7 @@ class Character:
             ascension_value *= 100
         return ascension_value
 
-    @property
-    def stats(self) -> pd.Series:
+    def get_stats(self, useful_stats: list[str] = None) -> pd.Series:
         # Calculate base HP
         ascension_HP = self._HP_ascension_scaling[self.ascension]
         scaling_HP = genshin_data.character_stat_curves[f"GROW_CURVE_HP_S{self._stars}"][self.level]
@@ -166,19 +165,27 @@ class Character:
         # Yes, character DEF follows the same curve as HP.
         base_DEF = self._initial_DEF * scaling_DEF + ascension_DEF
         # Create stats
-        stats = pd.Series(0.0, index=genshin_data.pandas_headers)
-        stats["baseHp"] += base_HP
-        stats["baseAtk"] += base_ATK
-        stats["baseDef"] += base_DEF
-        stats["critRate_"] += 5
-        stats["critDMG_"] += 50
-        stats["enerRech_"] += 100
-        stats[self.ascension_stat] += self.ascension_stat_value
+        stats = pd.Series(0.0, index=useful_stats)
+        if "baseHp" in useful_stats:
+            stats["baseHp"] += base_HP
+        if "baseAtk" in useful_stats:
+            stats["baseAtk"] += base_ATK
+        if "baseDef" in useful_stats:
+            stats["baseDef"] += base_DEF
+        if "critRate_" in useful_stats:
+            stats["critRate_"] += 5
+        if "critDMG_" in useful_stats:
+            stats["critDMG_"] += 50
+        if "enerRech_" in useful_stats:
+            stats["enerRech_"] += 100
+        if self.ascension_stat in useful_stats:
+            stats[self.ascension_stat] += self.ascension_stat_value
         for stat, value in self.passive.items():
-            stats[stat] += value
+            if stat in useful_stats:
+                stats[stat] += value
         if self.weapon is None:
             raise ValueError("Character does not have a weapon.")
-        stats += self.weapon.stats
+        stats += self.weapon.get_stats(useful_stats)
         return stats
 
     def __str__(self) -> str:
